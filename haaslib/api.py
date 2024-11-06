@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import copy
+
 import dataclasses
 import json
 import random
 from typing import (
-    Any,
     Collection,
     Generic,
     Iterable,
@@ -40,8 +39,9 @@ from haaslib.model import (
     LabDetails,
     LabRecord,
     LabExecutionUpdate,
-    LabConfig,
     LabSettings,
+    AccountDetails,
+    AccountData,
 )
 from haaslib.parameters import (
     LabParameter,
@@ -51,6 +51,7 @@ from haaslib.parameters import (
     BacktestStatus,
     LabAlgorithm
 )
+
 
 ApiResponseData = TypeVar(
     "ApiResponseData", bound=BaseModel | Collection[BaseModel] | bool | str
@@ -192,15 +193,7 @@ class RequestsExecutor(Generic[State]):
         response_type: Type[ApiResponseData],
         query_params: Optional[dict] = None,
     ) -> ApiResponseData:
-        """
-        Executes any request to Haas API and serialized it's reponse
-
-        :param endpoint: Actual Haas API endpoint
-        :param response_type: Pydantic class for response deserialization
-        :param query_params: Endpoint parameters
-        :raises HaasApiError: If API returned any error
-        :return: API response deserialized into `response_type`
-        """
+        """Execute an API request."""
         match self.state:
             case Authenticated():
                 resp = cast(
@@ -213,7 +206,10 @@ class RequestsExecutor(Generic[State]):
             case _:
                 raise ValueError(f"Unknown auth state: {self.state}")
 
-        return resp.Data
+        if not resp.success:
+            raise HaasApiError(resp.error or "Request failed")
+
+        return resp.data
 
     def _execute_authenticated(
         self: RequestsExecutor[Authenticated],
@@ -221,14 +217,12 @@ class RequestsExecutor(Generic[State]):
         response_type: Type[ApiResponseData],
         query_params: Optional[dict] = None,
     ) -> ApiResponse[ApiResponseData]:
-        if query_params is None:
-            query_params = {}
-        else:
-            query_params = copy.deepcopy(query_params)
-
-        query_params["userid"] = self.state.user_id
-        query_params["interfacekey"] = self.state.interface_key
-
+        """Execute request with authentication."""
+        query_params = query_params or {}
+        query_params.update({
+            "userid": self.state.user_id,
+            "interfacekey": self.state.interface_key,
+        })
         return self._execute_inner(endpoint, response_type, query_params)
 
     def _execute_guest(
@@ -237,6 +231,7 @@ class RequestsExecutor(Generic[State]):
         response_type: Type[ApiResponseData],
         query_params: Optional[dict] = None,
     ) -> ApiResponse[ApiResponseData]:
+        """Execute request without authentication."""
         return self._execute_inner(endpoint, response_type, query_params)
 
     def _execute_inner(
@@ -245,6 +240,7 @@ class RequestsExecutor(Generic[State]):
         response_type: Type[ApiResponseData],
         query_params: Optional[dict] = None,
     ) -> ApiResponse[ApiResponseData]:
+        """Internal method to execute the actual HTTP request."""
         url = f"{self.protocol}://{self.host}:{self.port}/{endpoint}API.php"
         log.debug(
             f"[{self.state.__class__.__name__}]: Requesting {url=} with {query_params=}"
@@ -268,74 +264,26 @@ class RequestsExecutor(Generic[State]):
 
         resp = requests.get(url, params=query_params)
         resp.raise_for_status()
-        
-        raw_response = resp.json()
-        
-        # Add debug logging for response
-        log.debug(f"Raw API response: {raw_response}")
-        
+
+        ta = TypeAdapter(ApiResponse[response_type])
+
         try:
-            ta = TypeAdapter(ApiResponse[response_type])
-            return ta.validate_python(raw_response)
-        except ValidationError as e:
-            log.error(f"Validation error details: {e.errors()}")
-            log.error(f"Raw response content: {resp.content}")
-            raise HaasApiError(f"Failed to validate API response: {e}") from e
+            return ta.validate_python(resp.json())
+        except ValidationError:
+            log.error(f"Failed to request: {resp.content}")
+            raise
 
     @staticmethod
     def _custom_encoder(**kwargs):
+        """Custom JSON encoder for complex types."""
         def base_encoder(obj):
             if isinstance(obj, BaseModel):
                 return obj.model_dump(**kwargs)
             else:
                 return pydantic_encoder(obj)
-
         return base_encoder
 
 
-def get_all_markets(executor: SyncExecutor[Any]) -> list[CloudMarket]:
-    """
-    Retrieves information about all available markets.
-
-    :param executor: Executor for Haas API interaction
-    :raises HaasApiError: If something goes wrong (Not found yet)
-    :return: List with all cloud markets
-    """
-    return executor.execute(
-        endpoint="Price",
-        response_type=list[CloudMarket],
-        query_params={"channel": "MARKETLIST"},
-    )
-
-
-def get_all_markets_by_pricesource(
-    executor: SyncExecutor[Any], price_source: str
-) -> list[CloudMarket]:
-    """
-    Retrieves information about markets from a specific price source.
-
-    :param executor: Executor for Haas API interaction
-    :param price_source: The specific price source for which market information is requested
-    :raises HaasApiError: If something goes wrong (Not found yet)
-    :return: List with cloud markets with the given `price_source`
-    """
-    return executor.execute(
-        endpoint="Price",
-        response_type=list[CloudMarket],
-        query_params={"channel": "MARKETLIST", "pricesource": price_source},
-    )
-
-
-def get_unique_pricesources(executor: SyncExecutor[Any]) -> set[str]:
-    """
-    Returns all unique price sources
-
-    :param executor: Executor for Haas API interaction
-    :raises HaasApiError: If something goes wrong (Not found yet)
-    :return: Set of price sources
-    """
-    all_markets = get_all_markets(executor)
-    return set(m.price_source for m in all_markets)
 
 
 def get_all_scripts(
@@ -644,3 +592,19 @@ def get_scripts_by_name(
         return [s for s in scripts if name_pattern in s.script_name.lower()]
     
     return [s for s in scripts if name_pattern in s.script_name]
+
+
+def get_account_data(
+    executor: SyncExecutor[Authenticated],
+    account_id: str
+) -> AccountData:
+    """Get detailed information about an account including its exchange"""
+    return executor.execute(
+        endpoint="Account",
+        response_type=AccountData,
+        query_params={
+            "channel": "GET_ACCOUNT_DATA",
+            "accountid": account_id
+        }
+    )
+

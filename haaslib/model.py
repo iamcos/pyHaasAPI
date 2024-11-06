@@ -5,7 +5,7 @@ from typing_extensions import Self
 from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
 
-from haaslib.domain import MarketTag, Script
+from haaslib.domain import Script
 from haaslib.parameters import (
     LabParameter,
     LabStatus,
@@ -123,13 +123,22 @@ PriceDataStyle = Literal[
     "Mountain",
 ]
 
+class CloudMarket(BaseModel):
+    category: str = Field(alias="C")
+    price_source: str = Field(alias="PS")
+    primary: str = Field(alias="P")
+    secondary: str = Field(alias="S")
+
+    def format_market_tag(self, exchange_code: str) -> str:
+        return f"{exchange_code}_{self.primary}_{self.secondary}_"
+
 
 @dataclasses.dataclass
 class CreateLabRequest:
     script_id: str
     name: str
     account_id: str
-    market: MarketTag
+    market: str
     interval: int
     default_price_data_style: PriceDataStyle
 
@@ -138,15 +147,20 @@ class CreateLabRequest:
         cls: Type[Self],
         script_id: str,
         account_id: str,
-        market: MarketTag,
+        market: CloudMarket,
+        exchange_code: str,
         interval: int,
         default_price_data_style: PriceDataStyle,
     ) -> Self:
-        name = f"{interval}_{market.tag}_{script_id}_{account_id}"
+        name = f"{interval}_{market.primary}_{market.secondary}_{script_id}_{account_id}"
+        
+        # Format market tag string
+        market_tag = f"{exchange_code}_{market.primary}_{market.secondary}_"
+        
         return cls(
             script_id=script_id,
             account_id=account_id,
-            market=market,
+            market=market_tag,
             interval=interval,
             default_price_data_style=default_price_data_style,
             name=name,
@@ -157,7 +171,7 @@ class UserAccount(BaseModel):
     user_id: str = Field(alias="UID")
     account_id: str = Field(alias="AID")
     name: str = Field(alias="N")
-    exchnage_code: str = Field(alias="EC")
+    exchange_code: str = Field(alias="EC")
     exchange_type: int = Field(alias="ET")
     status: int = Field(alias="S")
     is_simulated: bool = Field(alias="IS")
@@ -231,11 +245,7 @@ class StartLabExecutionRequest(BaseModel):
         populate_by_name = True
 
 
-class CloudMarket(BaseModel):
-    category: str = Field(alias="C")
-    price_source: str = Field(alias="PS")
-    primary: str = Field(alias="P")
-    secondary: str = Field(alias="S")
+
 
 
 
@@ -453,3 +463,18 @@ class LabExecutionUpdate(BaseModel):
 
 
 # Then use it in the result model
+
+class AccountDetails(BaseModel):
+    account_id: str
+    exchange: str
+    account_type: str
+    # ... other fields as needed ...
+
+class AccountData(BaseModel):
+    """Account data including exchange information"""
+    account_id: str
+    exchange: str
+    type: str
+    wallets: List[dict]  # We can define a proper Wallet model if needed
+    # Add other fields as needed based on the API response
+
