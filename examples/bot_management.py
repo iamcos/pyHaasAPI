@@ -2,6 +2,7 @@ import random
 
 from haaslib import api
 from haaslib.model import CreateBotRequest
+from haaslib.price import PriceAPI
 
 
 def main():
@@ -9,7 +10,8 @@ def main():
         host="127.0.0.1", port=8090, state=api.Guest()
     ).authenticate(email="admin@admin.com", password="adm2inadm4in!")
 
-    market = random.choice(api.get_all_markets(executor))
+    price_api = PriceAPI(executor)
+    market = random.choice(price_api.get_all_markets())
     account = random.choice(api.get_accounts(executor))
     script = random.choice(api.get_all_scripts(executor))
 

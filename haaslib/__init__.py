@@ -1,3 +1,11 @@
+from haaslib.types import (
+    UserState,
+    Guest,
+    Authenticated,
+    HaasApiError,
+    SyncExecutor,
+)
+
 from haaslib.parameters import (
     LabParameter,
     LabStatus,
@@ -12,15 +20,8 @@ from haaslib.model import (
     LabDetails,
 )
 
-from haaslib.api import (
-    RequestsExecutor,
-    Guest,
-    Authenticated,
-    HaasApiError,
-)
-
 __all__ = [
-    'RequestsExecutor',
+    'SyncExecutor',
     'Guest',
     'Authenticated',
     'HaasApiError',
