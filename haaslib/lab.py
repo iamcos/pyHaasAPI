@@ -2,7 +2,8 @@ import dataclasses
 import random
 import time
 from contextlib import contextmanager
-from typing import Generator, Iterable, Sequence
+from typing import Generator, Iterable, Sequence, List, Dict, Any, Union
+from decimal import Decimal
 
 from haaslib import api, iterable_extensions
 from haaslib.api import Authenticated, SyncExecutor
@@ -15,7 +16,12 @@ from haaslib.model import (
     UserLabBacktestResult,
     UserLabParameter,
     UserLabParameterOption,
-    UserLabStatus,
+    LabStatus,
+    LabParameter,
+    ParameterType,
+    ParameterRange,
+    UserLabConfig,
+    UserLabSettings,
 )
 
 
@@ -45,9 +51,9 @@ def wait_for_execution(executor: SyncExecutor[Authenticated], lab_id: str):
     while True:
         details = api.get_lab_details(executor, lab_id)
         match details.status:
-            case UserLabStatus.COMPLETED:
+            case LabStatus.COMPLETED:
                 break
-            case UserLabStatus.CANCELLED:
+            case LabStatus.CANCELLED:
                 break
             case _:
                 pass
@@ -105,3 +111,122 @@ def get_lab_default_params(
     yield lab_details.parameters
 
     api.delete_lab(executor, lab_details.lab_id)
+
+
+def parse_parameter_type(param: Dict[str, Any]) -> ParameterType:
+    """Determine parameter type from API response"""
+    type_code = param.get('T', 3)  # Default to STRING if type not specified
+    return ParameterType(type_code)
+
+def get_lab_parameters(executor: SyncExecutor[Authenticated], lab_id: str) -> List[LabParameter]:
+    """
+    Retrieve and parse lab parameters
+    
+    Args:
+        executor: Authenticated API executor
+        lab_id: ID of the lab
+        
+    Returns:
+        List of LabParameter objects
+    """
+    lab_details = api.get_lab_details(executor, lab_id)
+    parameters = []
+    
+    for param_dict in lab_details.parameters:
+        # Parse raw parameter dictionary
+        param_type = parse_parameter_type(param_dict)
+        
+        # Extract options and current value
+        options = param_dict.get('O', [])  # Options field from API
+        current_value = options[0] if options else None
+        
+        # Create parameter range based on type
+        range_config = None
+        if param_type in (ParameterType.INTEGER, ParameterType.DECIMAL):
+            if len(options) > 1:
+                is_decimal = param_type == ParameterType.DECIMAL
+                decimals = 3 if is_decimal else 0
+                
+                range_config = ParameterRange(
+                    start=min(options),
+                    end=max(options),
+                    step=options[1] - options[0] if len(options) > 1 else 1,
+                    decimals=decimals
+                )
+        elif param_type == ParameterType.SELECTION:
+            range_config = ParameterRange(selection_values=options)
+        
+        parameters.append(LabParameter(
+            name=param_dict.get('K', ''),  # Key field from API
+            param_type=param_type,
+            current_value=current_value,
+            range_config=range_config,
+            is_enabled=param_dict.get('I', True),  # IsEnabled field from API
+            is_specific=param_dict.get('IS', False)  # IsSpecific field from API
+        ))
+    
+    return parameters
+
+def update_lab_parameter_ranges(
+    executor: SyncExecutor[Authenticated],
+    lab_id: str,
+    parameter_configs: Dict[str, Union[ParameterRange, List[Any]]]
+) -> None:
+    """
+    Update lab parameters with new ranges or selection values
+    
+    Args:
+        executor: Authenticated API executor
+        lab_id: ID of the lab
+        parameter_configs: Dict mapping parameter names to either:
+            - ParameterRange for numeric parameters
+            - List of values for selection parameters
+    """
+    lab_details = api.get_lab_details(executor, lab_id)
+    
+    # Convert config and settings to proper models
+    lab_config = UserLabConfig(
+        MaxPopulation=lab_details.config.max_population,
+        MaxGenerations=lab_details.config.max_generations,
+        MaxElites=lab_details.config.max_elites,
+        MixRate=lab_details.config.mix_rate,
+        AdjustRate=lab_details.config.adjust_rate
+    )
+    
+    settings = UserLabSettings(
+        BotId=lab_details.settings.bot_id,
+        BotName=lab_details.settings.bot_name,
+        AccountId=lab_details.settings.account_id,
+        MarketTag=lab_details.settings.market_tag,
+        PositionMode=lab_details.settings.position_mode,
+        MarginMode=lab_details.settings.margin_mode,
+        Leverage=lab_details.settings.leverage,
+        TradeAmount=lab_details.settings.trade_amount,
+        Interval=lab_details.settings.interval,
+        ChartStyle=lab_details.settings.chart_style,
+        OrderTemplate=lab_details.settings.order_template,
+        ScriptParameters=lab_details.settings.script_parameters
+    )
+    
+    # Update parameters with new ranges/values
+    updated_parameters = []
+    for param in lab_details.parameters:
+        param_dict = param.copy()
+        param_key = param_dict.get('K', '')
+        if param_key in parameter_configs:
+            param_config = parameter_configs[param_key]
+            if isinstance(param_config, ParameterRange):
+                param_dict['O'] = param_config.generate_values()
+            elif isinstance(param_config, list):
+                param_dict['O'] = param_config
+        updated_parameters.append(param_dict)
+    
+    # Create update request
+    api.update_lab_details(
+        executor=executor,
+        lab_id=lab_id,
+        config=lab_config,
+        settings=settings,
+        name=lab_details.name,
+        lab_type=lab_details.type
+    )
