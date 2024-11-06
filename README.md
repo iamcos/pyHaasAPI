@@ -49,7 +49,7 @@ Then we can create our lab:
             script_id=script.script_id,
             name="My first lab",
             account_id=account.account_id,
-            market=market.as_market_tag(),
+            market=market.market,
             interval=0,
             default_price_data_style="CandleStick",
         ),
