@@ -11,13 +11,13 @@ Labs allow you to backtest and optimize trading strategies in HaasOnline Trading
 ** Creation
 #+begin_src python
 from haaslib.model import CreateLabRequest
-from haaslib.domain import MarketTag
+
 
 lab = api.create_lab(auth_executor, CreateLabRequest(
     script_id="your_script_id",
     name="Test Lab",
     account_id="your_account_id",
-    market=MarketTag("BINANCE_BTC_USDT_SPOT"),
+    market=marketTag,
     interval=15,
     default_price_data_style="CandleStick"
 ))
