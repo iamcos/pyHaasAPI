@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "haaslib"
+version = "0.1.0"
+description = "Haas API Library"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0.0",
+    "requests>=2.31.0",
+    "loguru>=0.7.0",
+    "typing-extensions>=4.7.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.14.0",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests that interact with real API (deselect with '-m \"not integration\"')",
+]

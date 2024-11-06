@@ -1,0 +1,97 @@
+#+TITLE: Lab Management
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+Labs allow you to backtest and optimize trading strategies in HaasOnline Trading Server.
+
+* Lab Lifecycle
+
+** Creation
+#+begin_src python
+from haaslib.model import CreateLabRequest
+from haaslib.domain import MarketTag
+
+lab = api.create_lab(auth_executor, CreateLabRequest(
+    script_id="your_script_id",
+    name="Test Lab",
+    account_id="your_account_id",
+    market=MarketTag("BINANCE_BTC_USDT_SPOT"),
+    interval=15,
+    default_price_data_style="CandleStick"
+))
+#+end_src
+
+** Execution
+#+begin_src python
+from haaslib.model import StartLabExecutionRequest
+from datetime import datetime, timedelta
+
+end_time = int(datetime.now().timestamp())
+start_time = end_time - (24 * 60 * 60)  # 24 hours
+
+execution = api.start_lab_execution(
+    auth_executor,
+    StartLabExecutionRequest(
+        lab_id=lab.lab_id,
+        start_unix=start_time,
+        end_unix=end_time,
+        send_email=False
+    )
+)
+#+end_src
+
+** Monitoring
+#+begin_src python
+while True:
+    status = api.get_lab_execution_update(auth_executor, lab.lab_id)
+    if status.status == "COMPLETED":
+        break
+    time.sleep(5)
+#+end_src
+
+** Results
+#+begin_src python
+results = api.get_backtest_result(
+    auth_executor,
+    GetBacktestResultRequest(
+        lab_id=lab.lab_id,
+        next_page_id=0,
+        page_lenght=100
+    )
+)
+#+end_src
+
+* Lab Status
+
+| Status    | Description                     |
+|-----------+---------------------------------|
+| CREATED   | Lab just created               |
+| QUEUED    | Waiting to start               |
+| RUNNING   | Currently executing            |
+| COMPLETED | Finished successfully          |
+| CANCELLED | Execution was cancelled        |
+
+* API Operations
+
+** Management Functions
+- =create_lab()=: Create new lab
+- =delete_lab()=: Remove lab
+- =get_lab_details()=: Get lab information
+- =update_lab_details()=: Modify lab settings
+- =get_all_labs()=: List all labs
+
+** Execution Functions
+- =start_lab_execution()=: Begin backtest
+- =cancel_lab_execution()=: Stop execution
+- =get_lab_execution_update()=: Check status
+- =get_backtest_result()=: Get results
+
+* Best Practices
+
+1. Clean up unused labs
+2. Monitor execution status
+3. Handle long-running backtests
+4. Validate parameters before creation
+5. Use appropriate timeframes 

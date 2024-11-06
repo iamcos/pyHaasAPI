@@ -1,0 +1,28 @@
+haaslib/
+├── __init__.py
+├── client/
+│   ├── __init__.py
+│   ├── base.py        # Base client interfaces
+│   ├── sync.py        # Synchronous client implementation
+│   └── async.py       # Future async client implementation
+├── endpoints/
+│   ├── __init__.py
+│   ├── account.py     # Account-related operations
+│   ├── bot.py        # Bot management operations
+│   ├── lab.py        # Lab management operations
+│   ├── market.py     # Market operations
+│   └── script.py     # Script operations
+├── models/
+│   ├── __init__.py
+│   ├── account.py    # Account models
+│   ├── bot.py       # Bot models
+│   ├── common.py    # Shared models
+│   ├── lab.py      # Lab models
+│   ├── market.py   # Market models
+│   └── script.py   # Script models
+├── exceptions.py    # Custom exceptions
+├── types.py        # Common types and constants
+└── utils/
+    ├── __init__.py
+    ├── logger.py   # Logging utilities
+    └── validators.py # Input validation helpers 

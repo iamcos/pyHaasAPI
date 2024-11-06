@@ -1,0 +1,74 @@
+#+TITLE: Authentication
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+Haaslib provides a simple authentication flow for accessing protected HaasOnline Trading Server endpoints.
+
+* Authentication States
+
+** Guest State
+For unauthenticated endpoints that don't require authentication.
+
+** Authenticated State
+Required for protected endpoints that need user authentication.
+
+* Usage
+
+** Basic Authentication Flow
+
+#+begin_src python
+from haaslib.api import RequestsExecutor, Guest
+
+# Create guest executor
+executor = RequestsExecutor(
+    host="127.0.0.1", 
+    port=8090,
+    state=Guest()
+)
+
+# Authenticate
+auth_executor = executor.authenticate(
+    email="your_email@example.com",
+    password="your_password"
+)
+#+end_src
+
+** Error Handling
+
+#+begin_src python
+from haaslib.api import HaasApiError
+
+try:
+    auth_executor = executor.authenticate(email, password)
+except HaasApiError as e:
+    print(f"Authentication failed: {e}")
+#+end_src
+
+* Implementation Details
+
+** RequestsExecutor
+The =RequestsExecutor= class handles both guest and authenticated states:
+
+#+begin_src python
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class RequestsExecutor(Generic[State]):
+    host: str
+    port: int
+    state: State
+    protocol: Literal["http"] = "http"
+#+end_src
+
+** Authentication Process
+1. Generates random interface key
+2. Performs credential validation
+3. Creates authenticated session
+4. Returns new executor with authenticated state
+
+* Best Practices
+
+1. Store credentials securely (e.g., environment variables)
+2. Handle authentication errors gracefully
+3. Reuse authenticated executor when possible
+4. Check authentication state before operations 
