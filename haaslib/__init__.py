@@ -1,17 +1,22 @@
+from haaslib.parameters import (
+    LabParameter,
+    LabStatus,
+    LabConfig,
+    LabSettings,
+    BacktestStatus,
+    LabAlgorithm
+)
+
+from haaslib.model import (
+    ApiResponse,
+    LabDetails,
+)
+
 from haaslib.api import (
     RequestsExecutor,
     Guest,
     Authenticated,
     HaasApiError,
-)
-
-from haaslib.model import (
-    ApiResponse,
-    LabStatus,
-    BacktestStatus,
-    LabConfig,
-    LabSettings,
-    LabDetails,
 )
 
 __all__ = [

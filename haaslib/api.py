@@ -36,16 +36,20 @@ from haaslib.model import (
     PaginatedResponse,
     StartLabExecutionRequest,
     UserAccount,
-    UserLabBacktestResult,
-    UserLabDetails,
-    UserLabRecord,
+    LabBacktestResult,
     LabDetails,
+    LabRecord,
     LabExecutionUpdate,
-    UserLabConfig,
-    UserLabSettings,
-    LabConfigurationState,
-    LabSettingsState,
-
+    LabConfig,
+    LabSettings,
+)
+from haaslib.parameters import (
+    LabParameter,
+    LabStatus,
+    LabConfig,
+    LabSettings,
+    BacktestStatus,
+    LabAlgorithm
 )
 
 ApiResponseData = TypeVar(
@@ -264,20 +268,19 @@ class RequestsExecutor(Generic[State]):
 
         resp = requests.get(url, params=query_params)
         resp.raise_for_status()
-
-        ta = TypeAdapter(ApiResponse[response_type])
-
+        
+        raw_response = resp.json()
+        
+        # Add debug logging for response
+        log.debug(f"Raw API response: {raw_response}")
+        
         try:
-            resp = ta.validate_python(resp.json())
-            if not resp.Success:
-                raise HaasApiError(
-                    f"Failed to request {endpoint}API with {resp.Error}. Input params: {query_params}"
-                )
-
-            return resp
-        except ValidationError:
-            log.error(f"Failed to request: {resp.content}")
-            raise
+            ta = TypeAdapter(ApiResponse[response_type])
+            return ta.validate_python(raw_response)
+        except ValidationError as e:
+            log.error(f"Validation error details: {e.errors()}")
+            log.error(f"Raw response content: {resp.content}")
+            raise HaasApiError(f"Failed to validate API response: {e}") from e
 
     @staticmethod
     def _custom_encoder(**kwargs):
@@ -367,22 +370,21 @@ def get_accounts(executor: SyncExecutor[Authenticated]) -> list[UserAccount]:
     )
 
 
-def create_lab(executor: SyncExecutor[Authenticated], req: CreateLabRequest) -> UserLabDetails:
-    response = executor.execute(
+def create_lab(executor: SyncExecutor[Authenticated], req: CreateLabRequest) -> LabDetails:
+    """Create a new lab"""
+    return executor.execute(
         endpoint="Labs",
-        response_type=UserLabDetails,
+        response_type=LabDetails,  # This is correct - executor handles ApiResponse wrapper
         query_params={
             "channel": "CREATE_LAB",
             "scriptId": req.script_id,
             "name": req.name,
             "accountId": req.account_id,
-            "market": req.market.tag,
+            "market": req.market,
             "interval": req.interval,
             "style": req.default_price_data_style,
         },
     )
-    return response
-
 
 def start_lab_execution(
     executor: SyncExecutor[Authenticated],
@@ -432,21 +434,23 @@ def get_lab_details(
 def update_lab_details(
     executor: SyncExecutor[Authenticated],
     lab_id: str,
-    config: UserLabConfig,
-    settings: UserLabSettings,
+    config: LabConfig,
+    settings: LabSettings,
     name: str,
     lab_type: str,
 ) -> LabDetails:
-    """
-    Updates lab details
+    """Updates lab details
     
     Args:
-        executor: Authenticated API executor
+        executor: Authenticated executor instance
         lab_id: ID of the lab to update
-        config: Lab configuration
-        settings: Lab settings
-        name: Lab name
-        lab_type: Lab type
+        config: Lab configuration settings
+        settings: Lab execution settings
+        name: Name of the lab
+        lab_type: Type of the lab
+        
+    Returns:
+        Updated lab details
     """
     return executor.execute(
         endpoint="Labs",
@@ -454,7 +458,7 @@ def update_lab_details(
         query_params={
             "channel": "UPDATE_LAB_DETAILS",
             "labId": lab_id,
-            "config": config.to_api_dict(),
+            "config": config.model_dump(by_alias=True),
             "settings": settings.model_dump(by_alias=True),
             "name": name,
             "type": lab_type,
@@ -514,19 +518,13 @@ def get_lab_execution_update(
 
 
 def get_backtest_result(
-    executor: SyncExecutor[Authenticated], req: GetBacktestResultRequest
-) -> PaginatedResponse[UserLabBacktestResult]:
-    """
-    Retrieves the backtest result for a specific lab for an authenticated user.
-
-    :param executor: Executor for Haas API interaction
-    :param req: Required info for retrieving backtest result
-    :raises HaasApiError: If requested lab not found
-    :return: Backtes result
-    """
+    executor: SyncExecutor[Authenticated], 
+    req: GetBacktestResultRequest
+) -> PaginatedResponse[LabBacktestResult]:
+    """Retrieves the backtest result for a specific lab"""
     return executor.execute(
         endpoint="Labs",
-        response_type=PaginatedResponse[UserLabBacktestResult],
+        response_type=PaginatedResponse[LabBacktestResult],
         query_params={
             "channel": "GET_BACKTEST_RESULT_PAGE",
             "labid": req.lab_id,
@@ -536,22 +534,11 @@ def get_backtest_result(
     )
 
 
-def get_all_labs(executor: SyncExecutor[Authenticated]) -> list[UserLabRecord]:
-    """
-    Get all labs for the authenticated user.
-    
-    Args:
-        executor: Authenticated executor instance
-        
-    Returns:
-        List of UserLabRecord objects representing the user's labs
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
+def get_all_labs(executor: SyncExecutor[Authenticated]) -> list[LabRecord]:
+    """Get all labs for the authenticated user"""
     return executor.execute(
         endpoint="Labs",
-        response_type=list[UserLabRecord],
+        response_type=list[LabRecord],
         query_params={
             "channel": "GET_LABS",
         },
@@ -589,7 +576,7 @@ def add_bot(executor: SyncExecutor[Authenticated], req: CreateBotRequest) -> Haa
             "scriptid": req.script.id,
             "scripttype": req.script.type,
             "accountid": req.account_id,
-            "market": req.market.as_market_tag().tag,
+            "market": req.market,
             "leverage": req.leverage,
             "interval": req.interval,
             "chartstyle": req.chartstyle,
@@ -615,7 +602,7 @@ def add_bot_from_lab(
             "backtestid": req.backtest_id,
             "botname": req.bot_name,
             "accountid": req.account_id,
-            "market": req.market.as_market_tag().tag,
+            "market": req.market,
             "leverage": req.leverage,
         },
     )

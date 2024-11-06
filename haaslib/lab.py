@@ -13,26 +13,26 @@ from haaslib.model import (
     GetBacktestResultRequest,
     PaginatedResponse,
     StartLabExecutionRequest,
-    UserLabBacktestResult,
-    UserLabParameter,
-    UserLabParameterOption,
+    LabBacktestResult,
+    LabParameter,
+    ParameterOption,
     LabStatus,
     LabParameter,
     ParameterType,
     ParameterRange,
-    UserLabConfig,
-    UserLabSettings,
+    LabSettings,
+    LabConfig,
 )
 
 
 @dataclasses.dataclass
 class ChangeHaasScriptParameterRequest:
     name: str
-    options: list[UserLabParameterOption]
+    options: list[ParameterOption]
 
 
 def update_params(
-    settings: Sequence[UserLabParameter],
+    settings: Sequence[LabParameter],
     params: Iterable[ChangeHaasScriptParameterRequest],
 ):
     for param in params:
@@ -63,7 +63,7 @@ def wait_for_execution(executor: SyncExecutor[Authenticated], lab_id: str):
 
 def backtest(
     executor: SyncExecutor[Authenticated], lab_id: str, period: BacktestPeriod
-) -> PaginatedResponse[UserLabBacktestResult]:
+) -> PaginatedResponse[LabBacktestResult]:
     api.start_lab_execution(
         executor,
         StartLabExecutionRequest(
@@ -85,7 +85,7 @@ def backtest(
 @contextmanager
 def get_lab_default_params(
     executor: SyncExecutor[Authenticated], script_id: str
-) -> Generator[list[UserLabParameter], None, None]:
+) -> Generator[list[LabParameter], None, None]:
     """
     Creates buffer lab to get it's default parameters options
 
@@ -102,7 +102,7 @@ def get_lab_default_params(
         script_id=script_id,
         name="buf_lab",
         account_id=account.account_id,
-        market=market.as_market_tag(),
+        market=market.market,
         interval=1,
         default_price_data_style="CandleStick",
     )
@@ -184,16 +184,16 @@ def update_lab_parameter_ranges(
     """
     lab_details = api.get_lab_details(executor, lab_id)
     
-    # Convert config and settings to proper models
-    lab_config = UserLabConfig(
-        MaxPopulation=lab_details.config.max_population,
-        MaxGenerations=lab_details.config.max_generations,
-        MaxElites=lab_details.config.max_elites,
-        MixRate=lab_details.config.mix_rate,
-        AdjustRate=lab_details.config.adjust_rate
+    # Convert config to proper model (using the consolidated LabConfig)
+    lab_config = LabConfig(
+        max_population=lab_details.config.max_population,
+        max_generations=lab_details.config.max_generations,
+        max_elites=lab_details.config.max_elites,
+        mix_rate=lab_details.config.mix_rate,
+        adjust_rate=lab_details.config.adjust_rate
     )
     
-    settings = UserLabSettings(
+    settings = LabSettings(
         BotId=lab_details.settings.bot_id,
         BotName=lab_details.settings.bot_name,
         AccountId=lab_details.settings.account_id,
