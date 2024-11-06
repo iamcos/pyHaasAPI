@@ -58,13 +58,6 @@ class BacktestPeriod:
         return int((self.from_time - timedelta(seconds=self.as_secs())).timestamp())
 
 
-@dataclasses.dataclass
-class MarketTag:
-    """
-    Wrapper for market tags.
-    """
-
-    tag: str
 
 
 class HaaslibExcpetion(Exception):
