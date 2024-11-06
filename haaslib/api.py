@@ -41,9 +41,11 @@ from haaslib.model import (
     UserLabRecord,
     LabDetails,
     LabExecutionUpdate,
-    LabUpdateConfig,
-    LabUpdateSettings,
-    LabUpdateRequest,
+    UserLabConfig,
+    UserLabSettings,
+    LabConfigurationState,
+    LabSettingsState,
+
 )
 
 ApiResponseData = TypeVar(
@@ -207,25 +209,7 @@ class RequestsExecutor(Generic[State]):
             case _:
                 raise ValueError(f"Unknown auth state: {self.state}")
 
-        if not resp.success:
-            if query_params:
-                req = {
-                    k: v
-                    for k, v in query_params.items()
-                    if k not in ("userid", "interfacekey")
-                }
-            else:
-                req = None
-
-            msg = resp.error or "[No response]"
-
-            raise HaasApiError(
-                f"Failed to request {endpoint}API with {msg}. Input params: {req}"
-            )
-
-        assert resp.data is not None
-
-        return resp.data
+        return resp.Data
 
     def _execute_authenticated(
         self: RequestsExecutor[Authenticated],
@@ -284,7 +268,13 @@ class RequestsExecutor(Generic[State]):
         ta = TypeAdapter(ApiResponse[response_type])
 
         try:
-            return ta.validate_python(resp.json())
+            resp = ta.validate_python(resp.json())
+            if not resp.Success:
+                raise HaasApiError(
+                    f"Failed to request {endpoint}API with {resp.Error}. Input params: {query_params}"
+                )
+
+            return resp
         except ValidationError:
             log.error(f"Failed to request: {resp.content}")
             raise
@@ -377,21 +367,8 @@ def get_accounts(executor: SyncExecutor[Authenticated]) -> list[UserAccount]:
     )
 
 
-def create_lab(
-    executor: SyncExecutor[Authenticated], req: CreateLabRequest
-) -> UserLabDetails:
-    """
-    Creates a new lab for an authenticated user.
-
-    Lab name could be duplicated
-    Market Tag could be created from `CloudMarket`
-
-    :param executor: Executor for Haas API interaction
-    :param req: Details of the lab
-    :raises HaasApiError: If something goes wrong (Not found yet)
-    :return: Created lab details
-    """
-    return executor.execute(
+def create_lab(executor: SyncExecutor[Authenticated], req: CreateLabRequest) -> UserLabDetails:
+    response = executor.execute(
         endpoint="Labs",
         response_type=UserLabDetails,
         query_params={
@@ -404,6 +381,7 @@ def create_lab(
             "style": req.default_price_data_style,
         },
     )
+    return response
 
 
 def start_lab_execution(
@@ -425,17 +403,18 @@ def start_lab_execution(
 
 
 def get_lab_details(
-    executor: SyncExecutor[Authenticated], lab_id: str
+    executor: SyncExecutor[Authenticated], 
+    lab_id: str
 ) -> LabDetails:
     """
-    Get detailed information about a specific lab.
+    Get details for a specific lab
     
     Args:
         executor: Authenticated executor instance
         lab_id: ID of the lab to get details for
         
     Returns:
-        LabDetails object containing detailed lab information
+        LabDetails object containing the lab configuration
         
     Raises:
         HaasApiError: If the API request fails
@@ -445,47 +424,41 @@ def get_lab_details(
         response_type=LabDetails,
         query_params={
             "channel": "GET_LAB_DETAILS",
-            "labId": lab_id,
+            "labid": lab_id,
         },
     )
 
 
 def update_lab_details(
-    executor: SyncExecutor[Authenticated], 
-    lab_id: str, 
-    name: Optional[str] = None,
-    config: Optional[LabUpdateConfig] = None,
-    settings: Optional[LabUpdateSettings] = None
-) -> None:
-    """Update lab details
-    
-    :param executor: Executor for Haas API interaction
-    :param lab_id: ID of the lab to update
-    :param name: New name for the lab (optional)
-    :param config: New configuration (optional)
-    :param settings: New settings (optional)
+    executor: SyncExecutor[Authenticated],
+    lab_id: str,
+    config: UserLabConfig,
+    settings: UserLabSettings,
+    name: str,
+    lab_type: str,
+) -> LabDetails:
     """
-    params = {
-        "channel": "UPDATE_LAB_DETAILS",
-        "labId": lab_id,
-    }
-
-    # Only include config if provided
-    if config:
-        params["config"] = config.model_dump(by_alias=True)
+    Updates lab details
     
-    # Only include settings if provided
-    if settings:
-        params["settings"] = settings.model_dump(by_alias=True)
-    
-    # Only include name if provided
-    if name:
-        params["name"] = name
-
+    Args:
+        executor: Authenticated API executor
+        lab_id: ID of the lab to update
+        config: Lab configuration
+        settings: Lab settings
+        name: Lab name
+        lab_type: Lab type
+    """
     return executor.execute(
         endpoint="Labs",
-        response_type=None,
-        query_params=params
+        response_type=LabDetails,
+        query_params={
+            "channel": "UPDATE_LAB_DETAILS",
+            "labId": lab_id,
+            "config": config.to_api_dict(),
+            "settings": settings.model_dump(by_alias=True),
+            "name": name,
+            "type": lab_type,
+        },
     )
 
 
@@ -662,3 +635,25 @@ def get_all_bots(executor: SyncExecutor[Authenticated]) -> list[HaasBot]:
         response_type=list[HaasBot],
         query_params={"channel": "GET_BOTS"},
     )
+
+
+def get_scripts_by_name(
+    executor: SyncExecutor[Authenticated], 
+    name_pattern: str,
+    case_sensitive: bool = False
+) -> list[HaasScriptItemWithDependencies]:
+    """
+    Retrieves scripts that match the given name pattern.
+
+    :param executor: Executor for Haas API interaction
+    :param name_pattern: String pattern to match in script names
+    :param case_sensitive: Whether to perform case-sensitive matching (default: False)
+    :return: List of matching scripts
+    """
+    scripts = get_all_scripts(executor)
+    
+    if not case_sensitive:
+        name_pattern = name_pattern.lower()
+        return [s for s in scripts if name_pattern in s.script_name.lower()]
+    
+    return [s for s in scripts if name_pattern in s.script_name]
