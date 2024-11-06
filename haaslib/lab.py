@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from haaslib import api, iterable_extensions
 from haaslib.api import Authenticated, SyncExecutor
-from haaslib.domain import BacktestPeriod, MarketTag
+from haaslib.domain import BacktestPeriod
 from haaslib.model import (
     CreateLabRequest,
     GetBacktestResultRequest,
