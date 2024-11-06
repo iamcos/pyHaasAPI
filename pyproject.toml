@@ -25,3 +25,7 @@ test = [
 markers = [
     "integration: marks tests that interact with real API (deselect with '-m \"not integration\"')",
 ]
+filterwarnings = [
+    "ignore::pydantic.PydanticDeprecatedSince20",
+    "ignore:Valid config keys have changed in V2:UserWarning"
+]
