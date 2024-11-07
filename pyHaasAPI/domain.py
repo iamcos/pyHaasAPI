@@ -60,7 +60,7 @@ class BacktestPeriod:
 
 
 
-class HaaslibExcpetion(Exception):
+class pyHaasAPIExcpetion(Exception):
     pass
 
 

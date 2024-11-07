@@ -21,9 +21,9 @@ import requests
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic.json import pydantic_encoder
 
-from haaslib.domain import HaaslibExcpetion
-from haaslib.logger import log
-from haaslib.model import (
+from pyHaasAPI.domain import pyHaasAPIExcpetion
+from pyHaasAPI.logger import log
+from pyHaasAPI.model import (
     AddBotFromLabRequest,
     ApiResponse,
     AuthenticatedSessionResponse,
@@ -44,7 +44,7 @@ from haaslib.model import (
     AccountDetails,
     AccountData,
 )
-from haaslib.parameters import (
+from pyHaasAPI.parameters import (
     LabParameter,
     LabStatus,
     LabConfig,
@@ -65,9 +65,9 @@ HaasApiEndpoint = Literal["Labs", "Account", "HaasScript", "Price", "User", "Bot
 """Known Haas API endpoints"""
 
 
-class HaasApiError(HaaslibExcpetion):
+class HaasApiError(pyHaasAPIExcpetion):
     """
-    Base Excpetion for haaslib.
+    Base Excpetion for pyHaasAPI.
     """
 
     pass

@@ -1,8 +1,8 @@
 import random
 
-from haaslib import api, lab
-from haaslib.domain import BacktestPeriod
-from haaslib.model import AddBotFromLabRequest, CreateLabRequest
+from pyHaasAPI import api, lab
+from pyHaasAPI.domain import BacktestPeriod
+from pyHaasAPI.model import AddBotFromLabRequest, CreateLabRequest
 
 
 def main():

@@ -1,8 +1,8 @@
 from typing import Optional, List, Set
 from pydantic import BaseModel, Field
-from haaslib.types import SyncExecutor, Authenticated, HaasApiError
-from haaslib.model import CloudMarket
-from haaslib.logger import log
+from pyHaasAPI.types import SyncExecutor, Authenticated, HaasApiError
+from pyHaasAPI.model import CloudMarket
+from pyHaasAPI.logger import log
 import random
 
 __all__ = ['PriceAPI', 'OrderBook', 'OrderBookEntry']
@@ -112,7 +112,7 @@ class PriceAPI:
                     return market
 
             # Method 2: Try getting the price source from YAY account
-            from haaslib.api import get_accounts
+            from pyHaasAPI.api import get_accounts
             accounts = get_accounts(self.executor)
             yay_account = next((acc for acc in accounts if "YAY" in acc.name), None)
             

@@ -14,7 +14,7 @@ from typing import Dict, Any, List
 from dotenv import load_dotenv
 import os
 
-from haaslib.api import (
+from pyHaasAPI.api import (
     RequestsExecutor,
     get_scripts_by_name,
     get_lab_details,
@@ -23,10 +23,10 @@ from haaslib.api import (
     get_accounts,
     Guest
 )
-from haaslib.lab import update_lab_parameter_ranges
-from haaslib.model import CreateLabRequest
-from haaslib.parameters import ScriptParameters, ParameterType
-from haaslib.price import PriceAPI
+from pyHaasAPI.lab import update_lab_parameter_ranges
+from pyHaasAPI.model import CreateLabRequest
+from pyHaasAPI.parameters import ScriptParameters, ParameterType
+from pyHaasAPI.price import PriceAPI
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)

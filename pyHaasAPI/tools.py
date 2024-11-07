@@ -1,10 +1,10 @@
 import random
 from typing import Any, Callable, Optional
 
-from haaslib import api
-from haaslib.api import SyncExecutor
-from haaslib.model import CloudMarket
-from haaslib.price import PriceAPI
+from pyHaasAPI import api
+from pyHaasAPI.api import SyncExecutor
+from pyHaasAPI.model import CloudMarket
+from pyHaasAPI.price import PriceAPI
 
 
 def select_random_markets(

@@ -1,7 +1,7 @@
 import random
 
-from haaslib import api
-from haaslib.model import CreateLabRequest
+from pyHaasAPI import api
+from pyHaasAPI.model import CreateLabRequest
 
 
 def main():

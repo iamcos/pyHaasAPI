@@ -4,8 +4,8 @@
 .env
 .DS_Store
 cursor.rules
-/haaslib.egg-info
-/haaslib/__pycache__
+/pyHaasAPI.egg-info
+/pyHaasAPI/__pycache__
 # /reference files
 /reference files
 docs/cursor_rules_documentation.md

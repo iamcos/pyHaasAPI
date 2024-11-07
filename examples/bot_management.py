@@ -1,8 +1,8 @@
 import random
 
-from haaslib import api
-from haaslib.model import CreateBotRequest
-from haaslib.price import PriceAPI
+from pyHaasAPI import api
+from pyHaasAPI.model import CreateBotRequest
+from pyHaasAPI.price import PriceAPI
 
 
 def main():
