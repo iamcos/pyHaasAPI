@@ -8,3 +8,4 @@ cursor.rules
 /haaslib/__pycache__
 # /reference files
 /reference files
+docs/cursor_rules_documentation.md
