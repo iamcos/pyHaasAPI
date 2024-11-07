@@ -5,8 +5,8 @@ from typing_extensions import Self
 from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
 
-from haaslib.domain import Script
-from haaslib.parameters import (
+from pyHaasAPI.domain import Script
+from pyHaasAPI.parameters import (
     LabParameter,
     LabStatus,
     LabConfig,

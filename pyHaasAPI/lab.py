@@ -6,11 +6,11 @@ from typing import Generator, Iterable, Sequence, List, Dict, Any, Union, Option
 from decimal import Decimal
 import logging
 
-from haaslib import api, iterable_extensions
-from haaslib.api import Authenticated, SyncExecutor, get_lab_details, HaasApiError
-from haaslib.domain import BacktestPeriod
-from haaslib.types import ParameterOption
-from haaslib.model import (
+from pyHaasAPI import api, iterable_extensions
+from pyHaasAPI.api import Authenticated, SyncExecutor, get_lab_details, HaasApiError
+from pyHaasAPI.domain import BacktestPeriod
+from pyHaasAPI.types import ParameterOption
+from pyHaasAPI.model import (
     CreateLabRequest,
     GetBacktestResultRequest,
     PaginatedResponse,
@@ -23,7 +23,7 @@ from haaslib.model import (
     ScriptParameters,
     LabDetails
 )
-from haaslib.parameters import ParameterRange, ParameterType
+from pyHaasAPI.parameters import ParameterRange, ParameterType
 
 log = logging.getLogger(__name__)
 

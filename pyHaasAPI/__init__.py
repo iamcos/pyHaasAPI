@@ -1,4 +1,4 @@
-from haaslib.types import (
+from pyHaasAPI.types import (
     UserState,
     Guest,
     Authenticated,
@@ -6,7 +6,7 @@ from haaslib.types import (
     SyncExecutor,
 )
 
-from haaslib.parameters import (
+from pyHaasAPI.parameters import (
     LabParameter,
     LabStatus,
     LabConfig,
@@ -15,7 +15,7 @@ from haaslib.parameters import (
     LabAlgorithm
 )
 
-from haaslib.model import (
+from pyHaasAPI.model import (
     ApiResponse,
     LabDetails,
 )

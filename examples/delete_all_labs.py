@@ -1,4 +1,4 @@
-from haaslib import api
+from pyHaasAPI import api
 
 
 def main():

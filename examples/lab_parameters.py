@@ -1,6 +1,6 @@
-from haaslib import api
-from haaslib.lab import get_lab_parameters, update_lab_parameter_ranges
-from haaslib.model import (
+from pyHaasAPI import api
+from pyHaasAPI.lab import get_lab_parameters, update_lab_parameter_ranges
+from pyHaasAPI.model import (
     ParameterType,
     ParameterRange,
     CreateLabRequest,

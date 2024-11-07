@@ -1,4 +1,4 @@
-from haaslib.api import (
+from pyHaasAPI.api import (
     RequestsExecutor,
     get_scripts_by_name,
     get_lab_details,
@@ -7,10 +7,10 @@ from haaslib.api import (
     get_accounts,
     Guest
 )
-from haaslib.lab import update_lab_parameter_ranges
-from haaslib.model import CreateLabRequest
-from haaslib.parameters import ScriptParameters
-from haaslib.price import PriceAPI
+from pyHaasAPI.lab import update_lab_parameter_ranges
+from pyHaasAPI.model import CreateLabRequest
+from pyHaasAPI.parameters import ScriptParameters
+from pyHaasAPI.price import PriceAPI
 import os
 import random
 import logging

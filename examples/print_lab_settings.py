@@ -1,4 +1,4 @@
-from haaslib.api import (
+from pyHaasAPI.api import (
     RequestsExecutor,
     get_scripts_by_name,
     get_lab_details,
@@ -7,9 +7,9 @@ from haaslib.api import (
     get_accounts,
     Guest
 )
-from haaslib.model import CreateLabRequest
-from haaslib.price import PriceAPI
-from haaslib.parameters import ScriptParameters, ParameterType
+from pyHaasAPI.model import CreateLabRequest
+from pyHaasAPI.price import PriceAPI
+from pyHaasAPI.parameters import ScriptParameters, ParameterType
 import os
 from dotenv import load_dotenv
 

@@ -32,7 +32,7 @@ class SyncExecutor(Protocol, Generic[State]):
         ...
 
 class HaasApiError(Exception):
-    """Base Exception for haaslib."""
+    """Base Exception for pyHaasAPI."""
     pass 
 
 ParameterOption = Union[str, int, float, bool]
