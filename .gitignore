@@ -9,3 +9,4 @@ cursor.rules
 # /reference files
 /reference files
 docs/cursor_rules_documentation.md
+/dist
