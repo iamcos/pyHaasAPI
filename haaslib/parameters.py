@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union, TypeVar, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator, ValidationInfo
+import random
+from loguru import logger as log
 
 # Move these from model.py
 class ParameterType(Enum):
@@ -11,50 +13,63 @@ class ParameterType(Enum):
     STRING = 3
     SELECTION = 4
 
-class ScriptParameter(BaseModel):
-    """Individual script parameter model"""
-    model_config = ConfigDict(populate_by_name=True)
+class ParameterRange:
+    """Defines a range of values for a parameter"""
+    def __init__(
+        self, 
+        start: Optional[Union[int, float]] = None,
+        end: Optional[Union[int, float]] = None,
+        step: Union[int, float] = 1,
+        selection_values: Optional[List[Any]] = None
+    ):
+        self.start = start
+        self.end = end
+        self.step = step
+        self.selection_values = selection_values or []
     
-    key: str = Field(alias="K")
-    param_type: ParameterType = Field(alias="T")
-    options: List[str] = Field(alias="O")
-    is_enabled: bool = Field(alias="I")
-    is_selected: bool = Field(alias="IS")
-    
-    @property
-    def value(self) -> Union[int, float, bool, str]:
-        """Convert the current option to its proper type"""
-        if not self.options:
-            return None
+    def generate_range(self) -> List[Union[int, float]]:
+        """Generate all values in the range"""
+        if self.selection_values:
+            return self.selection_values
             
-        raw_value = self.options[0]
-        
-        try:
-            match self.param_type:
-                case ParameterType.INTEGER:
-                    return int(raw_value)
-                case ParameterType.DECIMAL:
-                    return float(raw_value)
-                case ParameterType.BOOLEAN:
-                    return raw_value.lower() == "true"
-                case _:
-                    return raw_value
-        except (ValueError, TypeError):
-            return raw_value
+        if not all([self.start, self.end]):
+            return []
+            
+        if isinstance(self.start, float) or isinstance(self.end, float) or isinstance(self.step, float):
+            values = []
+            current = self.start
+            while current <= self.end:
+                values.append(round(current, 8))
+                current += self.step
+            return values
+        return list(range(int(self.start), int(self.end) + 1, int(self.step)))
+
+class ScriptParameter(BaseModel):
+    """Script parameter model"""
+    key: str = Field(alias="K")
+    param_type: int = Field(alias="T")
+    value: Optional[Any] = Field(None)
+    options: List[Any] = Field(alias="O")
+    is_included: bool = Field(alias="I")
+    is_selected: bool = Field(alias="IS")
+    name: Optional[str] = None
     
-    @property
-    def name(self) -> str:
-        """Extract clean parameter name from key"""
-        parts = self.key.split(".")
-        if len(parts) > 1:
-            return parts[-1].strip()
-        return self.key.split("-")[-1].strip()
+    @field_validator('name', mode='before')
+    @classmethod
+    def extract_name(cls, v: Optional[str], info: ValidationInfo) -> str:
+        """Extract parameter name from key"""
+        key = info.data.get('K', '')
+        return key.split('.')[-1] if key else ''
     
     @property
     def group_path(self) -> List[str]:
         """Get parameter group hierarchy"""
         parts = self.key.split(".")
         return [p.strip() for p in parts if p and not p[0].isdigit()]
+
+    def update_range(self, param_range: ParameterRange) -> None:
+        """Update parameter options with values from range"""
+        self.options = [str(val) for val in param_range.generate_range()]
 
 class ParameterGroup:
     """Group of related parameters"""
@@ -79,113 +94,54 @@ class ParameterGroup:
                 K=updated_key,
                 T=param.param_type,
                 O=param.options,
-                I=param.is_enabled,
+                I=param.is_included,
                 IS=param.is_selected
             )
             self.subgroups[subgroup_name].add_parameter(updated_param)
 
-class ScriptParameters(BaseModel):
-    """Universal script parameter handler"""
-    raw_parameters: List[ScriptParameter] = Field(default_factory=list)
-    _grouped_parameters: Optional[ParameterGroup] = None
-    
-    @classmethod
-    def from_api_response(cls, params_data: List[Dict[str, Any]]) -> "ScriptParameters":
-        """Create from API response data"""
-        parameters = [ScriptParameter(**param) for param in params_data]
-        return cls(raw_parameters=parameters)
-    
-    def _ensure_grouped(self) -> None:
-        """Lazy initialization of grouped parameters"""
-        if self._grouped_parameters is None:
-            root = ParameterGroup("root")
-            for param in self.raw_parameters:
-                root.add_parameter(param)
-            self._grouped_parameters = root
-    
-    def get_parameter(self, path: str) -> Optional[ScriptParameter]:
-        """Get parameter by its full path"""
-        self._ensure_grouped()
-        
-        current = self._grouped_parameters
-        parts = path.split(".")
-        
-        for part in parts[:-1]:
-            if part in current.subgroups:
-                current = current.subgroups[part]
-            else:
-                return None
-        
-        return current.parameters.get(parts[-1])
-    
-    def get_group(self, path: str) -> Optional[ParameterGroup]:
-        """Get parameter group by path"""
-        self._ensure_grouped()
-        
-        current = self._grouped_parameters
-        for part in path.split("."):
-            if part in current.subgroups:
-                current = current.subgroups[part]
-            else:
-                return None
-        return current
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert parameters to simple dictionary"""
-        result = {}
-        
-        def process_group(group: ParameterGroup, prefix: str = ""):
-            for name, param in group.parameters.items():
-                full_name = f"{prefix}{name}" if prefix else name
-                result[full_name] = param.value
-            
-            for name, subgroup in group.subgroups.items():
-                new_prefix = f"{prefix}{name}." if prefix else f"{name}."
-                process_group(subgroup, new_prefix)
-        
-        self._ensure_grouped()
-        process_group(self._grouped_parameters)
-        return result 
+
 
 # Add ParameterOption definition
 ParameterOption = Union[str, int, float, bool]
 
 # Add ParameterRange class that was in model.py
-class ParameterRange(BaseModel):
-    """Configuration for parameter value ranges"""
-    start: Optional[Union[int, float]] = None
-    end: Optional[Union[int, float]] = None
-    step: Optional[Union[int, float]] = None
-    decimals: int = 0
-    selection_values: List[ParameterOption] = Field(default_factory=list)
+class ParameterRange:
+    def __init__(self, start: Union[int, float], end: Union[int, float], step: Union[int, float] = 1):
+        self.start = start
+        self.end = end
+        self.step = step
     
-    def generate_values(self) -> List[ParameterOption]:
-        """Generate all possible values for this parameter"""
-        if self.selection_values:
-            return self.selection_values
-            
-        if None in (self.start, self.end, self.step):
-            return []
-            
-        values = []
-        current = self.start
-        while current <= self.end:
-            if self.decimals > 0:
-                values.append(round(current, self.decimals))
-            else:
-                values.append(int(current))
-            current += self.step
-        return values
+    def generate_range(self) -> List[Union[int, float]]:
+        """Generate a list of values within the range"""
+        if isinstance(self.start, float) or isinstance(self.end, float) or isinstance(self.step, float):
+            # Handle floating point ranges
+            values = []
+            current = self.start
+            while current <= self.end:
+                values.append(round(current, 8))  # Round to avoid floating point errors
+                current += self.step
+            return values
+        else:
+            # Handle integer ranges
+            return list(range(self.start, self.end + 1, self.step))
+    
+    def generate_values(self) -> List[Union[int, float]]:
+        """Generate a random subset of values from the range"""
+        all_values = self.generate_range()
+        return random.sample(all_values, min(len(all_values), 10))  # Return up to 10 random values
 
 class LabParameter(BaseModel):
     """Lab parameter model"""
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True
+    )
     
     key: str = Field(alias="K")
     type: int = Field(alias="T")
-    options: list[str] = Field(alias="O")
-    is_enabled: bool = Field(alias="I")
-    is_selected: bool = Field(alias="IS")
+    options: list[str] = Field(alias="O", default_factory=list)
+    is_enabled: bool = Field(alias="I", default=True)
+    is_selected: bool = Field(alias="IS", default=False)
     
     @property
     def current_value(self) -> Any:
@@ -216,10 +172,38 @@ class LabParameter(BaseModel):
     @property
     def name(self) -> str:
         """Get parameter name from key"""
-        parts = self.key.split(".")
+        key_value = str(self.key)  # Get the actual value
+        parts = key_value.split(".")
         if len(parts) > 1:
             return parts[-1].strip()
-        return self.key.split("-")[-1].strip()
+        return key_value.split("-")[-1].strip()
+
+class ScriptParameters(BaseModel):
+    """Handles script parameter management"""
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        populate_by_name=True
+    )
+    
+    parameters: List[LabParameter] = Field(default_factory=list)
+    
+    def __iter__(self):
+        return iter(self.parameters)
+
+    @classmethod
+    def from_api_response(cls, raw_parameters: List[Dict[str, Any]]) -> "ScriptParameters":
+        """Create ScriptParameters from raw API response"""
+        params = []
+        for param_dict in raw_parameters:
+            param = LabParameter(
+                key=param_dict.get('K', ''),
+                type=param_dict.get('T', 3),  # Default to STRING type
+                options=param_dict.get('O', []),
+                is_enabled=param_dict.get('I', True),
+                is_selected=param_dict.get('IS', False)
+            )
+            params.append(param)
+        return cls(parameters=params)
 
 class LabStatus(int, Enum):
     """Lab execution status"""

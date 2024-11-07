@@ -1,4 +1,4 @@
-from typing import TypeVar, Protocol, Generic, Collection, Any
+from typing import TypeVar, Protocol, Generic, Collection, Any, Union
 from pydantic import BaseModel
 from dataclasses import dataclass
 
@@ -34,3 +34,5 @@ class SyncExecutor(Protocol, Generic[State]):
 class HaasApiError(Exception):
     """Base Exception for haaslib."""
     pass 
+
+ParameterOption = Union[str, int, float, bool]

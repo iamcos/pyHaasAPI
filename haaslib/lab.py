@@ -2,12 +2,14 @@ import dataclasses
 import random
 import time
 from contextlib import contextmanager
-from typing import Generator, Iterable, Sequence, List, Dict, Any, Union
+from typing import Generator, Iterable, Sequence, List, Dict, Any, Union, Optional
 from decimal import Decimal
+import logging
 
 from haaslib import api, iterable_extensions
-from haaslib.api import Authenticated, SyncExecutor
+from haaslib.api import Authenticated, SyncExecutor, get_lab_details, HaasApiError
 from haaslib.domain import BacktestPeriod
+from haaslib.types import ParameterOption
 from haaslib.model import (
     CreateLabRequest,
     GetBacktestResultRequest,
@@ -15,15 +17,15 @@ from haaslib.model import (
     StartLabExecutionRequest,
     LabBacktestResult,
     LabParameter,
-    ParameterOption,
     LabStatus,
-    LabParameter,
-    ParameterType,
-    ParameterRange,
     LabSettings,
     LabConfig,
+    ScriptParameters,
+    LabDetails
 )
+from haaslib.parameters import ParameterRange, ParameterType
 
+log = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class ChangeHaasScriptParameterRequest:
@@ -87,10 +89,11 @@ def get_lab_default_params(
     executor: SyncExecutor[Authenticated], script_id: str
 ) -> Generator[list[LabParameter], None, None]:
     """
-    Creates buffer lab to get it's default parameters options
+    Creates buffer lab to get its default parameters options
 
     :param executor: Executor for Haas API interaction
     :param script_id: Script of lab
+    :returns: Generator yielding list of LabParameter objects
     """
     accounts = api.get_accounts(executor)
     account = random.choice(accounts)
@@ -108,9 +111,10 @@ def get_lab_default_params(
     )
     lab_details = api.create_lab(executor, req)
 
-    yield lab_details.parameters
-
-    api.delete_lab(executor, lab_details.lab_id)
+    try:
+        yield lab_details.parameters
+    finally:
+        api.delete_lab(executor, lab_details.lab_id)
 
 
 def parse_parameter_type(param: Dict[str, Any]) -> ParameterType:
@@ -144,89 +148,108 @@ def get_lab_parameters(executor: SyncExecutor[Authenticated], lab_id: str) -> Li
         range_config = None
         if param_type in (ParameterType.INTEGER, ParameterType.DECIMAL):
             if len(options) > 1:
-                is_decimal = param_type == ParameterType.DECIMAL
-                decimals = 3 if is_decimal else 0
-                
-                range_config = ParameterRange(
-                    start=min(options),
-                    end=max(options),
-                    step=options[1] - options[0] if len(options) > 1 else 1,
-                    decimals=decimals
-                )
+                try:
+                    values = [float(x) if param_type == ParameterType.DECIMAL else int(x) for x in options]
+                    range_config = ParameterRange(
+                        start=min(values),
+                        end=max(values),
+                        step=values[1] - values[0] if len(values) > 1 else 1
+                    )
+                except (ValueError, TypeError) as e:
+                    log.warning(f"Failed to parse parameter values: {e}")
+                    continue
         elif param_type == ParameterType.SELECTION:
             range_config = ParameterRange(selection_values=options)
         
         parameters.append(LabParameter(
-            name=param_dict.get('K', ''),  # Key field from API
-            param_type=param_type,
-            current_value=current_value,
-            range_config=range_config,
-            is_enabled=param_dict.get('I', True),  # IsEnabled field from API
-            is_specific=param_dict.get('IS', False)  # IsSpecific field from API
+            key=param_dict.get('K', ''),  # Key field from API
+            type=param_type.value,  # Convert enum to int
+            options=options,
+            is_enabled=param_dict.get('I', True),
+            is_selected=param_dict.get('IS', False)
         ))
     
     return parameters
 
 def update_lab_parameter_ranges(
-    executor: SyncExecutor[Authenticated],
+    executor: SyncExecutor[Authenticated], 
     lab_id: str,
-    parameter_configs: Dict[str, Union[ParameterRange, List[Any]]]
-) -> None:
-    """
-    Update lab parameters with new ranges or selection values
+    randomize: bool = True
+) -> LabDetails:
+    """Update parameter ranges for a lab"""
+    lab_details = get_lab_details(executor, lab_id)
     
-    Args:
-        executor: Authenticated API executor
-        lab_id: ID of the lab
-        parameter_configs: Dict mapping parameter names to either:
-            - ParameterRange for numeric parameters
-            - List of values for selection parameters
-    """
-    lab_details = api.get_lab_details(executor, lab_id)
-    
-    # Convert config to proper model (using the consolidated LabConfig)
-    lab_config = LabConfig(
-        max_population=lab_details.config.max_population,
-        max_generations=lab_details.config.max_generations,
-        max_elites=lab_details.config.max_elites,
-        mix_rate=lab_details.config.mix_rate,
-        adjust_rate=lab_details.config.adjust_rate
-    )
-    
-    settings = LabSettings(
-        BotId=lab_details.settings.bot_id,
-        BotName=lab_details.settings.bot_name,
-        AccountId=lab_details.settings.account_id,
-        MarketTag=lab_details.settings.market_tag,
-        PositionMode=lab_details.settings.position_mode,
-        MarginMode=lab_details.settings.margin_mode,
-        Leverage=lab_details.settings.leverage,
-        TradeAmount=lab_details.settings.trade_amount,
-        Interval=lab_details.settings.interval,
-        ChartStyle=lab_details.settings.chart_style,
-        OrderTemplate=lab_details.settings.order_template,
-        ScriptParameters=lab_details.settings.script_parameters
-    )
-    
-    # Update parameters with new ranges/values
+    # Convert parameters to proper format
     updated_parameters = []
     for param in lab_details.parameters:
-        param_dict = param.copy()
-        param_key = param_dict.get('K', '')
-        if param_key in parameter_configs:
-            param_config = parameter_configs[param_key]
-            if isinstance(param_config, ParameterRange):
-                param_dict['O'] = param_config.generate_values()
-            elif isinstance(param_config, list):
-                param_dict['O'] = param_config
-        updated_parameters.append(param_dict)
+        param_dict = param if isinstance(param, dict) else param.model_dump(by_alias=True)
+        param_type = param_dict.get('T', 3)  # Default to STRING
+        current_value = param_dict.get('O', [None])[0]
+        
+        new_param = {
+            'K': param_dict.get('K', ''),
+            'T': param_type,
+            'I': param_dict.get('I', True),
+            'IS': param_dict.get('IS', False),
+            'O': []  # Will be filled below
+        }
+        
+        try:
+            if param_type == 0:  # INTEGER
+                if current_value and str(current_value).replace('.', '').isdigit():
+                    base = int(float(current_value))
+                    new_param['O'] = [str(v) for v in [max(1, base - 2), base, base + 2]]
+            elif param_type == 1:  # DECIMAL
+                if current_value and any(c.isdigit() for c in str(current_value)):
+                    base = float(current_value)
+                    new_param['O'] = [str(round(v, 8)) for v in [base * 0.8, base, base * 1.2]]
+            elif param_type == 2:  # BOOLEAN
+                new_param['O'] = ['True', 'False']
+            else:
+                new_param['O'] = param_dict.get('O', [])  # Keep original options
+        except (ValueError, TypeError) as e:
+            log.warning(f"Failed to update parameter {param_dict.get('K', '')}: {e}")
+            new_param['O'] = param_dict.get('O', [])
+            
+        updated_parameters.append(new_param)
     
-    # Create update request
-    api.update_lab_details(
-        executor=executor,
-        lab_id=lab_id,
-        config=lab_config,
-        settings=settings,
-        name=lab_details.name,
-        lab_type=lab_details.type
-    )
+    # Update lab details with new parameters
+    lab_details.parameters = updated_parameters
+    
+    # Send update to API
+    try:
+        return api.update_lab_details(executor, lab_details)
+    except HaasApiError as e:
+        log.error(f"Failed to update lab parameters: {e}")
+        raise
+
+def generate_test_range(param_type: ParameterType, current_value: Optional[str]) -> Optional[list]:
+    """
+    Generate a 3-value test range based on parameter type and current value
+    
+    :param param_type: Type of the parameter
+    :param current_value: Current parameter value as string
+    :return: List of 3 test values or None if range cannot be generated
+    """
+    try:
+        if param_type == ParameterType.INTEGER:
+            base = int(float(current_value)) if current_value else 10
+            # Return [lower, current, higher]
+            return [
+                max(1, base - 2),  # Lower bound
+                base,              # Current value
+                base + 2          # Higher bound
+            ]
+            
+        elif param_type == ParameterType.DECIMAL:
+            base = float(current_value) if current_value else 1.0
+            # Return [80%, 100%, 120%] of current value
+            return [
+                round(base * 0.8, 8),  # 80% of current
+                base,                  # Current value
+                round(base * 1.2, 8)   # 120% of current
+            ]
+            
+    except (ValueError, TypeError):
+        return None
+    return None
