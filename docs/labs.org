@@ -4,32 +4,64 @@
 
 * Overview
 
-Labs allow you to backtest and optimize trading strategies in HaasOnline Trading Server.
+Labs provide a powerful backtesting environment in HaasOnline Trading Server. They allow you to:
+
+- Test trading strategies with historical data
+- Optimize strategy parameters
+- Analyze performance metrics
+- Run multiple scenarios in parallel
 
 * Lab Lifecycle
 
 ** Creation
+
+Create a new lab instance with specific configuration:
+
 #+begin_src python
 from haaslib.model import CreateLabRequest
-
 
 lab = api.create_lab(auth_executor, CreateLabRequest(
     script_id="your_script_id",
     name="Test Lab",
-    account_id="your_account_id",
-    market=marketTag,
+    account_id="your_account_id", 
+    market=market_tag,
     interval=15,
     default_price_data_style="CandleStick"
 ))
 #+end_src
 
+** Parameter Configuration
+
+Labs support various parameter types:
+
+- Numeric (integers and decimals)
+- Boolean flags
+- String selections
+- Custom options
+
+Example of updating parameters:
+
+#+begin_src python
+from haaslib.lab import update_lab_parameter_ranges
+
+# Update specific parameters
+updated_lab = update_lab_parameter_ranges(
+    executor=auth_executor,
+    lab_id=lab.lab_id,
+    randomize=True  # Automatically randomize within valid ranges
+)
+#+end_src
+
 ** Execution
+
+Start a backtest over a specific time period:
+
 #+begin_src python
 from haaslib.model import StartLabExecutionRequest
 from datetime import datetime, timedelta
 
 end_time = int(datetime.now().timestamp())
-start_time = end_time - (24 * 60 * 60)  # 24 hours
+start_time = end_time - (24 * 60 * 60)  # Last 24 hours
 
 execution = api.start_lab_execution(
     auth_executor,
@@ -43,15 +75,27 @@ execution = api.start_lab_execution(
 #+end_src
 
 ** Monitoring
+
+Monitor execution progress:
+
 #+begin_src python
 while True:
-    status = api.get_lab_execution_update(auth_executor, lab.lab_id)
-    if status.status == "COMPLETED":
+    details = api.get_lab_details(auth_executor, lab.lab_id)
+    status = details.status
+    
+    if status == "COMPLETED":
         break
-    time.sleep(5)
+    elif status == "CANCELLED":
+        handle_cancellation()
+        break
+        
+    time.sleep(15)  # Poll every 15 seconds
 #+end_src
 
 ** Results
+
+Retrieve backtest results:
+
 #+begin_src python
 results = api.get_backtest_result(
     auth_executor,
@@ -63,35 +107,72 @@ results = api.get_backtest_result(
 )
 #+end_src
 
-* Lab Status
+* Lab States
 
-| Status    | Description                     |
-|-----------+---------------------------------|
-| CREATED   | Lab just created               |
-| QUEUED    | Waiting to start               |
-| RUNNING   | Currently executing            |
-| COMPLETED | Finished successfully          |
-| CANCELLED | Execution was cancelled        |
-
-* API Operations
-
-** Management Functions
-- =create_lab()=: Create new lab
-- =delete_lab()=: Remove lab
-- =get_lab_details()=: Get lab information
-- =update_lab_details()=: Modify lab settings
-- =get_all_labs()=: List all labs
-
-** Execution Functions
-- =start_lab_execution()=: Begin backtest
-- =cancel_lab_execution()=: Stop execution
-- =get_lab_execution_update()=: Check status
-- =get_backtest_result()=: Get results
+| Status    | Description                                |
+|-----------+--------------------------------------------|
+| CREATED   | Initial state after lab creation           |
+| QUEUED    | Waiting in execution queue                 |
+| RUNNING   | Currently executing backtest               |
+| COMPLETED | Finished successfully                      |
+| CANCELLED | Execution was manually or auto cancelled   |
 
 * Best Practices
 
-1. Clean up unused labs
-2. Monitor execution status
-3. Handle long-running backtests
-4. Validate parameters before creation
-5. Use appropriate timeframes 
+** Resource Management
+1. Delete unused labs to free resources
+2. Monitor execution timeouts
+3. Handle long-running backtests appropriately
+4. Validate market data availability
+5. Use appropriate timeframes for your strategy
+
+** Error Handling
+1. Implement retry logic for transient failures
+2. Handle QUEUED state timeouts
+3. Properly clean up resources on failure
+4. Validate parameters before submission
+5. Monitor API rate limits
+
+** Performance
+1. Batch parameter updates when possible
+2. Use appropriate polling intervals
+3. Consider parallel lab executions
+4. Cache frequently used data
+5. Optimize time ranges for backtests
+
+* API Operations
+
+** Lab Management
+- =create_lab()=: Create new lab instance
+- =delete_lab()=: Remove existing lab
+- =get_lab_details()=: Retrieve lab configuration
+- =update_lab_details()=: Modify lab settings
+- =get_all_labs()=: List all available labs
+
+** Execution Control  
+- =start_lab_execution()=: Begin backtest
+- =cancel_lab_execution()=: Stop running backtest
+- =get_lab_execution_update()=: Check execution status
+- =get_backtest_result()=: Retrieve test results
+
+** Parameter Management
+- =update_lab_parameter_ranges()=: Modify parameter values
+- =get_lab_parameters()=: Get current parameters
+- =validate_parameters()=: Check parameter validity
+
+* Common Issues
+
+** Market Data
+- Ensure market data is available for test period
+- Validate exchange/market pair compatibility
+- Check for sufficient price history
+
+** Resource Limits
+- Monitor concurrent lab execution limits
+- Handle queue timeouts appropriately
+- Manage storage space for results
+
+** Parameter Optimization
+- Start with reasonable parameter ranges
+- Use appropriate step sizes
+- Consider parameter dependencies
