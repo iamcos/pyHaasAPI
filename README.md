@@ -1,81 +1,94 @@
-# Table of Contents
+# Haaslib - HaasOnline Trading API Client
 
-1.  [Features](#org1a93f74)
-2.  [Usage](#org0526bbe)
-3.  [License](#org2bb8985)
+**Your Organization**
 
-Client for [HaasOnline](https://www.haasonline.com) API. Allows automation of Haas trading infrastructure.
+**2024**
 
+## Overview
 
-<a id="org1a93f74"></a>
+Haaslib is a Python client library for interacting with the HaasOnline Trading Server API. It provides a type-safe interface for managing trading bots, labs, backtests, and market data.
 
-# Features
+## Features
 
--   API Client handles communication
--   Utilities to create, execute, monitor backtests
--   Classes for key entities like markets, accounts, etc.
--   Custom result handling
+- Full type safety with Pydantic models
+- Comprehensive API coverage
+- Support for both authenticated and unauthenticated endpoints
+- Lab management and backtesting capabilities
+- Market data access
+- Bot creation and management
+- Account management
 
+## Installation
 
-<a id="org0526bbe"></a>
+```bash
+pip install haaslib
+```
 
-# Usage
+## Quick Start
 
-First of all it required to create `executor` which will interact with API:
+```python
+from haaslib.api import RequestsExecutor, Guest
+from haaslib import api
 
-    from haaslib import api
-    
-    executor = api.RequestsExecutor(host="127.0.0.1", port=8090, state=api.Guest())
+# Create guest executor
+executor = RequestsExecutor(
+    host="127.0.0.1",
+    port=8090,
+    state=Guest()
+)
 
-Guest executor can use some open endpoints, but it's better to authenticate and use all of them:
+# Authenticate
+auth_executor = executor.authenticate(
+    email="your_email@example.com",
+    password="your_password"
+)
 
-    executor = executor.authenticate(email="admin@admin.com", password="adm2inadm4in!")
+# Get markets
+markets = api.get_all_markets(auth_executor)
+```
 
-Now it's possible to use all provided endpoint wrappers. Let's create lab and backtest it. Lab requires market, account and script to be created, so they could be acuired in the following way:
+## Documentation
 
-    import random
-    
-    market = random.choice(api.get_all_markets(executor))
-    account = random.choice(api.get_accounts(executor))
-    script = random.choice(api.get_all_scripts(executor))
+The documentation is organized into the following sections:
 
-Then we can create our lab:
-
-    from haaslib.model import CreateLabRequest
-    
-    lab_details = api.create_lab(
-        executor,
-        CreateLabRequest(
-            script_id=script.script_id,
-            name="My first lab",
-            account_id=account.account_id,
-            market=market.market,
-            interval=0,
-            default_price_data_style="CandleStick",
-        ),
-    )
-
-Now you can see in Haas Web UI (reload page if it was opened already).
-
-To start backtesting `lab` module could be used.
-
-    from haaslib import lab
-    from haaslib.domain import BacktestPeriod
-    
-    backtesting_result = lab.backtest(
-        executor,
-        lab_details.lab_id,
-        BacktestPeriod(period_type=BacktestPeriod.Type.DAY, count=20),
-    )
-
-Full example lives in [examples/syncexecutor.py](examples/sync_executor.py) with some other.
+- [Authentication](docs/authentication.md)
+- [Lab Management](docs/labs.md)
 
 
-<a id="org2bb8985"></a>
+## Development
 
-# License
+**Prerequisites**
 
-This project is licensed under the MIT license.
+- Python 3.11+
+- Poetry (recommended)
 
-Let me know if any other sections would be useful to add or if an example should be expanded/clarified! Tried to provide basic overview and configuration to help users get started.
+**Setting Up Development Environment**
 
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/haaslib.git
+   cd haaslib
+   ```
+
+2. Install dependencies:
+   ```bash
+   poetry install
+   ```
+
+3. Create `.env` file:
+   ```
+   HAAS_API_HOST=127.0.0.1
+   HAAS_API_PORT=8090
+   HAAS_API_EMAIL="your_email@example.com"
+   HAAS_API_PASSWORD="your_password"
+   ```
+
+**Running Tests**
+
+```bash
+poetry run pytest
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
