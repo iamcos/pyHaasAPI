@@ -79,7 +79,3 @@ Contributions are welcome! Please refer to the contribution guidelines for more 
 
 [Specify License]
 
-
-## Detailed Documentation
-
-For a comprehensive guide to using Haaslib, including detailed explanations of API interactions, error handling, and best practices, please refer to the documentation in the `docs/` directory.  This documentation is based on the `cursor.rules` file, which outlines the core principles and guidelines for using this library.
