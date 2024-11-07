@@ -22,13 +22,14 @@ T = TypeVar("T")
 
 class ApiResponse(BaseModel, Generic[T]):
     """Base API response wrapper"""
-    Success: bool
-    Error: str
-    Data: T
+    Success: bool = Field(default=True)
+    Error: str = Field(default="")
+    Data: Optional[T] = Field(default=None)
 
     model_config = ConfigDict(
         populate_by_name=True,
-        extra='allow'
+        extra='allow',
+        arbitrary_types_allowed=True
     )
 
     @property
@@ -42,7 +43,7 @@ class ApiResponse(BaseModel, Generic[T]):
         return self.Error
 
     @property
-    def data(self) -> T:
+    def data(self) -> Optional[T]:
         """Lowercase accessor for Data field"""
         return self.Data
 
@@ -286,6 +287,12 @@ class LabBacktestResult(BaseModel):
 
 
 class EditHaasScriptSourceCodeSettings(BaseModel):
+    """Settings for editing HaasScript source code"""
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,  # Allow arbitrary types
+        populate_by_name=True
+    )
+    
     market_tag: CloudMarket
     leverage: float
     position_mode: int
@@ -422,11 +429,17 @@ class AddBotFromLabRequest:
 
 class LabDetails(BaseModel):
     """Lab details from GET_LAB_DETAILS"""
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        extra='allow'  # Allow extra fields
+    )
+    
+    parameters: List[Dict[str, Any]] = Field(alias="P", default_factory=list)
     config: LabConfig = Field(alias="C")
-    settings: LabSettings = Field(alias="ST") 
-    parameters: List[Any] = Field(alias="P")
+    settings: LabSettings = Field(alias="ST")
     user_id: str = Field(alias="UID")
-    lab_id: str = Field(alias="LID")  # This was the issue - needed to be lab_id not LID
+    lab_id: str = Field(alias="LID")
     script_id: str = Field(alias="SID")
     name: str = Field(alias="N")
     type: int = Field(alias="T")
@@ -441,9 +454,6 @@ class LabDetails(BaseModel):
     end_unix: int = Field(alias="EU")
     send_email: bool = Field(alias="SE")
     cancel_message: Optional[str] = Field(alias="CM")
-    
-    class Config:
-        populate_by_name = True  # Add this to ensure both alias and field names work
 
     @property
     def is_running(self) -> bool:

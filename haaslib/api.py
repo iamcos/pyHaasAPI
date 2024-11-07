@@ -14,6 +14,7 @@ from typing import (
     Type,
     TypeVar,
     cast,
+    List,
 )
 
 import requests
@@ -49,7 +50,9 @@ from haaslib.parameters import (
     LabConfig,
     LabSettings,
     BacktestStatus,
-    LabAlgorithm
+    LabAlgorithm,
+    ParameterRange,
+    ScriptParameter,
 )
 
 
@@ -133,7 +136,6 @@ class RequestsExecutor(Generic[State]):
 
     port: int
     """ Port of the Haas API."""
-
     state: State
     """ User session state."""
 
@@ -381,37 +383,58 @@ def get_lab_details(
 
 def update_lab_details(
     executor: SyncExecutor[Authenticated],
-    lab_id: str,
-    config: LabConfig,
-    settings: LabSettings,
-    name: str,
-    lab_type: str,
+    lab_details: LabDetails
 ) -> LabDetails:
-    """Updates lab details
-    
-    Args:
-        executor: Authenticated executor instance
-        lab_id: ID of the lab to update
-        config: Lab configuration settings
-        settings: Lab execution settings
-        name: Name of the lab
-        lab_type: Type of the lab
-        
-    Returns:
-        Updated lab details
-    """
-    return executor.execute(
+    """Update lab details and verify the update"""
+    # Format parameters
+    params_list = []
+    for param in lab_details.parameters:
+        # Convert options to strings
+        if isinstance(param, dict):
+            options = param.get('O', [])
+        else:
+            options = param.options
+            
+        if isinstance(options, (int, float)):
+            options = [str(options)]
+        elif isinstance(options, (list, tuple)):
+            options = [str(opt) for opt in options]
+        else:
+            options = [str(options)]
+            
+        # Build parameter dict
+        param_dict = {
+            "K": param.get('K', '') if isinstance(param, dict) else param.key,
+            "T": param.get('T', 3) if isinstance(param, dict) else param.type,
+            "O": options,
+            "I": param.get('I', True) if isinstance(param, dict) else param.is_enabled,
+            "IS": param.get('IS', False) if isinstance(param, dict) else param.is_selected
+        }
+        params_list.append(param_dict)
+
+    # Send update
+    response = executor.execute(
         endpoint="Labs",
-        response_type=LabDetails,
+        response_type=ApiResponse[LabDetails],
         query_params={
             "channel": "UPDATE_LAB_DETAILS",
-            "labId": lab_id,
-            "config": config.model_dump(by_alias=True),
-            "settings": settings.model_dump(by_alias=True),
-            "name": name,
-            "type": lab_type,
-        },
+            "labId": lab_details.lab_id,
+            "config": lab_details.config.model_dump_json(),
+            "settings": lab_details.settings.model_dump_json(),
+            "name": lab_details.name,
+            "type": lab_details.type,
+            "parameters": params_list
+        }
     )
+
+    if not response or not response.Success:
+        log.error(f"Failed to update lab details: {response.Error if response else 'No response'}")
+        # Get current state after failed update
+        return get_lab_details(executor, lab_details.lab_id)
+
+    # Verify update by getting current details
+    updated_details = get_lab_details(executor, lab_details.lab_id)
+    return updated_details
 
 
 def cancel_lab_execution(
@@ -606,5 +629,46 @@ def get_account_data(
             "channel": "GET_ACCOUNT_DATA",
             "accountid": account_id
         }
+    )
+
+
+def update_lab_parameters(
+    executor: SyncExecutor[Authenticated],
+    lab_id: str,
+    parameters: List[ScriptParameter]
+) -> LabDetails:
+    """
+    Update lab parameters with new values/ranges
+    
+    :param executor: API executor
+    :param lab_id: ID of lab to update
+    :param parameters: List of parameters with updated values/ranges
+    :return: Updated lab details
+    """
+    # Get current lab details
+    lab_details = get_lab_details(executor, lab_id)
+    
+    # Create update request
+    return executor.execute(
+        endpoint="LabsAPI",
+        response_type=LabDetails,
+        query_params={
+            "channel": "UPDATE_LAB_DETAILS",
+            "labId": lab_id,
+            "config": lab_details.config.model_dump_json(),
+            "settings": lab_details.settings.model_dump_json(),
+            "name": lab_details.name,
+            "type": lab_details.type,
+            "parameters": [p.model_dump(by_alias=True) for p in parameters]
+        }
+    )
+
+
+def get_all_markets(executor: SyncExecutor[Authenticated]) -> list[CloudMarket]:
+    """Get all available markets"""
+    return executor.execute(
+        endpoint="Price",
+        response_type=list[CloudMarket],
+        query_params={"channel": "MARKETLIST"},
     )
 
