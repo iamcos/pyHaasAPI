@@ -1,0 +1,137 @@
+* Parameter Handling System
+** Overview
+The parameter handling system in haaslib provides a structured way to work with HaasScript parameters. The system handles parameter organization, type conversion, and hierarchical access.
+
+** Core Components
+*** ScriptParameters
+**** Description
+Main class for handling script parameters. Acts as a container and manager for all parameters.
+
+**** Key Features
+- Parameter grouping
+- Type conversion
+- Hierarchical access
+- Dictionary conversion
+
+**** Methods
+***** from_api_response
+#+begin_src python
+@classmethod
+def from_api_response(cls, params_data: List[Dict[str, Any]]) -> "ScriptParameters":
+    """Creates instance from API response data"""
+#+end_src
+
+***** get_parameter
+#+begin_src python
+def get_parameter(self, path: str) -> Optional[ScriptParameter]:
+    """Retrieves parameter by its full path"""
+#+end_src
+
+***** get_group
+#+begin_src python
+def get_group(self, path: str) -> Optional[ParameterGroup]:
+    """Gets parameter group by path"""
+#+end_src
+
+***** to_dict
+#+begin_src python
+def to_dict(self) -> Dict[str, Any]:
+    """Converts parameters to flat dictionary"""
+#+end_src
+
+*** ParameterGroup
+**** Description
+Represents a group of related parameters.
+
+**** Attributes
+- name: str - Group name
+- parameters: Dict[str, ScriptParameter] - Parameters in this group
+- subgroups: Dict[str, ParameterGroup] - Nested groups
+
+**** Methods
+***** add_parameter
+#+begin_src python
+def add_parameter(self, param: ScriptParameter) -> None:
+    """Adds parameter to appropriate location in group hierarchy"""
+#+end_src
+
+*** ScriptParameter
+**** Description
+Individual parameter with type information and value conversion.
+
+**** Attributes
+- key: str - Full parameter key
+- param_type: ParameterType - Parameter data type
+- options: List[str] - Available options/values
+- is_enabled: bool - Whether parameter is enabled
+- is_selected: bool - Whether parameter is selected
+
+**** Properties
+***** value
+#+begin_src python
+@property
+def value(self) -> Union[int, float, bool, str]:
+    """Converts current option to appropriate type"""
+#+end_src
+
+***** name
+#+begin_src python
+@property
+def name(self) -> str:
+    """Clean parameter name without group prefix"""
+#+end_src
+
+***** group_path
+#+begin_src python
+@property
+def group_path(self) -> List[str]:
+    """Parameter's group hierarchy"""
+#+end_src
+
+** Usage Examples
+*** Basic Parameter Access
+#+begin_src python
+# Create from API response
+params = ScriptParameters.from_api_response(api_data)
+
+# Get specific parameter
+rsi_length = params.get_parameter("MadHatter RSI.RSI Length")
+if rsi_length:
+    print(f"RSI Length: {rsi_length.value}")
+#+end_src
+
+*** Working with Groups
+#+begin_src python
+# Get a specific group
+rsi_group = params.get_group("MadHatter RSI")
+if rsi_group:
+    # Print all parameters in group
+    for param_name, param in rsi_group.parameters.items():
+        print(f"{param_name}: {param.value}")
+
+# Convert all parameters to dictionary
+param_dict = params.to_dict()
+#+end_src
+
+** Type System
+*** ParameterType
+Enum defining supported parameter types:
+- INTEGER = 0
+- DECIMAL = 1
+- BOOLEAN = 2
+- STRING = 3
+- SELECTION = 4
+
+** Error Handling
+- Invalid paths return None from get_parameter/get_group
+- Type conversion errors fallback to string values
+- Missing or malformed API data raises ValidationError
+
+** Best Practices
+- Always check for None when using get_parameter/get_group
+- Use type hints with parameter values
+- Access nested parameters via dot notation
+- Use to_dict() for serialization
+#+end_src
+
+This documentation provides a comprehensive overview of the parameter handling system. You can view it in Emacs with org-mode for best formatting and navigation.
