@@ -1,0 +1,36 @@
+#+TITLE: Script Interactions
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+Scripts define the logic for trading strategies and backtests.
+
+* Script Retrieval
+
+Retrieve all available scripts for the authenticated user.
+
+#+begin_src python
+from pyHaasAPI.api import get_all_scripts
+
+scripts = get_all_scripts(auth_executor)
+for script in scripts:
+    print(f"Script ID: {script.script_id}, Name: {script.script_name}")
+#+end_src
+
+* Script Selection
+
+Select scripts based on specific criteria, such as name or type.
+
+#+begin_src python
+pnl_scripts = [s for s in scripts if "PNL" in s.script_name]
+print(f"Found {len(pnl_scripts)} PNL scripts")
+#+end_src
+
+* Best Practices
+
+1. Validate script dependencies
+2. Use version control for scripts
+3. Test scripts in a simulated environment
+4. Monitor script performance
+5. Handle script selection errors 

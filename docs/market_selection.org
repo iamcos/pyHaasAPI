@@ -1,0 +1,38 @@
+#+TITLE: Market Selection
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+Selecting the right market is essential for strategy execution and backtesting.
+
+* Market Retrieval
+
+Retrieve all available markets from the API.
+
+#+begin_src python
+from pyHaasAPI.price import PriceAPI
+
+price_api = PriceAPI(auth_executor)
+markets = price_api.get_all_markets()
+for market in markets:
+    print(f"Market: {market.primary}/{market.secondary}")
+#+end_src
+
+* Market Validation
+
+Ensure the selected market is valid for the account and strategy.
+
+#+begin_src python
+valid_market = price_api.get_valid_market(account.exchange_code)
+if price_api.validate_market(valid_market):
+    print(f"Valid market: {valid_market.primary}/{valid_market.secondary}")
+#+end_src
+
+* Best Practices
+
+1. Validate market data availability
+2. Check market compatibility with account
+3. Monitor market status changes
+4. Use market data caching for performance
+5. Handle market selection errors 

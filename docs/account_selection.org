@@ -1,0 +1,36 @@
+#+TITLE: Account Selection
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+Selecting the correct account is crucial for executing trades and backtests.
+
+* Account Retrieval
+
+Retrieve all available accounts for the authenticated user.
+
+#+begin_src python
+from pyHaasAPI.api import get_accounts
+
+accounts = get_accounts(auth_executor)
+for account in accounts:
+    print(f"Account ID: {account.account_id}, Name: {account.name}")
+#+end_src
+
+* Account Filtering
+
+Filter accounts based on specific criteria, such as account type or status.
+
+#+begin_src python
+simulated_accounts = [acc for acc in accounts if acc.is_simulated]
+print(f"Found {len(simulated_accounts)} simulated accounts")
+#+end_src
+
+* Best Practices
+
+1. Validate account status before use
+2. Use descriptive account names
+3. Regularly review account permissions
+4. Handle account selection errors
+5. Log account usage for auditing 
