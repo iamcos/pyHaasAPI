@@ -268,7 +268,7 @@ class LabBacktestSummary(BaseModel):
     ReturnOnInvestment: float = Field(default=0.0)
     CustomReport: Any = Field(default=None)
 
-
+BacktestSummary = LabBacktestSummary
 
 class LabBacktestResult(BaseModel):
     record_id: int = Field(alias="RID")
@@ -487,4 +487,21 @@ class AccountData(BaseModel):
     type: str
     wallets: List[dict]  # We can define a proper Wallet model if needed
     # Add other fields as needed based on the API response
+
+
+class BacktestRecord(BaseModel):
+    """Model representing a backtest record"""
+    record_id: int = Field(alias="RID")
+    user_id: str = Field(alias="UID")
+    lab_id: str = Field(alias="LID")
+    backtest_id: str = Field(alias="BID")
+    generation_idx: int = Field(alias="NG")
+    population_idx: int = Field(alias="NP")
+    status: int = Field(alias="ST")
+    settings: HaasScriptSettings = Field(alias="SE")
+    parameters: dict[str, str] = Field(alias="P")
+    runtime: Any = Field(alias="RT")
+    chart: Any = Field(alias="C")
+    logs: Any = Field(alias="L")
+    summary: LabBacktestSummary = Field(alias="S")
 
