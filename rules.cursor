@@ -1,0 +1,81 @@
+# General Project Rules for pyHaasAPI
+
+[market_naming]
+# All market tags must use the format: <EXCHANGE>_<BASE>_<QUOTE>_
+# Example: BINANCE_BTC_USDT_
+# This is enforced in CloudMarket.format_market_tag and CreateLabRequest.with_generated_name.
+# When creating or referencing a market in lab, bot, or backtest requests, always use this format.
+# Do not add extra fields or change the separator.
+# Document any exceptions in 'docs/'.
+
+[python]
+python_version = "3.11"
+type_hints = true
+indent_style = "space"
+indent_size = 4
+max_line_length = 100
+require_docstrings = true
+logging_library = "loguru"
+test_framework = "pytest"
+test_directory = "tests"
+env_file = ".env"
+env_example_file = "env.example"
+ignore_patterns = [
+    ".env",
+    ".venv",
+    "__pycache__",
+    "pyHaasAPI.egg-info",
+    "dist",
+    "env.example",
+    ".DS_Store"
+]
+dependency_files = [
+    "requirements.txt",
+    "pyproject.toml"
+]
+experiments_directory = "experiments"
+documentation_directory = "docs"
+examples_directory = "examples"
+
+# All new code should be accompanied by at least minimal doc tests or usage examples.
+# Use rapidfuzz for fuzzy search (as seen in textual_backtester.py).
+# Use Git for version control. Do not commit large data files or secrets.
+# All contributions should be made via pull requests and reviewed before merging.
+# Follow semantic versioning for releases.
+# Use 'ALL CAPS' for constants.
+# Use snake_case for variables and functions, PascalCase for classes.
+# Use relative imports within the pyHaasAPI package.
+# All API interaction should be wrapped in error handling with custom exceptions.
+# All scripts should have a main guard (if __name__ == "__main__":).
+
+[architecture]
+core_package = "pyHaasAPI"
+# Organize code by responsibility:
+# - API communication in 'pyHaasAPI/api/'
+# - Data models in 'pyHaasAPI/models/'
+# - Business logic in 'pyHaasAPI/' (e.g., parameters.py, lab.py)
+# - Client logic in 'pyHaasAPI/client/'
+# - Utilities and extensions in dedicated modules (e.g., iterable_extensions.py)
+experiments_directory = "experiments"
+examples_directory = "examples"
+documentation_directory = "docs"
+test_directory = "tests"
+relative_imports = true
+single_responsibility = true
+data_validation_library = "pydantic"
+# API error handling must use custom exceptions defined in 'pyHaasAPI/exceptions.py'.
+# Logging must use 'loguru' and be centralized in 'pyHaasAPI/logger.py'.
+# All scripts and entry points must have a main guard (if __name__ == "__main__":).
+# No business logic in the root directory; only entry points, config, and documentation.
+# All new features should be accompanied by documentation and tests.
+# All architectural changes must be documented in 'docs/'.
+
+[api_endpoints]
+# All API endpoint names must end with 'API' (e.g., 'LabsAPI', 'AccountAPI') when constructing URLs or endpoint strings.
+# This is critical for compatibility with the HaasOnline API and is enforced in the codebase (see pyHaasAPI/api.py).
+# Example: url = f"{self.protocol}://{self.host}:{self.port}/{endpoint}API.php"
+# When adding new endpoints or refactoring, always ensure the 'API' suffix is present.
+# This convention ensures all API requests are routed correctly and consistently.
+# Document any exceptions or changes to this rule in 'docs/'.
+
+# Add new rules here as the project evolves. 
