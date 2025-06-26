@@ -101,3 +101,7 @@ Contributions are welcome! Please refer to the contribution guidelines for more 
 ## License
 
 [Specify License]
+
+## Experiments
+
+See the `experiments/` folder for prototypes and experimental features, such as the Textual TUI backtester for multi-market strategy testing. These are not part of the stable API client but serve as sandboxes for new ideas.
