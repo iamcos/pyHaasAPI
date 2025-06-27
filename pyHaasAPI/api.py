@@ -1221,51 +1221,35 @@ def get_all_account_balances(executor: SyncExecutor[Authenticated]) -> list[dict
     )
 
 
-def get_account_orders(executor: SyncExecutor[Authenticated], account_id: str) -> list[dict]:
+def get_account_orders(executor: SyncExecutor[Authenticated], account_id: str) -> dict:
     """
-    Get all orders for a specific account
-    
-    Args:
-        executor: Authenticated executor instance
-        account_id: ID of the account to get orders for
-        
-    Returns:
-        List of order dictionaries
-        
-    Raises:
-        HaasApiError: If the API request fails
+    Get open orders for an account. Returns the raw response dict (with 'I' key for orders).
     """
     return executor.execute(
         endpoint="Account",
-        response_type=list[dict],
+        response_type=object,
         query_params={
             "channel": "GET_ORDERS",
             "accountid": account_id,
-        },
+            "userid": executor.state.user_id,
+            "interfacekey": executor.state.interface_key,
+        }
     )
 
 
-def get_account_positions(executor: SyncExecutor[Authenticated], account_id: str) -> list[dict]:
+def get_account_positions(executor: SyncExecutor[Authenticated], account_id: str) -> dict:
     """
-    Get all positions for a specific account
-    
-    Args:
-        executor: Authenticated executor instance
-        account_id: ID of the account to get positions for
-        
-    Returns:
-        List of position dictionaries
-        
-    Raises:
-        HaasApiError: If the API request fails
+    Get open positions for an account. Returns the raw response dict (with 'I' key for positions).
     """
     return executor.execute(
         endpoint="Account",
-        response_type=list[dict],
+        response_type=object,
         query_params={
             "channel": "GET_POSITIONS",
             "accountid": account_id,
-        },
+            "userid": executor.state.user_id,
+            "interfacekey": executor.state.interface_key,
+        }
     )
 
 
@@ -1525,6 +1509,95 @@ def move_script_to_folder(
             "channel": "MOVE_SCRIPT_TO_FOLDER",
             "scriptid": script_id,
             "folderid": folder_id,
+            "interfacekey": interface_key,
+            "userid": user_id,
+        }
+    )
+
+
+def place_order(
+    executor: SyncExecutor[Authenticated],
+    account_id: str,
+    market: str,
+    side: str,  # "buy" or "sell"
+    price: float,
+    amount: float,
+    order_type: int = 0,  # 0=limit, 1=market
+    tif: int = 0,         # 0=GTC
+    source: str = "Manual"
+) -> str:
+    """
+    Place an order via TradingAPI.
+    Returns the order ID if successful.
+    """
+    user_id = executor.state.user_id
+    interface_key = executor.state.interface_key
+    order_obj = {
+        "RID": "",
+        "UID": "",
+        "AID": account_id,
+        "M": market,
+        "T": 0 if side == "buy" else 1,
+        "D": 1 if side == "buy" else -1,
+        "P": price,
+        "TP": 0,
+        "TT": order_type,
+        "A": amount,
+        "TIF": tif,
+        "S": source,
+        "N": "",
+        "F": None
+    }
+    return executor.execute(
+        endpoint="Trading",
+        response_type=str,
+        query_params={
+            "channel": "PLACE_ORDER",
+            "order": json.dumps(order_obj),
+            "interfacekey": interface_key,
+            "userid": user_id,
+        }
+    )
+
+
+def cancel_order(
+    executor: SyncExecutor[Authenticated],
+    account_id: str,
+    order_id: str
+) -> bool:
+    """
+    Cancel an order by order ID.
+    Returns True if successful.
+    """
+    user_id = executor.state.user_id
+    interface_key = executor.state.interface_key
+    return executor.execute(
+        endpoint="Trading",
+        response_type=bool,
+        query_params={
+            "channel": "CANCEL_ORDER",
+            "accountid": account_id,
+            "orderid": order_id,
+            "interfacekey": interface_key,
+            "userid": user_id,
+        }
+    )
+
+
+def get_all_orders(
+    executor: SyncExecutor[Authenticated]
+) -> list[dict]:
+    """
+    Get all open orders for all accounts.
+    Returns a list of dicts, each with 'AID' and 'I' (orders).
+    """
+    user_id = executor.state.user_id
+    interface_key = executor.state.interface_key
+    return executor.execute(
+        endpoint="Account",
+        response_type=object,  # Accepts list[dict] or object for flexibility
+        query_params={
+            "channel": "GET_ALL_ORDERS",
             "interfacekey": interface_key,
             "userid": user_id,
         }
