@@ -78,4 +78,60 @@ data_validation_library = "pydantic"
 # This convention ensures all API requests are routed correctly and consistently.
 # Document any exceptions or changes to this rule in 'docs/'.
 
+[api_discovery_rules]
+# Based on reverse engineering from lab_parameters.py and other examples:
+
+[authentication]
+# Authentication requires two-step process:
+# 1. LOGIN_WITH_CREDENTIALS - email, password, interfaceKey (random 10-digit string)
+# 2. LOGIN_WITH_ONE_TIME_CODE - email, pincode (random 6-digit), interfaceKey
+# Always use RequestsExecutor.authenticate() method for proper state management.
+# Interface key must be consistent across both authentication steps.
+
+[parameter_handling]
+# LabParameter objects use these field mappings:
+# - key (alias: "K") - Parameter identifier
+# - type (alias: "T") - ParameterType enum value (0=INTEGER, 1=DECIMAL, 2=BOOLEAN, 3=STRING, 4=SELECTION)
+# - options (alias: "O") - List of possible values as strings
+# - is_enabled (alias: "I") - Boolean for parameter availability
+# - is_selected (alias: "IS") - Boolean for parameter selection state
+# Always use LabParameter properties: current_value, possible_values, display_name, group_path
+# ParameterRange constructor only accepts: start, end, step (no decimals parameter)
+
+[lab_management]
+# Lab creation workflow:
+# 1. Get scripts via GET_ALL_SCRIPT_ITEMS
+# 2. Get accounts via GET_ACCOUNTS
+# 3. Get markets via MARKETLIST
+# 4. Create lab via CREATE_LAB with scriptId, name, accountId, market, interval, style
+# 5. Extract lab_id from response.lab_id (not response.LID)
+# 6. Get parameters via GET_LAB_DETAILS
+# 7. Update parameters via UPDATE_LAB_DETAILS
+# 8. Clean up via DELETE_LAB
+# LabDetails response includes: parameters, config, settings, lab_id, script_id, name, status
+
+[api_response_structure]
+# All API responses are wrapped in ApiResponse<T> with:
+# - Success: bool - Request success status
+# - Error: str - Error message if failed
+# - Data: Optional[T] - Response data
+# Use response.success, response.error, response.data properties
+# LabDetails uses populate_by_name=True for flexible field mapping
+# Parameters in responses are dictionaries with K, T, O, I, IS keys
+
+[error_handling]
+# Always wrap API calls in try/except blocks
+# Use HaasApiError for API-specific exceptions
+# Log all API requests and responses for debugging
+# Implement proper cleanup in finally blocks for resource management
+# Handle authentication failures gracefully with retry logic
+
+[testing_guidelines]
+# Use examples/lab_parameters.py as reference for API testing
+# Always create test labs with random names (PNL_Test_XXXX)
+# Clean up test resources after testing
+# Log all API interactions for debugging
+# Test parameter updates and verify changes
+# Use random accounts and markets for testing
+
 # Add new rules here as the project evolves. 
