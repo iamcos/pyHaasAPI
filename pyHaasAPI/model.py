@@ -90,7 +90,7 @@ class HaasBot(BaseModel):
 
 
 class HaasScriptItemWithDependencies(BaseModel):
-    dependencies: list[str] = Field(alias="D")
+    dependencies: list[str] = Field(alias="D", default_factory=list)
     user_id: str = Field(alias="UID")
     script_id: str = Field(alias="SID")
     script_name: str = Field(alias="SN")
@@ -504,4 +504,12 @@ class BacktestRecord(BaseModel):
     chart: Any = Field(alias="C")
     logs: Any = Field(alias="L")
     summary: LabBacktestSummary = Field(alias="S")
+
+
+class HaasScriptFolder(BaseModel):
+    folder_id: int = Field(alias="FID")
+    name: str = Field(alias="FN")
+    parent_id: int = Field(alias="PID")
+    created_unix: int = Field(alias="CU")
+    updated_unix: int = Field(alias="UU")
 
