@@ -43,6 +43,7 @@ from pyHaasAPI.model import (
     LabSettings,
     AccountDetails,
     AccountData,
+    HaasScriptFolder,
 )
 from pyHaasAPI.parameters import (
     LabParameter,
@@ -530,6 +531,143 @@ def delete_lab(executor: SyncExecutor[Authenticated], lab_id: str):
     )
 
 
+def clone_lab(executor: SyncExecutor[Authenticated], lab_id: str, new_name: str = None) -> LabDetails:
+    """
+    Clone an existing lab with all its configuration
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_id: ID of the lab to clone
+        new_name: Optional new name for the cloned lab (default: "Clone of {original_name}")
+        
+    Returns:
+        LabDetails object for the newly created lab
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    # Get the original lab details first
+    original_lab = get_lab_details(executor, lab_id)
+    
+    # Generate new name if not provided
+    if not new_name:
+        new_name = f"Clone of {original_lab.name}"
+    
+    return executor.execute(
+        endpoint="Labs",
+        response_type=LabDetails,
+        query_params={
+            "channel": "CLONE_LAB",
+            "labid": lab_id,
+            "name": new_name,
+        },
+    )
+
+
+def change_lab_script(executor: SyncExecutor[Authenticated], lab_id: str, script_id: str) -> LabDetails:
+    """
+    Change the script associated with a lab
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_id: ID of the lab to modify
+        script_id: ID of the new script to use
+        
+    Returns:
+        Updated LabDetails object
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Labs",
+        response_type=LabDetails,
+        query_params={
+            "channel": "CHANGE_LAB_SCRIPT",
+            "labid": lab_id,
+            "scriptid": script_id,
+        },
+    )
+
+
+def get_backtest_runtime(executor: SyncExecutor[Authenticated], lab_id: str, backtest_id: str) -> dict:
+    """
+    Get detailed runtime information for a specific backtest
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_id: ID of the lab
+        backtest_id: ID of the specific backtest
+        
+    Returns:
+        Runtime information dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Labs",
+        response_type=dict,
+        query_params={
+            "channel": "GET_BACKTEST_RUNTIME",
+            "labid": lab_id,
+            "backtestid": backtest_id,
+        },
+    )
+
+
+def get_backtest_chart(executor: SyncExecutor[Authenticated], lab_id: str, backtest_id: str) -> dict:
+    """
+    Get chart data for a specific backtest
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_id: ID of the lab
+        backtest_id: ID of the specific backtest
+        
+    Returns:
+        Chart data dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Labs",
+        response_type=dict,
+        query_params={
+            "channel": "GET_BACKTEST_CHART",
+            "labid": lab_id,
+            "backtestid": backtest_id,
+        },
+    )
+
+
+def get_backtest_log(executor: SyncExecutor[Authenticated], lab_id: str, backtest_id: str) -> list[str]:
+    """
+    Get execution log for a specific backtest
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_id: ID of the lab
+        backtest_id: ID of the specific backtest
+        
+    Returns:
+        List of log entries as strings
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Labs",
+        response_type=list[str],
+        query_params={
+            "channel": "GET_BACKTEST_LOG",
+            "labid": lab_id,
+            "backtestid": backtest_id,
+        },
+    )
+
+
 def add_bot(executor: SyncExecutor[Authenticated], req: CreateBotRequest) -> HaasBot:
     """
     Creates new bot
@@ -595,6 +733,246 @@ def get_all_bots(executor: SyncExecutor[Authenticated]) -> list[HaasBot]:
     )
 
 
+def activate_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
+    """
+    Activate a bot to start trading
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to activate
+        
+    Returns:
+        Updated HaasBot object with activation status
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=HaasBot,
+        query_params={
+            "channel": "ACTIVATE_BOT",
+            "botid": bot_id,
+        },
+    )
+
+
+def deactivate_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
+    """
+    Deactivate a bot to stop trading
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to deactivate
+        
+    Returns:
+        Updated HaasBot object with deactivation status
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=HaasBot,
+        query_params={
+            "channel": "DEACTIVATE_BOT",
+            "botid": bot_id,
+        },
+    )
+
+
+def pause_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
+    """
+    Pause a bot's execution (temporarily stop trading)
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to pause
+        
+    Returns:
+        Updated HaasBot object with pause status
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=HaasBot,
+        query_params={
+            "channel": "PAUSE_BOT",
+            "botid": bot_id,
+        },
+    )
+
+
+def resume_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
+    """
+    Resume a paused bot's execution
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to resume
+        
+    Returns:
+        Updated HaasBot object with resume status
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=HaasBot,
+        query_params={
+            "channel": "RESUME_BOT",
+            "botid": bot_id,
+        },
+    )
+
+
+def get_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
+    """
+    Get detailed information about a specific bot
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to get details for
+        
+    Returns:
+        HaasBot object with complete bot information
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=HaasBot,
+        query_params={
+            "channel": "GET_BOT",
+            "botid": bot_id,
+        },
+    )
+
+
+def deactivate_all_bots(executor: SyncExecutor[Authenticated]) -> list[HaasBot]:
+    """
+    Deactivate all bots for the authenticated user
+    
+    Args:
+        executor: Authenticated executor instance
+        
+    Returns:
+        List of updated HaasBot objects
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=list[HaasBot],
+        query_params={
+            "channel": "DEACTIVATE_ALL_BOTS",
+        },
+    )
+
+
+def get_bot_orders(executor: SyncExecutor[Authenticated], bot_id: str) -> list[dict]:
+    """
+    Get all open orders for a specific bot
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to get orders for
+        
+    Returns:
+        List of order dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_BOT_ORDERS",
+            "botid": bot_id,
+        },
+    )
+
+
+def get_bot_positions(executor: SyncExecutor[Authenticated], bot_id: str) -> list[dict]:
+    """
+    Get all positions for a specific bot
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to get positions for
+        
+    Returns:
+        List of position dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_BOT_POSITIONS",
+            "botid": bot_id,
+        },
+    )
+
+
+def cancel_bot_order(executor: SyncExecutor[Authenticated], bot_id: str, order_id: str) -> dict:
+    """
+    Cancel a specific order for a bot
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot
+        order_id: ID of the order to cancel
+        
+    Returns:
+        Cancellation result dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=dict,
+        query_params={
+            "channel": "CANCEL_BOT_ORDER",
+            "botid": bot_id,
+            "orderid": order_id,
+        },
+    )
+
+
+def cancel_all_bot_orders(executor: SyncExecutor[Authenticated], bot_id: str) -> dict:
+    """
+    Cancel all orders for a specific bot
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot to cancel all orders for
+        
+    Returns:
+        Cancellation result dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=dict,
+        query_params={
+            "channel": "CANCEL_ALL_BOT_ORDERS",
+            "botid": bot_id,
+        },
+    )
+
+
 def get_scripts_by_name(
     executor: SyncExecutor[Authenticated], 
     name_pattern: str,
@@ -608,27 +986,310 @@ def get_scripts_by_name(
     :param case_sensitive: Whether to perform case-sensitive matching (default: False)
     :return: List of matching scripts
     """
-    scripts = get_all_scripts(executor)
+    all_scripts = get_all_scripts(executor)
     
-    if not case_sensitive:
-        name_pattern = name_pattern.lower()
-        return [s for s in scripts if name_pattern in s.script_name.lower()]
+    if case_sensitive:
+        matching_scripts = [
+            script for script in all_scripts 
+            if name_pattern in script.script_name
+        ]
+    else:
+        matching_scripts = [
+            script for script in all_scripts 
+            if name_pattern.lower() in script.script_name.lower()
+        ]
     
-    return [s for s in scripts if name_pattern in s.script_name]
+    return matching_scripts
+
+
+def get_script_item(executor: SyncExecutor[Authenticated], script_id: str) -> HaasScriptItemWithDependencies:
+    """
+    Get detailed information about a specific script
+    
+    Args:
+        executor: Authenticated executor instance
+        script_id: ID of the script to get details for
+        
+    Returns:
+        HaasScriptItemWithDependencies object with complete script information
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=HaasScriptItemWithDependencies,
+        query_params={
+            "channel": "GET_SCRIPT_ITEM",
+            "scriptid": script_id,
+        },
+    )
+
+
+def add_script(executor: SyncExecutor[Authenticated], script_name: str, script_content: str, description: str = "", script_type: int = 0) -> HaasScriptItemWithDependencies:
+    """
+    Upload a new script to the HaasOnline server
+    
+    Args:
+        executor: Authenticated executor instance
+        script_name: Name for the new script
+        script_content: The script source code
+        description: Description of the script (optional)
+        script_type: Type of script (default: 0 for HaasScript)
+        
+    Returns:
+        HaasScriptItemWithDependencies object for the newly created script
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=HaasScriptItemWithDependencies,
+        query_params={
+            "channel": "ADD_SCRIPT",
+            "name": script_name,
+            "script": script_content,
+            "description": description,
+            "type": script_type,
+        },
+    )
+
+
+def edit_script(executor: SyncExecutor[Authenticated], script_id: str, script_name: str = None, script_content: str = None, description: str = "") -> HaasScriptItemWithDependencies | dict | None:
+    """
+    Edit an existing script
+    
+    Args:
+        executor: Authenticated executor instance
+        script_id: ID of the script to edit
+        script_name: New name for the script (optional)
+        script_content: New script content (optional)
+        description: Description for the script (optional)
+        
+    Returns:
+        Updated HaasScriptItemWithDependencies object, or raw dict if partial response
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    query_params = {
+        "channel": "EDIT_SCRIPT",
+        "scriptid": script_id,
+        "description": description,
+    }
+    if script_name:
+        query_params["name"] = script_name
+    if script_content:
+        query_params["script"] = script_content
+    try:
+        return executor.execute(
+            endpoint="HaasScript",
+            response_type=HaasScriptItemWithDependencies,
+            query_params=query_params,
+        )
+    except ValidationError as ve:
+        import logging
+        logging.warning(f"Partial response from edit_script: {ve}")
+        # Try to get the raw response for logging
+        try:
+            import requests
+            resp = requests.get(f"http://{executor.host}:{executor.port}/HaasScriptAPI.php", params=query_params)
+            return resp.json()
+        except Exception:
+            return None
+
+
+def delete_script(executor: SyncExecutor[Authenticated], script_id: str) -> bool:
+    """
+    Delete a script
+    
+    Args:
+        executor: Authenticated executor instance
+        script_id: ID of the script to delete
+        
+    Returns:
+        True if deletion was successful
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=bool,
+        query_params={
+            "channel": "DELETE_SCRIPT",
+            "scriptid": script_id,
+        },
+    )
+
+
+def publish_script(executor: SyncExecutor[Authenticated], script_id: str) -> bool:
+    """
+    Publish a script to make it public
+    
+    Args:
+        executor: Authenticated executor instance
+        script_id: ID of the script to publish
+        
+    Returns:
+        True if publication was successful
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=bool,
+        query_params={
+            "channel": "PUBLISH_SCRIPT",
+            "scriptid": script_id,
+        },
+    )
 
 
 def get_account_data(
     executor: SyncExecutor[Authenticated],
     account_id: str
 ) -> AccountData:
-    """Get detailed information about an account including its exchange"""
+    """
+    Get detailed information about an account including its exchange
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to get data for
+        
+    Returns:
+        AccountData object with account details
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
     return executor.execute(
         endpoint="Account",
         response_type=AccountData,
         query_params={
             "channel": "GET_ACCOUNT_DATA",
-            "accountid": account_id
-        }
+            "accountid": account_id,
+        },
+    )
+
+
+def get_account_balance(executor: SyncExecutor[Authenticated], account_id: str) -> dict:
+    """
+    Get balance information for a specific account
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to get balance for
+        
+    Returns:
+        Balance information dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "GET_BALANCE",
+            "accountid": account_id,
+        },
+    )
+
+
+def get_all_account_balances(executor: SyncExecutor[Authenticated]) -> list[dict]:
+    """
+    Get balance information for all accounts
+    
+    Args:
+        executor: Authenticated executor instance
+        
+    Returns:
+        List of balance dictionaries for all accounts
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_ALL_BALANCES",
+        },
+    )
+
+
+def get_account_orders(executor: SyncExecutor[Authenticated], account_id: str) -> list[dict]:
+    """
+    Get all orders for a specific account
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to get orders for
+        
+    Returns:
+        List of order dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_ORDERS",
+            "accountid": account_id,
+        },
+    )
+
+
+def get_account_positions(executor: SyncExecutor[Authenticated], account_id: str) -> list[dict]:
+    """
+    Get all positions for a specific account
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to get positions for
+        
+    Returns:
+        List of position dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_POSITIONS",
+            "accountid": account_id,
+        },
+    )
+
+
+def get_account_trades(executor: SyncExecutor[Authenticated], account_id: str) -> list[dict]:
+    """
+    Get trade history for a specific account
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to get trades for
+        
+    Returns:
+        List of trade dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_TRADES",
+            "accountid": account_id,
+        },
     )
 
 
@@ -665,10 +1326,207 @@ def update_lab_parameters(
 
 
 def get_all_markets(executor: SyncExecutor[Authenticated]) -> list[CloudMarket]:
-    """Get all available markets"""
+    """
+    Get all available markets
+    
+    Args:
+        executor: Authenticated executor instance
+        
+    Returns:
+        List of CloudMarket objects
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
     return executor.execute(
         endpoint="Price",
         response_type=list[CloudMarket],
-        query_params={"channel": "MARKETLIST"},
+        query_params={
+            "channel": "MARKETLIST",
+        },
+    )
+
+
+def get_market_price(executor: SyncExecutor[Authenticated], market: str) -> dict:
+    """
+    Get current price for a specific market
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market identifier (e.g., "BINANCE_BTC_USDT")
+        
+    Returns:
+        Price information dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Price",
+        response_type=dict,
+        query_params={
+            "channel": "PRICE",
+            "market": market,
+        },
+    )
+
+
+def get_order_book(executor: SyncExecutor[Authenticated], market: str, depth: int = 20) -> dict:
+    """
+    Get order book for a specific market
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market identifier (e.g., "BINANCE_BTC_USDT")
+        depth: Number of order book levels to retrieve (default: 20)
+        
+    Returns:
+        Order book dictionary with bids and asks
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Price",
+        response_type=dict,
+        query_params={
+            "channel": "ORDER_BOOK",
+            "market": market,
+            "depth": depth,
+        },
+    )
+
+
+def get_last_trades(executor: SyncExecutor[Authenticated], market: str, limit: int = 100) -> list[dict]:
+    """
+    Get recent trades for a specific market
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market identifier (e.g., "BINANCE_BTC_USDT")
+        limit: Number of trades to retrieve (default: 100)
+        
+    Returns:
+        List of trade dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Price",
+        response_type=list[dict],
+        query_params={
+            "channel": "LAST_TRADES",
+            "market": market,
+            "limit": limit,
+        },
+    )
+
+
+def get_market_snapshot(executor: SyncExecutor[Authenticated], market: str) -> dict:
+    """
+    Get market snapshot with current price, volume, and other metrics
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market identifier (e.g., "BINANCE_BTC_USDT")
+        
+    Returns:
+        Market snapshot dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Price",
+        response_type=dict,
+        query_params={
+            "channel": "SNAPSHOT",
+            "market": market,
+        },
+    )
+
+
+def get_script_record(executor: SyncExecutor[Authenticated], script_id: str) -> dict:
+    """
+    Fetch the full script record (including compile logs and all fields) for a given script ID.
+    """
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=dict,
+        query_params={
+            "channel": "GET_SCRIPT_RECORD",
+            "scriptid": script_id,
+        },
+    )
+
+
+def get_all_script_folders(
+    executor: SyncExecutor[Authenticated],
+) -> list[HaasScriptFolder]:
+    """
+    Retrieves all script folders for the authenticated user.
+
+    :param executor: Executor for Haas API interaction
+    :raises HaasApiError: If something goes wrong
+    :return: List with all available script folders
+    """
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=list[HaasScriptFolder],
+        query_params={"channel": "GET_ALL_SCRIPT_FOLDERS"},
+    )
+
+
+def create_script_folder(
+    executor: SyncExecutor[Authenticated],
+    foldername: str,
+    parentid: int = -1
+) -> HaasScriptFolder:
+    """
+    Create a new script folder.
+    :param executor: Authenticated executor
+    :param foldername: Name of the folder
+    :param parentid: Parent folder ID (-1 for root)
+    :return: HaasScriptFolder object
+    """
+    user_id = executor.state.user_id
+    interface_key = executor.state.interface_key
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=HaasScriptFolder,
+        query_params={
+            "channel": "CREATE_FOLDER",
+            "foldername": foldername,
+            "parentid": parentid,
+            "interfacekey": interface_key,
+            "userid": user_id,
+        }
+    )
+
+def move_script_to_folder(
+    executor: SyncExecutor[Authenticated],
+    script_id: str,
+    folder_id: int
+) -> bool:
+    """
+    Move a script to a different folder.
+    :param executor: Authenticated executor
+    :param script_id: Script ID to move
+    :param folder_id: Target folder ID
+    :return: True if successful
+    """
+    user_id = executor.state.user_id
+    interface_key = executor.state.interface_key
+    return executor.execute(
+        endpoint="HaasScript",
+        response_type=bool,
+        query_params={
+            "channel": "MOVE_SCRIPT_TO_FOLDER",
+            "scriptid": script_id,
+            "folderid": folder_id,
+            "interfacekey": interface_key,
+            "userid": user_id,
+        }
     )
 
