@@ -1,11 +1,31 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyHaasAPI"
 version = "0.1.0"
-description = "Haas API Library"
+description = "Python library for HaasOnline API - Free for individual traders and research institutions. Commercial licensing available for hedge funds and financial institutions."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "pyHaasAPI Contributors"}
+]
+maintainers = [
+    {name = "pyHaasAPI Team"}
+]
+keywords = ["haasonline", "trading", "api", "cryptocurrency", "automation", "backtesting"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0.0",
@@ -14,12 +34,56 @@ dependencies = [
     "typing-extensions>=4.7.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/iamcos/pyHaasAPI"
+Repository = "https://github.com/iamcos/pyHaasAPI"
+Documentation = "https://github.com/iamcos/pyHaasAPI#readme"
+Issues = "https://github.com/iamcos/pyHaasAPI/issues"
+
 [project.optional-dependencies]
 test = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.14.0",
 ]
+
+# Poetry configuration
+[tool.poetry]
+name = "pyHaasAPI"
+version = "0.1.0"
+description = "Python library for HaasOnline API - Free for individual traders and research institutions. Commercial licensing available for hedge funds and financial institutions."
+authors = ["pyHaasAPI Contributors"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/iamcos/pyHaasAPI"
+repository = "https://github.com/iamcos/pyHaasAPI"
+keywords = ["haasonline", "trading", "api", "cryptocurrency", "automation", "backtesting"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pydantic = "^2.0.0"
+requests = "^2.31.0"
+loguru = "^0.7.0"
+typing-extensions = "^4.7.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.14.0"
+
+[tool.poetry.build]
+generate-setup-file = false
 
 [tool.pytest.ini_options]
 markers = [

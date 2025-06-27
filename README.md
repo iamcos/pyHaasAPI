@@ -71,6 +71,19 @@ account_orders = api.get_account_orders(executor, account.account_id)
 account_positions = api.get_account_positions(executor, account.account_id)
 ```
 
+## Licensing
+
+**pyHaasAPI is free for individual traders, experimenters, and research institutions.**
+
+### Free Usage
+- **Individual Traders & Experimenters**: Personal trading, educational purposes, non-commercial research
+- **Research Institutions**: Academic research, university projects, non-profit organizations
+
+### Commercial Licensing
+Commercial licensing is required for hedge funds and financial institutions. We offer flexible partnership arrangements including custom integrations, priority support, and advanced features.
+
+For detailed licensing information, see [LICENSING.md](LICENSING.md).
+
 ## API Discovery & Reverse Engineering
 
 This library was developed through reverse engineering of the HaasOnline API. Our discovery process included:
