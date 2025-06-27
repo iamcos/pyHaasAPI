@@ -1,8 +1,7 @@
 from pyHaasAPI import api
 from pyHaasAPI.lab import get_lab_parameters, update_lab_parameter_ranges
+from pyHaasAPI.parameters import ParameterType, ParameterRange
 from pyHaasAPI.model import (
-    ParameterType,
-    ParameterRange,
     CreateLabRequest,
 )
 import random
@@ -37,42 +36,48 @@ def print_lab_details(lab):
     logger.info("\n--- Settings ---")
     if hasattr(lab, 'settings'):
         settings = lab.settings
-        logger.info(f"Market: {settings.market_tag if hasattr(settings, 'market_tag') else 'N/A'}")
-        logger.info(f"Interval: {settings.interval if hasattr(settings, 'interval') else 'N/A'}")
-        logger.info(f"Trade Amount: {settings.trade_amount if hasattr(settings, 'trade_amount') else 'N/A'}")
-        logger.info(f"Leverage: {settings.leverage if hasattr(settings, 'leverage') else 'N/A'}")
+        logger.info(f"Market: {getattr(settings, 'market_tag', 'N/A')}")
+        logger.info(f"Interval: {getattr(settings, 'interval', 'N/A')}")
+        logger.info(f"Trade Amount: {getattr(settings, 'trade_amount', 'N/A')}")
+        logger.info(f"Leverage: {getattr(settings, 'leverage', 'N/A')}")
     
     # Print configuration using the actual response structure
     logger.info("\n--- Configuration ---")
     if hasattr(lab, 'config'):
         config = lab.config
-        logger.info(f"Max Population: {config.max_population if hasattr(config, 'max_population') else 'N/A'}")
-        logger.info(f"Max Generations: {config.max_generations if hasattr(config, 'max_generations') else 'N/A'}")
-        logger.info(f"Max Elites: {config.max_elites if hasattr(config, 'max_elites') else 'N/A'}")
-        logger.info(f"Mix Rate: {config.mix_rate if hasattr(config, 'mix_rate') else 'N/A'}")
-        logger.info(f"Adjust Rate: {config.adjust_rate if hasattr(config, 'adjust_rate') else 'N/A'}")
+        logger.info(f"Max Population: {getattr(config, 'max_population', 'N/A')}")
+        logger.info(f"Max Generations: {getattr(config, 'max_generations', 'N/A')}")
+        logger.info(f"Max Elites: {getattr(config, 'max_elites', 'N/A')}")
+        logger.info(f"Mix Rate: {getattr(config, 'mix_rate', 'N/A')}")
+        logger.info(f"Adjust Rate: {getattr(config, 'adjust_rate', 'N/A')}")
     
     # Print parameters if available
     if hasattr(lab, 'parameters'):
         logger.info("\n=== Parameters ===")
         current_group = []
         for param in lab.parameters:
-            # Handle parameter groups
-            if param.is_setting_group:
-                if len(param.group_path) <= len(current_group):
-                    current_group = current_group[:len(param.group_path)-1]
-                current_group.append(param.display_name)
+            # Handle parameter groups (if present)
+            is_group = param.get('is_setting_group') if isinstance(param, dict) else getattr(param, 'is_setting_group', False)
+            group_path = param.get('group_path', []) if isinstance(param, dict) else getattr(param, 'group_path', [])
+            display_name = param.get('display_name', param.get('K', '')) if isinstance(param, dict) else getattr(param, 'display_name', '')
+            if is_group:
+                if len(group_path) <= len(current_group):
+                    current_group = current_group[:len(group_path)-1]
+                current_group.append(display_name)
                 logger.info(f"\n{' > '.join(current_group)}:")
                 continue
-                
             # Print parameter details
             indent = "  " * len(current_group)
-            logger.info(f"{indent}{param.display_name}:")
-            logger.info(f"{indent}  Value: {param.current_value}")
-            logger.info(f"{indent}  Type: {param.param_type}")
-            logger.info(f"{indent}  Enabled: {param.is_enabled}")
-            if len(param.possible_values) > 1:
-                logger.info(f"{indent}  Possible values: {param.possible_values}")
+            logger.info(f"{indent}{display_name}:")
+            value = param.get('current_value', param.get('O', [''])[0]) if isinstance(param, dict) else getattr(param, 'current_value', '')
+            param_type = param.get('param_type', param.get('T', '')) if isinstance(param, dict) else getattr(param, 'param_type', '')
+            is_enabled = param.get('is_enabled', param.get('I', True)) if isinstance(param, dict) else getattr(param, 'is_enabled', True)
+            possible_values = param.get('possible_values', param.get('O', [])) if isinstance(param, dict) else getattr(param, 'possible_values', [])
+            logger.info(f"{indent}  Value: {value}")
+            logger.info(f"{indent}  Type: {param_type}")
+            logger.info(f"{indent}  Enabled: {is_enabled}")
+            if len(possible_values) > 1:
+                logger.info(f"{indent}  Possible values: {possible_values}")
     
     logger.info("==================\n")
 
@@ -96,16 +101,14 @@ def generate_parameter_range(
             return ParameterRange(
                 start=max(0, current - 5),
                 end=current + 5,
-                step=1,
-                decimals=0
+                step=1
             )
         elif param_type == ParameterType.DECIMAL:
             current = float(current_value)
             return ParameterRange(
                 start=max(0.001, current - 0.5),
                 end=current + 0.5,
-                step=0.001,
-                decimals=3
+                step=0.001
             )
         elif param_type == ParameterType.BOOLEAN:
             return [True, False]
@@ -133,18 +136,18 @@ def main():
         password="IQYTCQJIQYTCQJ"
     )
     
-    # Get available PNL scripts
-    scripts = api.get_scripts_by_name(executor, "PNL")
+    # Get available Scalper Bot scripts
+    scripts = api.get_scripts_by_name(executor, "Haasonline Original - Scalper Bot")
     if not scripts:
-        logger.error("No PNL scripts found")
+        logger.error("No Scalper Bot scripts found")
         return
         
-    # Print all available PNL scripts
-    logger.info("\nAvailable PNL Scripts:")
+    # Print all available Scalper Bot scripts
+    logger.info("\nAvailable Scalper Bot Scripts:")
     for idx, script in enumerate(scripts, 1):
         logger.info(f"{idx}. {script.script_name}")
     
-    # Select first PNL script
+    # Select first Scalper Bot script
     script = scripts[0]
     print_script_details(script)
     
@@ -177,7 +180,7 @@ def main():
         logger.debug(f"Lab creation response: {response.model_dump()}")
         
         # Store lab ID immediately after creation
-        lab_id = response.LID if hasattr(response, 'LID') else None
+        lab_id = response.lab_id if hasattr(response, 'lab_id') else None
         if not lab_id:
             raise ValueError("Failed to get lab ID from response")
             
@@ -190,7 +193,7 @@ def main():
         logger.info("\n=== Current Parameters ===")
         for param in parameters:
             logger.info(f"\nParameter: {param}")
-            logger.info(f"Type: {param.param_type}")
+            logger.info(f"Type: {param.type}")
             logger.info(f"Current value: {param.current_value}")
             logger.info(f"Enabled: {param.is_enabled}")
             if hasattr(param, 'description') and param.description:
@@ -203,10 +206,10 @@ def main():
                 continue
                 
             new_range = generate_parameter_range(
-                param.param_type,
+                ParameterType(param.type),
                 param.current_value
             )
-            parameter_updates[param.name] = new_range
+            parameter_updates[param.key] = new_range
             
         # Update parameters
         logger.info("\n=== Updating Parameters ===")
@@ -215,7 +218,6 @@ def main():
                 logger.info(f"{name}:")
                 logger.info(f"  Range: {value_range.start} to {value_range.end}")
                 logger.info(f"  Step: {value_range.step}")
-                logger.info(f"  Decimals: {value_range.decimals}")
             else:
                 logger.info(f"{name}: Values {value_range}")
                 
@@ -226,7 +228,7 @@ def main():
         logger.info("\n=== Updated Parameters ===")
         for param in updated_params:
             logger.info(f"\nParameter: {param.name}")
-            logger.info(f"Type: {param.param_type}")
+            logger.info(f"Type: {param.type}")
             logger.info(f"Possible values: {param.possible_values}")
             
     except Exception as e:
