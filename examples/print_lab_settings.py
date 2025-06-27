@@ -29,13 +29,13 @@ def main():
         password=os.getenv("HAAS_API_PASSWORD")
     )
     
-    # Get PNL scripts
-    scripts = get_scripts_by_name(auth_executor, "PNL")
+    # Get Scalper Bot scripts
+    scripts = get_scripts_by_name(auth_executor, "Haasonline Original - Scalper Bot")
     if not scripts:
-        print("No PNL scripts found!")
+        print("No Scalper Bot scripts found!")
         return
         
-    script = scripts[0]  # Take first PNL script
+    script = scripts[0]  # Take first Scalper Bot script
     print(f"\nSelected Script: {script.script_name}")
     print(f"Script ID: {script.script_id}")
     
