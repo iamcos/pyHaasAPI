@@ -36,10 +36,10 @@ def main():
         password=os.getenv("HAAS_API_PASSWORD")
     )
     
-    # Get PNL scripts
-    scripts = get_scripts_by_name(auth_executor, "PNL")
+    # Get Scalper Bot scripts
+    scripts = get_scripts_by_name(auth_executor, "Haasonline Original - Scalper Bot")
     if not scripts:
-        print("No PNL scripts found!")
+        print("No Scalper Bot scripts found!")
         return
         
     script = random.choice(scripts)
