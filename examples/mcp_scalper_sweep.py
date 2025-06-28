@@ -88,14 +88,14 @@ def main():
     executor = None
     for auth_attempt in range(3):
         try:
-            executor = api.RequestsExecutor(
-                host="127.0.0.1",
-                port=8090,
-                state=api.Guest()
-            ).authenticate(
-                email="garrypotterr@gmail.com",
-                password="IQYTCQJIQYTCQJ"
-            )
+    executor = api.RequestsExecutor(
+        host="127.0.0.1",
+        port=8090,
+        state=api.Guest()
+    ).authenticate(
+        email="garrypotterr@gmail.com",
+        password="IQYTCQJIQYTCQJ"
+    )
             print("✅ Authentication successful")
             break
         except Exception as e:
@@ -163,63 +163,63 @@ def main():
     for pair, markets in pair_to_markets.items():
         for market in markets:
             try:
-                lab_name = f"MCP_{pair.replace('/', '_')}_{market.price_source}_{int(time.time())}"
+            lab_name = f"MCP_{pair.replace('/', '_')}_{market.price_source}_{int(time.time())}"
                 print(f"\n📋 Creating lab: {lab_name}")
                 
                 # Create lab
-                lab = api.create_lab(
-                    executor,
-                    CreateLabRequest(
-                        script_id=scalper_script.script_id,
-                        name=lab_name,
-                        account_id=account.account_id,
-                        market=f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_",
-                        interval=1,
-                        default_price_data_style="CandleStick"
-                    )
+            lab = api.create_lab(
+                executor,
+                CreateLabRequest(
+                    script_id=scalper_script.script_id,
+                    name=lab_name,
+                    account_id=account.account_id,
+                    market=f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_",
+                    interval=1,
+                    default_price_data_style="CandleStick"
                 )
+            )
                 print(f"  ✅ Lab created: {lab.lab_id}")
                 
-                # Fetch lab details and dynamically find sweepable params
-                lab_details = api.get_lab_details(executor, lab.lab_id)
-                sweep_keys = find_sweepable_params(lab_details)
+            # Fetch lab details and dynamically find sweepable params
+            lab_details = api.get_lab_details(executor, lab.lab_id)
+            sweep_keys = find_sweepable_params(lab_details)
                 
-                if not sweep_keys:
+            if not sweep_keys:
                     print(f"  ⚠️ No sweepable parameters found for {lab.name}")
-                    continue
+                continue
                 
                 print(f"  🔑 Sweep keys: {sweep_keys}")
                 
-                # Build parameter grid (all combinations)
-                param_grid = [dict(zip(sweep_keys, values)) for values in product(PARAM_SWEEP_RANGE, repeat=len(sweep_keys))]
+            # Build parameter grid (all combinations)
+            param_grid = [dict(zip(sweep_keys, values)) for values in product(PARAM_SWEEP_RANGE, repeat=len(sweep_keys))]
                 print(f"  📊 Parameter combinations: {len(param_grid)}")
                 
                 # Update lab parameters for first grid config
-                initial_params = param_grid[0]
-                updated_parameters = []
-                for param in lab_details.parameters:
-                    key = param.get('K', '')
-                    if key in initial_params:
-                        param['O'] = [str(initial_params[key])]
-                    updated_parameters.append(param)
-                lab_details.parameters = updated_parameters
+            initial_params = param_grid[0]
+            updated_parameters = []
+            for param in lab_details.parameters:
+                key = param.get('K', '')
+                if key in initial_params:
+                    param['O'] = [str(initial_params[key])]
+                updated_parameters.append(param)
+            lab_details.parameters = updated_parameters
                 
-                api.update_lab_details(executor, lab_details)
+            api.update_lab_details(executor, lab_details)
                 print(f"  ✅ Lab parameters updated")
                 
-                # Start backtest
-                api.start_lab_execution(
-                    executor,
-                    StartLabExecutionRequest(
-                        lab_id=lab.lab_id,
-                        start_unix=start_unix,
-                        end_unix=end_unix,
-                        send_email=False
-                    )
+            # Start backtest
+            api.start_lab_execution(
+                executor,
+                StartLabExecutionRequest(
+                    lab_id=lab.lab_id,
+                    start_unix=start_unix,
+                    end_unix=end_unix,
+                    send_email=False
                 )
+            )
                 print(f"  ✅ Backtest started")
                 
-                labs.append((lab, param_grid, market, pair, sweep_keys))
+            labs.append((lab, param_grid, market, pair, sweep_keys))
                 time.sleep(2)  # Avoid rate limits
                 
             except Exception as e:
@@ -237,14 +237,14 @@ def main():
         print(f"  🔄 Monitoring lab: {lab.name}")
         while True:
             try:
-                details = api.get_lab_details(executor, lab.lab_id)
-                if hasattr(details, 'status') and str(details.status) == '3':  # COMPLETED
+            details = api.get_lab_details(executor, lab.lab_id)
+            if hasattr(details, 'status') and str(details.status) == '3':  # COMPLETED
                     print(f"  ✅ Lab completed: {lab.name}")
-                    completed_labs.append((lab, param_grid, market, pair, sweep_keys))
-                    break
-                elif hasattr(details, 'status') and str(details.status) == '4':  # CANCELLED
+                completed_labs.append((lab, param_grid, market, pair, sweep_keys))
+                break
+            elif hasattr(details, 'status') and str(details.status) == '4':  # CANCELLED
                     print(f"  ❌ Lab cancelled: {lab.name}")
-                    break
+                break
                 time.sleep(30)  # Check every 30 seconds
             except Exception as e:
                 print(f"  ⚠️ Error checking lab status: {e}")
@@ -257,37 +257,37 @@ def main():
     for lab, param_grid, market, pair, sweep_keys in completed_labs:
         try:
             print(f"\n📊 Analyzing results for: {lab.name}")
-            results = api.get_backtest_result(
-                executor,
-                GetBacktestResultRequest(
-                    lab_id=lab.lab_id,
-                    next_page_id=0,
-                    page_lenght=1000
-                )
+        results = api.get_backtest_result(
+            executor,
+            GetBacktestResultRequest(
+                lab_id=lab.lab_id,
+                next_page_id=0,
+                page_lenght=1000
             )
+        )
             
-            if not results.items:
+        if not results.items:
                 print(f"  ❌ No backtest results for lab {lab.name}")
-                continue
+            continue
             
-            # Find best config by ROI
-            best = max(results.items, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
+        # Find best config by ROI
+        best = max(results.items, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
             roi = best.summary.ReturnOnInvestment if best.summary else 0
             print(f"  🎯 Best ROI: {roi}%")
             
-            # Deploy simulated bot
-            bot_name = f"MCP_Bot_{pair.replace('/', '_')}_{market.price_source}_{int(time.time())}"
-            bot = api.add_bot_from_lab(
-                executor,
-                AddBotFromLabRequest(
-                    lab_id=lab.lab_id,
-                    backtest_id=best.backtest_id,
-                    bot_name=bot_name,
-                    account_id=account.account_id,
-                    market=f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_",
-                    leverage=0
-                )
+        # Deploy simulated bot
+        bot_name = f"MCP_Bot_{pair.replace('/', '_')}_{market.price_source}_{int(time.time())}"
+        bot = api.add_bot_from_lab(
+            executor,
+            AddBotFromLabRequest(
+                lab_id=lab.lab_id,
+                backtest_id=best.backtest_id,
+                bot_name=bot_name,
+                account_id=account.account_id,
+                market=f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_",
+                leverage=0
             )
+        )
             print(f"  🤖 Deployed bot: {bot.bot_name} (ID: {bot.bot_id})")
             deployed_bots.append({
                 'pair': pair,
