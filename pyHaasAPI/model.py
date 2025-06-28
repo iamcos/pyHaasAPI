@@ -16,6 +16,7 @@ from pyHaasAPI.parameters import (
     ScriptParameters
     
 )
+from pyHaasAPI.models.scripts import ScriptRecord
 
 T = TypeVar("T")
 
@@ -156,7 +157,7 @@ class CreateLabRequest:
         name = f"{interval}_{market.primary}_{market.secondary}_{script_id}_{account_id}"
         
         # Format market tag string
-        market_tag = f"{exchange_code}_{market.primary}_{market.secondary}_"
+        market_tag = f"{exchange_code.upper()}_{market.primary.upper()}_{market.secondary.upper()}_"
         
         return cls(
             script_id=script_id,

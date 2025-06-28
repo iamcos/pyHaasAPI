@@ -55,7 +55,7 @@ def main():
         script_id=script.script_id,
         name="temp_settings_lab",
         account_id=yay_account.account_id,
-        market=f"{yay_account.exchange_code}_{market.primary}_{market.secondary}_",
+        market=f"{yay_account.exchange_code.upper()}_{market.primary.upper()}_{market.secondary.upper()}_",
         interval=15,
         default_price_data_style="CandleStick"
     ))

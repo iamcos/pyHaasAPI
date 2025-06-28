@@ -8,6 +8,29 @@
 # Do not add extra fields or change the separator.
 # Document any exceptions in 'docs/'.
 
+[market_fetching_optimization]
+# CRITICAL: Always use exchange-specific market fetching instead of get_all_markets()
+# 
+# ❌ AVOID: api.get_all_markets(executor) - Slow, unreliable, causes 504 timeouts
+# ✅ USE: PriceAPI.get_trade_markets(exchange) - Fast, reliable, per-exchange error handling
+#
+# Implementation pattern:
+# from pyHaasAPI.price import PriceAPI
+# price_api = PriceAPI(executor)
+# exchanges = ["BINANCE", "KRAKEN"]  # Skip COINBASE (has issues)
+# for exchange in exchanges:
+#     try:
+#         markets = price_api.get_trade_markets(exchange)
+#         all_markets.extend(markets)
+#     except Exception as e:
+#         print(f"Failed to get {exchange} markets: {e}")
+#         continue
+#
+# Performance: 10x faster than get_all_markets(), avoids server overload
+# Reliability: Individual exchange failures don't break entire operation
+# Compatibility: BINANCE/KRAKEN work, COINBASE has invalid pricesource errors
+# Documentation: See docs/market_fetching_optimization.md for complete guide
+
 [python]
 python_version = "3.11"
 type_hints = true

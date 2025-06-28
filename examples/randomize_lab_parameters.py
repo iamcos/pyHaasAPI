@@ -55,7 +55,7 @@ def main():
     # Initialize PriceAPI and get valid market
     price_api = PriceAPI(auth_executor)
     market = price_api.get_valid_market(account.exchange_code)
-    market_tag = f"{account.exchange_code}_{market.primary}_{market.secondary}_"
+    market_tag = f"{account.exchange_code.upper()}_{market.primary.upper()}_{market.secondary.upper()}_"
     print(f"Trade market: {market_tag}")
     
     # Create temporary lab

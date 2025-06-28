@@ -44,6 +44,7 @@ from pyHaasAPI.model import (
     AccountDetails,
     AccountData,
     HaasScriptFolder,
+    ScriptRecord,
 )
 from pyHaasAPI.parameters import (
     LabParameter,
@@ -1374,7 +1375,7 @@ def get_order_book(executor: SyncExecutor[Authenticated], market: str, depth: in
         endpoint="Price",
         response_type=dict,
         query_params={
-            "channel": "ORDER_BOOK",
+            "channel": "ORDERBOOK",
             "market": market,
             "depth": depth,
         },
@@ -1400,7 +1401,7 @@ def get_last_trades(executor: SyncExecutor[Authenticated], market: str, limit: i
         endpoint="Price",
         response_type=list[dict],
         query_params={
-            "channel": "LAST_TRADES",
+            "channel": "LASTTRADES",
             "market": market,
             "limit": limit,
         },
@@ -1421,26 +1422,44 @@ def get_market_snapshot(executor: SyncExecutor[Authenticated], market: str) -> d
     Raises:
         HaasApiError: If the API request fails
     """
+    # Extract pricesource from market string (e.g., "BINANCE_BTC_USDT_" -> "BINANCE")
+    pricesource = market.split('_')[0] if '_' in market else market
+    
     return executor.execute(
         endpoint="Price",
         response_type=dict,
         query_params={
             "channel": "SNAPSHOT",
             "market": market,
+            "pricesource": pricesource,
         },
     )
 
 
-def get_script_record(executor: SyncExecutor[Authenticated], script_id: str) -> dict:
+def get_script_record(executor: SyncExecutor[Authenticated], script_id: str) -> ScriptRecord:
     """
     Fetch the full script record (including compile logs and all fields) for a given script ID.
+    
+    Args:
+        executor: Authenticated executor instance
+        script_id: Script ID to retrieve
+        
+    Returns:
+        ScriptRecord object with complete script information
+        
+    Raises:
+        HaasApiError: If the API request fails
     """
+    user_id = executor.state.user_id
+    interface_key = executor.state.interface_key
     return executor.execute(
         endpoint="HaasScript",
-        response_type=dict,
+        response_type=ScriptRecord,
         query_params={
             "channel": "GET_SCRIPT_RECORD",
             "scriptid": script_id,
+            "interfacekey": interface_key,
+            "userid": user_id,
         },
     )
 
