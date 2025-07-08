@@ -1694,3 +1694,20 @@ def get_bot_runtime(executor: SyncExecutor[Authenticated], bot_id: str) -> dict:
         },
     )
 
+
+def get_history_status(executor: SyncExecutor[Authenticated]) -> dict:
+    """
+    Get the historical data status for all markets.
+    Returns a dict keyed by market symbol.
+    """
+    response = executor.execute(
+        endpoint="Setup",
+        response_type=dict,
+        query_params={
+            "channel": "GET_HISTORY_STATUS",
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
+        },
+    )
+    return response.get("Data", {})
+
