@@ -335,6 +335,12 @@ def create_lab(executor: SyncExecutor[Authenticated], req: CreateLabRequest) -> 
             "market": req.market,
             "interval": req.interval,
             "style": req.default_price_data_style,
+            "tradeAmount": req.trade_amount,
+            "chartStyle": req.chart_style,
+            "orderTemplate": req.order_template,
+            "leverage": req.leverage,
+            "positionMode": req.position_mode,
+            "marginMode": req.margin_mode,
         },
     )
 
@@ -1296,7 +1302,7 @@ def update_lab_parameters(
     
     # Create update request
     return executor.execute(
-        endpoint="LabsAPI",
+        endpoint="Labs",
         response_type=LabDetails,
         query_params={
             "channel": "UPDATE_LAB_DETAILS",
@@ -1603,22 +1609,88 @@ def cancel_order(
     )
 
 
-def get_all_orders(
-    executor: SyncExecutor[Authenticated]
-) -> list[dict]:
+def get_all_orders(executor: SyncExecutor[Authenticated]) -> list[dict]:
     """
-    Get all open orders for all accounts.
+    Get all orders for all accounts.
     Returns a list of dicts, each with 'AID' and 'I' (orders).
     """
-    user_id = executor.state.user_id
-    interface_key = executor.state.interface_key
-    return executor.execute(
+    response = executor.execute(
         endpoint="Account",
-        response_type=object,  # Accepts list[dict] or object for flexibility
+        response_type=dict,
         query_params={
             "channel": "GET_ALL_ORDERS",
-            "interfacekey": interface_key,
-            "userid": user_id,
-        }
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
+        },
+    )
+    return response.get("Data", [])
+
+
+def get_all_positions(executor: SyncExecutor[Authenticated]) -> list[dict]:
+    """
+    Get all positions for all accounts.
+    Returns a list of dicts, each with 'AID' and 'I' (positions).
+    """
+    response = executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "GET_ALL_POSITIONS",
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
+        },
+    )
+    return response.get("Data", [])
+
+
+def get_bot_runtime_logbook(executor: SyncExecutor[Authenticated], bot_id: str, next_page_id: int = -1, page_length: int = 250) -> list[str]:
+    """
+    Get the runtime logbook for a running bot.
+
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot
+        next_page_id: For pagination, default -1 (start)
+        page_length: Number of log entries to fetch
+
+    Returns:
+        List of log entries as strings
+    """
+    response = executor.execute(
+        endpoint="Bot",
+        response_type=dict,  # Accept dict to handle {'I': [...], 'NP': ...}
+        query_params={
+            "channel": "GET_RUNTIME_LOGBOOK",
+            "botid": bot_id,
+            "nextpageid": next_page_id,
+            "pagelength": page_length,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
+        },
+    )
+    # Extract the 'I' key (list of log entries)
+    return response.get('I', []) if isinstance(response, dict) else []
+
+
+def get_bot_runtime(executor: SyncExecutor[Authenticated], bot_id: str) -> dict:
+    """
+    Get the full runtime report for a running bot.
+
+    Args:
+        executor: Authenticated executor instance
+        bot_id: ID of the bot
+
+    Returns:
+        Dictionary with runtime info (positions, orders, performance, etc.)
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=dict,
+        query_params={
+            "channel": "GET_RUNTIME",
+            "botid": bot_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
+        },
     )
 
