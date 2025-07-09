@@ -1709,5 +1709,8 @@ def get_history_status(executor: SyncExecutor[Authenticated]) -> dict:
             "userid": getattr(executor.state, 'user_id', None),
         },
     )
-    return response.get("Data", {})
+    # The response is already the raw API response, so we need to extract Data from it
+    if isinstance(response, dict) and "Data" in response:
+        return response["Data"]
+    return response
 
