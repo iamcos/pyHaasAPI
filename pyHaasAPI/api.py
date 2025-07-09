@@ -1730,19 +1730,21 @@ def set_history_depth(executor: SyncExecutor[Authenticated], market: str, months
     Raises:
         HaasApiError: If the API request fails
     """
-    response = executor.execute(
-        endpoint="Setup",
-        response_type=object,  # Accept any type for Data
-        query_params={
-            "channel": "SET_HISTORY_DEPTH",
-            "market": market,
-            "monthdepth": months,
-            "interfacekey": getattr(executor.state, 'interface_key', None),
-            "userid": getattr(executor.state, 'user_id', None),
-        },
-    )
-    # Accept Success: true regardless of Data type
-    if isinstance(response, dict):
-        return response.get("Success", False) is True
-    return False
+    # Use raw request to avoid validation issues
+    import requests
+    url = f"http://{executor.host}:{executor.port}/SetupAPI.php"
+    params = {
+        "channel": "SET_HISTORY_DEPTH",
+        "market": market,
+        "monthdepth": months,
+        "interfacekey": executor.state.interface_key,
+        "userid": executor.state.user_id,
+    }
+    try:
+        resp = requests.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("Success", False) is True
+    except Exception:
+        return False
 
