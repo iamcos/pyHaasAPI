@@ -1714,3 +1714,35 @@ def get_history_status(executor: SyncExecutor[Authenticated]) -> dict:
         return response["Data"]
     return response
 
+
+def set_history_depth(executor: SyncExecutor[Authenticated], market: str, months: int) -> bool:
+    """
+    Set the history depth for a specific market.
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market symbol (e.g., "BINANCE_BTC_USDT_")
+        months: Number of months of history to sync
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    response = executor.execute(
+        endpoint="Setup",
+        response_type=object,  # Accept any type for Data
+        query_params={
+            "channel": "SET_HISTORY_DEPTH",
+            "market": market,
+            "monthdepth": months,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
+        },
+    )
+    # Accept Success: true regardless of Data type
+    if isinstance(response, dict):
+        return response.get("Success", False) is True
+    return False
+
