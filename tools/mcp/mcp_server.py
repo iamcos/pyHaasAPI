@@ -503,7 +503,158 @@ async def main():
         "params": {
             "protocolVersion": "2024-11-05",
             "capabilities": {
-                "tools": {}
+                "tools": {
+                    "initialize": {
+                        "description": "Initialize the MCP server and authenticate with the HaasOnline API.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "host": {"type": "string", "description": "HaasOnline API host (e.g., '127.0.0.1')."},
+                                "port": {"type": "integer", "description": "HaasOnline API port (e.g., 8090)."},
+                                "email": {"type": "string", "description": "User email for authentication."},
+                                "password": {"type": "string", "description": "User password for authentication."}
+                            },
+                            "required": ["email", "password"]
+                        }
+                    },
+                    "get_scripts": {
+                        "description": "Get available trading scripts from HaasOnline.",
+                        "parameters": {"type": "object", "properties": {}}
+                    },
+                    "get_markets": {
+                        "description": "Get available markets from HaasOnline.",
+                        "parameters": {"type": "object", "properties": {}}
+                    },
+                    "get_accounts": {
+                        "description": "Get user accounts from HaasOnline.",
+                        "parameters": {"type": "object", "properties": {}}
+                    },
+                    "create_lab": {
+                        "description": "Create a new lab for backtesting on HaasOnline.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "script_id": {"type": "string", "description": "ID of the script to use for the lab."},
+                                "name": {"type": "string", "description": "Name of the new lab."},
+                                "account_id": {"type": "string", "description": "ID of the account to associate with the lab."},
+                                "market": {"type": "string", "description": "Market symbol for the lab (e.g., 'BINANCE_BTC_USDT_')."},
+                                "interval": {"type": "integer", "description": "Candle interval in minutes (default: 1)."},
+                                "style": {"type": "string", "description": "Default price data style (e.g., 'CandleStick', default: 'CandleStick')."}
+                            },
+                            "required": ["script_id", "name", "account_id", "market"]
+                        }
+                    },
+                    "get_lab_details": {
+                        "description": "Get details and parameters of a specific lab.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "lab_id": {"type": "string", "description": "ID of the lab to retrieve details for."}
+                            },
+                            "required": ["lab_id"]
+                        }
+                    },
+                    "update_lab_parameters": {
+                        "description": "Update parameters for a specific lab.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "lab_id": {"type": "string", "description": "ID of the lab to update."},
+                                "parameters": {
+                                    "type": "object",
+                                    "description": "Dictionary of parameter keys and their new values.",
+                                    "additionalProperties": {"type": "string"}
+                                }
+                            },
+                            "required": ["lab_id", "parameters"]
+                        }
+                    },
+                    "start_backtest": {
+                        "description": "Start a backtest for a specified lab.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "lab_id": {"type": "string", "description": "ID of the lab to start backtest for."},
+                                "start_unix": {"type": "integer", "description": "Start timestamp of the backtest in Unix format."},
+                                "end_unix": {"type": "integer", "description": "End timestamp of the backtest in Unix format."},
+                                "send_email": {"type": "boolean", "description": "Whether to send an email upon completion (default: false)."}
+                            },
+                            "required": ["lab_id", "start_unix", "end_unix"]
+                        }
+                    },
+                    "get_backtest_results": {
+                        "description": "Get backtest results for a specific lab.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "lab_id": {"type": "string", "description": "ID of the lab to get results for."},
+                                "page_id": {"type": "integer", "description": "Page number for results (default: 0)."},
+                                "page_length": {"type": "integer", "description": "Number of results per page (default: 1000)."}
+                            },
+                            "required": ["lab_id"]
+                        }
+                    },
+                    "create_bot_from_lab": {
+                        "description": "Create a trading bot from lab backtest results.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "lab_id": {"type": "string", "description": "ID of the lab from which to create the bot."},
+                                "backtest_id": {"type": "string", "description": "ID of the specific backtest result to use."},
+                                "bot_name": {"type": "string", "description": "Name for the new bot."},
+                                "account_id": {"type": "string", "description": "ID of the account for the bot."},
+                                "market": {"type": "string", "description": "Market symbol for the bot (e.g., 'BINANCE_BTC_USDT_')."},
+                                "leverage": {"type": "number", "description": "Leverage for the bot (default: 0)."}
+                            },
+                            "required": ["lab_id", "backtest_id", "bot_name", "account_id", "market"]
+                        }
+                    },
+                    "parameter_sweep": {
+                        "description": "Perform a parameter sweep on a lab, running multiple backtests with varying parameters.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "lab_id": {"type": "string", "description": "ID of the lab to perform the sweep on."},
+                                "sweep_parameters": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "List of parameter keys to sweep."
+                                },
+                                "sweep_range": {
+                                    "type": "array",
+                                    "items": {"type": "number"},
+                                    "description": "List of values to test for each sweep parameter (default: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0])."
+                                },
+                                "backtest_hours": {"type": "integer", "description": "Duration of each backtest in hours (default: 6)."}
+                            },
+                            "required": ["lab_id", "sweep_parameters"]
+                        }
+                    },
+                    "get_bots": {
+                        "description": "Get a list of all trading bots.",
+                        "parameters": {"type": "object", "properties": {}}
+                    },
+                    "start_bot": {
+                        "description": "Start a specific trading bot.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "bot_id": {"type": "string", "description": "ID of the bot to start."}
+                            },
+                            "required": ["bot_id"]
+                        }
+                    },
+                    "stop_bot": {
+                        "description": "Stop a specific trading bot.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "bot_id": {"type": "string", "description": "ID of the bot to stop."}
+                            },
+                            "required": ["bot_id"]
+                        }
+                    }
+                }
             },
             "clientInfo": {
                 "name": "haasonline-mcp-server",
@@ -558,4 +709,4 @@ async def main():
             sys.stdout.flush()
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

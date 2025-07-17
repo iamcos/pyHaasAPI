@@ -328,6 +328,48 @@ Contributions are welcome! Please see our development guidelines and testing pro
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Market Tag & Account ID Preservation
+
+**Important:**
+- When updating lab details (especially during parameter optimization), always preserve the original `market_tag` and `account_id` fields in the lab's settings.
+- Overwriting these fields with empty values will break lab functionality and cause the market/account to be lost in the UI and API.
+
+### How We Prevent This
+- The `LabManager` now always restores the original `market_tag` and `account_id` before any update.
+- This pattern should be followed in all scripts and utilities that update lab details.
+
+### Troubleshooting
+- If you see `marketTag` or `accountId` as `null` or empty after a lab update, check that your update logic is not overwriting these fields with empty values.
+- Always fetch the latest lab details from the server and preserve these fields before making updates.
+
+---
+
+*Built with ❤️ for the HaasOnline Trading Server community*
+
+- Overwriting these fields with empty values will break lab functionality and cause the market/account to be lost in the UI and API.
+
+### How We Prevent This
+- The `LabManager` now always restores the original `market_tag` and `account_id` before any update.
+- This pattern should be followed in all scripts and utilities that update lab details.
+
+### Troubleshooting
+- If you see `marketTag` or `accountId` as `null` or empty after a lab update, check that your update logic is not overwriting these fields with empty values.
+- Always fetch the latest lab details from the server and preserve these fields before making updates.
+
+---
+
+*Built with ❤️ for the HaasOnline Trading Server community*
+
+- Overwriting these fields with empty values will break lab functionality and cause the market/account to be lost in the UI and API.
+
+### How We Prevent This
+- The `LabManager` now always restores the original `market_tag` and `account_id` before any update.
+- This pattern should be followed in all scripts and utilities that update lab details.
+
+### Troubleshooting
+- If you see `marketTag` or `accountId` as `null` or empty after a lab update, check that your update logic is not overwriting these fields with empty values.
+- Always fetch the latest lab details from the server and preserve these fields before making updates.
+
 ---
 
 *Built with ❤️ for the HaasOnline Trading Server community*

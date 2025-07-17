@@ -247,10 +247,10 @@ class LabSettings(BaseModel):
     """Unified lab settings model that handles both API and friendly names"""
     model_config = ConfigDict(populate_by_name=True)
     
-    bot_id: str = Field(alias=["botId", "BotId"], default="")
-    bot_name: str = Field(alias=["botName", "BotName"], default="")
-    account_id: str = Field(alias=["accountId", "AccountId"], default="")
-    market_tag: str = Field(alias=["marketTag", "MarketTag"], default="")
+    bot_id: Optional[str] = Field(alias=["botId", "BotId"], default="")
+    bot_name: Optional[str] = Field(alias=["botName", "BotName"], default="")
+    account_id: Optional[str] = Field(alias=["accountId", "AccountId"], default="")
+    market_tag: Optional[str] = Field(alias="marketTag", default="")
     position_mode: int = Field(alias=["positionMode", "PositionMode"], default=0)
     margin_mode: int = Field(alias=["marginMode", "MarginMode"], default=0)
     leverage: float = Field(alias=["leverage", "Leverage"], default=0.0)
@@ -258,7 +258,24 @@ class LabSettings(BaseModel):
     interval: int = Field(alias=["interval", "Interval"], default=15)
     chart_style: int = Field(alias=["chartStyle", "ChartStyle"], default=300)
     order_template: int = Field(alias=["orderTemplate", "OrderTemplate"], default=500)
-    script_parameters: Dict[str, Any] = Field(alias=["scriptParameters", "ScriptParameters"], default_factory=dict)
+    script_parameters: Optional[Dict[str, Any]] = Field(alias=["scriptParameters", "ScriptParameters"], default_factory=dict)
+    
+    @field_validator('bot_id', 'bot_name', 'account_id', 'market_tag', mode='before')
+    @classmethod
+    def handle_null_strings(cls, v):
+        """Convert null to empty string for string fields, but preserve valid strings"""
+        if v is None:
+            return ""
+        elif isinstance(v, str):
+            return v  # Preserve valid strings
+        else:
+            return str(v)  # Convert other types to string
+    
+    @field_validator('script_parameters', mode='before')
+    @classmethod
+    def handle_null_dict(cls, v):
+        """Convert null to empty dict for script_parameters"""
+        return {} if v is None else v
 
 
 

@@ -90,7 +90,7 @@ class ScriptComponent(BaseModel):
 class ScriptCompileResult(BaseModel):
     """Script compilation result"""
     is_valid: bool = Field(..., alias="IV")
-    compilation: Optional[str] = Field(None, alias="C")
+    compilation: Optional[Union[str, dict]] = Field(None, alias="C")
     compile_result: List[str] = Field(default_factory=list, alias="CR")
     compile_log: List[str] = Field(default_factory=list, alias="CL")
     lce: List[Any] = Field(default_factory=list, alias="LCE")

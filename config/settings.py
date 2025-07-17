@@ -6,10 +6,10 @@ import os
 from typing import Dict, Any
 
 # API Configuration
-API_HOST = "127.0.0.1"
-API_PORT = 8090
-API_EMAIL = "garrypotterr@gmail.com"
-API_PASSWORD = "IQYTCQJIQYTCQJ"
+API_HOST = os.getenv("API_HOST", "127.0.0.1")
+API_PORT = int(os.getenv("API_PORT", 8090))
+API_EMAIL = os.getenv("API_EMAIL", "tRade@hts.com")
+API_PASSWORD = os.getenv("API_PASSWORD", "qaZOVsx3124!")
 
 # Authentication settings
 AUTH_RETRY_ATTEMPTS = 3
@@ -56,9 +56,9 @@ PARAM_TYPES = {
 
 # Status mappings
 LAB_STATUS = {
-    '0': 'PENDING',
-    '1': 'RUNNING',
-    '2': 'PAUSED',
+    '0': 'CREATED',
+    '1': 'QUEUED', 
+    '2': 'RUNNING',
     '3': 'COMPLETED',
     '4': 'CANCELLED',
     '5': 'ERROR'

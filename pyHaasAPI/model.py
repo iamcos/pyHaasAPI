@@ -2,7 +2,7 @@ from enum import Enum
 import dataclasses
 from typing import Any, Dict, List, Optional, Generic, Literal, TypeVar, Type, Union
 from typing_extensions import Self
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from decimal import Decimal
 
 from pyHaasAPI.domain import Script
@@ -13,8 +13,9 @@ from pyHaasAPI.parameters import (
     LabSettings,
     BacktestStatus,
     LabAlgorithm, 
-    ScriptParameters
-    
+    ScriptParameters,
+    ParameterRange,
+    ParameterType
 )
 from pyHaasAPI.models.scripts import ScriptRecord
 
@@ -143,6 +144,12 @@ class CreateLabRequest:
     market: str
     interval: int
     default_price_data_style: PriceDataStyle
+    trade_amount: float = 100.0
+    chart_style: int = 300
+    order_template: int = 500
+    leverage: float = 0.0
+    position_mode: int = 0
+    margin_mode: int = 0
 
     @classmethod
     def with_generated_name(
@@ -185,29 +192,34 @@ class UserAccount(BaseModel):
     version: int = Field(alias="V")
 
 
-
-
 class HaasScriptSettings(BaseModel):
     """Script settings model"""
     model_config = ConfigDict(populate_by_name=True)
     
-    bot_id: str = Field(alias="botId")
-    bot_name: str = Field(alias="botName")
-    account_id: str = Field(alias="accountId")
-    market_tag: str = Field(alias="marketTag")
-    position_mode: int = Field(alias="positionMode")
-    margin_mode: int = Field(alias="marginMode")
-    leverage: float = Field(alias="leverage")
-    trade_amount: float = Field(alias="tradeAmount")
-    interval: int = Field(alias="interval")
-    chart_style: int = Field(alias="chartStyle")
-    order_template: int = Field(alias="orderTemplate")
-    script_parameters: dict = Field(alias="scriptParameters")
-
-
-
-
-
+    bot_id: Optional[str] = Field(alias="botId", default="")
+    bot_name: Optional[str] = Field(alias="botName", default="")
+    account_id: Optional[str] = Field(alias="accountId", default="")
+    market_tag: Optional[str] = Field(alias="marketTag", default="")
+    position_mode: int = Field(alias="positionMode", default=0)
+    margin_mode: int = Field(alias="marginMode", default=0)
+    leverage: float = Field(alias="leverage", default=0.0)
+    trade_amount: float = Field(alias="tradeAmount", default=100.0)
+    interval: int = Field(alias="interval", default=15)
+    chart_style: int = Field(alias="chartStyle", default=300)
+    order_template: int = Field(alias="orderTemplate", default=500)
+    script_parameters: Optional[Dict[str, Any]] = Field(alias="scriptParameters", default_factory=dict)
+    
+    @field_validator('bot_id', 'bot_name', 'account_id', 'market_tag', mode='before')
+    @classmethod
+    def handle_null_strings(cls, v):
+        """Convert null to empty string for string fields"""
+        return "" if v is None else v
+    
+    @field_validator('script_parameters', mode='before')
+    @classmethod
+    def handle_null_dict(cls, v):
+        """Convert null to empty dict for script_parameters"""
+        return {} if v is None else v
 
 
 class LabRecord(BaseModel):
@@ -245,10 +257,6 @@ class StartLabExecutionRequest(BaseModel):
 
     class Config:
         populate_by_name = True
-
-
-
-
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
@@ -425,9 +433,6 @@ class AddBotFromLabRequest:
     leverage: int = 0
 
 
-
-
-
 class LabDetails(BaseModel):
     """Lab details from GET_LAB_DETAILS"""
     model_config = ConfigDict(
@@ -438,7 +443,7 @@ class LabDetails(BaseModel):
     
     parameters: List[Dict[str, Any]] = Field(alias="P", default_factory=list)
     config: LabConfig = Field(alias="C")
-    settings: LabSettings = Field(alias="ST")
+    settings: HaasScriptSettings = Field(alias="ST")
     user_id: str = Field(alias="UID")
     lab_id: str = Field(alias="LID")
     script_id: str = Field(alias="SID")
