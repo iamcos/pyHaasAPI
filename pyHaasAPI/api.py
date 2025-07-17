@@ -1284,6 +1284,62 @@ def get_account_trades(executor: SyncExecutor[Authenticated], account_id: str) -
     )
 
 
+def rename_account(executor: SyncExecutor[Authenticated], account_id: str, new_name: str) -> bool:
+    """
+    Rename an account
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to rename
+        new_name: New name for the account
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=bool,
+        query_params={
+            "channel": "RENAME_ACCOUNT",
+            "accountid": account_id,
+            "name": new_name,
+        },
+    )
+
+
+def deposit_funds(executor: SyncExecutor[Authenticated], account_id: str, currency: str, wallet_id: str, amount: float) -> bool:
+    """
+    Deposit funds to an account
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to deposit to
+        currency: Currency to deposit (e.g., "USDC", "BTC")
+        wallet_id: Wallet ID for the currency
+        amount: Amount to deposit
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=bool,
+        query_params={
+            "channel": "DEPOSIT_FUNDS",
+            "accountid": account_id,
+            "currency": currency,
+            "walletid": wallet_id,
+            "amount": amount,
+        },
+    )
+
+
 def update_lab_parameters(
     executor: SyncExecutor[Authenticated],
     lab_id: str,
@@ -1747,4 +1803,97 @@ def set_history_depth(executor: SyncExecutor[Authenticated], market: str, months
         return data.get("Success", False) is True
     except Exception:
         return False
+
+
+def add_simulated_account(
+    executor: SyncExecutor[Authenticated],
+    name: str,
+    driver_code: str,
+    driver_type: int
+) -> dict:
+    """
+    Add a new simulated account.
+    
+    Args:
+        executor: Authenticated executor instance
+        name: Name for the new simulated account
+        driver_code: Exchange driver code (e.g., 'BINANCEQUARTERLY')
+        driver_type: Driver type as integer (e.g., 2)
+    Returns:
+        Dictionary with new account data
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "ADD_SIMULATED_ACCOUNT",
+            "name": name,
+            "drivercode": driver_code,
+            "drivertype": driver_type,
+        },
+    )
+
+
+def test_account(
+    executor: SyncExecutor[Authenticated],
+    driver_code: str,
+    driver_type: int,
+    version: int,
+    public_key: str,
+    private_key: str,
+    extra_key: str = ""
+) -> dict:
+    """
+    Test exchange account credentials.
+    
+    Args:
+        executor: Authenticated executor instance
+        driver_code: Exchange driver code (e.g., 'BYBITSPOT')
+        driver_type: Driver type as integer (e.g., 0)
+        version: API version (e.g., 5)
+        public_key: Public API key
+        private_key: Private API key
+        extra_key: Extra key (optional, defaults to empty string)
+    Returns:
+        Dictionary with test results
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "TEST_ACCOUNT",
+            "drivercode": driver_code,
+            "drivertype": driver_type,
+            "version": version,
+            "publickey": public_key,
+            "privatekey": private_key,
+            "extrakey": extra_key,
+        },
+    )
+
+
+def delete_account(executor: SyncExecutor[Authenticated], account_id: str) -> bool:
+    """
+    Delete an account.
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: ID of the account to delete
+    Returns:
+        True if successful, False otherwise
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=bool,
+        query_params={
+            "channel": "DELETE_ACCOUNT",
+            "accountid": account_id,
+        },
+    )
 

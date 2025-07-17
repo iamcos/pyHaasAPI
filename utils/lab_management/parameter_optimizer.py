@@ -5,6 +5,7 @@ Parameter optimization utilities for pyHaasAPI
 import logging
 from typing import Dict, List, Any
 from pyHaasAPI import api
+from pyHaasAPI.parameters import ScriptParameter
 from config.settings import (
     DISABLED_PARAMETERS, DISABLED_KEYWORDS, PARAM_TYPES,
     DEFAULT_PARAM_RANGE_START, DEFAULT_PARAM_RANGE_END, 
@@ -221,8 +222,8 @@ class ParameterOptimizer:
             # Get current lab details
             lab_details = api.get_lab_details(executor, lab_id)
             
-            # Update parameters based on optimization plan
-            updated_params = []
+            # Convert parameters to ScriptParameter objects
+            script_parameters = []
             for param in lab_details.parameters:
                 key = param.get('K', '')
                 
@@ -232,38 +233,50 @@ class ParameterOptimizer:
                 if plan_item:
                     if plan_item["action"] == "disable":
                         # Set to zero or disable
-                        param['I'] = False  # Disable
-                        param['IS'] = False  # Not selected
-                        param['O'] = [0] if param.get('T') in [0, 1] else [False]
+                        script_param = ScriptParameter(
+                            K=key,
+                            T=param.get('T', 0),
+                            O=[0] if param.get('T') in [0, 1] else [False],
+                            I=False,  # Disable
+                            IS=False  # Not selected
+                        )
                         logger.info(f"  ❌ {key}: Disabled ({plan_item['reason']})")
                         
                     elif plan_item["action"] == "optimize":
                         # Enable intelligent optimization
-                        param['I'] = True  # Enable
-                        param['IS'] = True  # Selected
-                        param['intelligent'] = True  # Use intelligent method
-                        param['bruteforce'] = False  # Don't use bruteforce
-                        param['O'] = plan_item["optimization_range"]
+                        script_param = ScriptParameter(
+                            K=key,
+                            T=param.get('T', 0),
+                            O=plan_item["optimization_range"],
+                            I=True,  # Enable
+                            IS=True  # Selected
+                        )
                         logger.info(f"  ✅ {key}: Intelligent optimization with {len(plan_item['optimization_range'])} values")
                         
                     else:
                         # Keep default
-                        param['I'] = True
-                        param['IS'] = True
-                        param['intelligent'] = False
-                        param['bruteforce'] = False
+                        script_param = ScriptParameter(
+                            K=key,
+                            T=param.get('T', 0),
+                            O=param.get('O', []),
+                            I=True,
+                            IS=True
+                        )
                         logger.info(f"  📝 {key}: Keep default ({plan_item['reason']})")
                 else:
                     # Keep parameter as is
-                    param['I'] = True
-                    param['IS'] = True
-                    param['intelligent'] = False
-                    param['bruteforce'] = False
+                    script_param = ScriptParameter(
+                        K=key,
+                        T=param.get('T', 0),
+                        O=param.get('O', []),
+                        I=param.get('I', True),
+                        IS=param.get('IS', True)
+                    )
                 
-                updated_params.append(param)
+                script_parameters.append(script_param)
             
             # Update the lab with optimized parameters
-            api.update_lab_parameters(executor, lab_id, updated_params)
+            api.update_lab_parameters(executor, lab_id, script_parameters)
             logger.info("✅ Lab parameters updated with optimization plan")
             return True
             

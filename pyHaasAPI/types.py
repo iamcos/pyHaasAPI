@@ -18,8 +18,8 @@ class Authenticated(UserState):
     interface_key: str
 
 # Type variables
-State = TypeVar("State", bound=Guest | Authenticated)
-ApiResponseData = TypeVar("ApiResponseData", bound=BaseModel | Collection[BaseModel] | bool | str)
+State = TypeVar("State", bound=UserState)
+ApiResponseData = TypeVar("ApiResponseData", bound=BaseModel)
 
 class SyncExecutor(Protocol, Generic[State]):
     """Protocol defining the executor interface"""

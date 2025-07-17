@@ -5,6 +5,7 @@ Market data fetching utilities for pyHaasAPI
 import logging
 from typing import List, Dict, Any, Optional
 from pyHaasAPI import api
+from pyHaasAPI.price import PriceAPI
 from config.settings import DEFAULT_EXCHANGES, DEFAULT_TRADING_PAIRS
 
 logger = logging.getLogger(__name__)
@@ -12,8 +13,9 @@ logger = logging.getLogger(__name__)
 class MarketFetcher:
     """Centralized market data fetching handler"""
     
-    def __init__(self, price_api):
-        self.price_api = price_api
+    def __init__(self, executor):
+        self.executor = executor
+        self.price_api = PriceAPI(executor)
     
     def get_markets_efficiently(self, exchanges: List[str] = None) -> List[Any]:
         """Get markets efficiently using exchange-specific endpoints"""
@@ -92,5 +94,9 @@ class MarketFetcher:
             return []
     
     def format_market_string(self, market) -> str:
+        """Format market object to string format required by API"""
+        return f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_" 
+        """Format market object to string format required by API"""
+        return f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_" 
         """Format market object to string format required by API"""
         return f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_" 

@@ -113,7 +113,6 @@ def get_lab_default_params(
     lab_details = api.create_lab(executor, req)
 
     try:
-
         yield lab_details.parameters
     finally:
         api.delete_lab(executor, lab_details.lab_id)
@@ -203,16 +202,17 @@ def update_lab_parameter_ranges(
         # Generate parameter ranges if randomize is enabled
         if randomize and param_dict.get('T') in [0, 1]:  # INTEGER or DECIMAL types
             current_value = param_dict['O'][0] if param_dict['O'] else '0'
+            try:
                 if param_dict.get('T') == 0:  # INTEGER
                     current_val = int(current_value)
-                    # Create wider range around current value for better optimization
-                    new_options = [str(max(1, current_val - 5)), str(max(1, current_val - 3)), str(max(1, current_val - 1)), str(current_val), 
-                                 str(current_val + 1), str(current_val + 3), str(current_val + 5), str(current_val + 7), str(current_val + 10)]
+                    # Create range around current value
+                    new_options = [str(current_val - 2), str(current_val - 1), str(current_val), 
+                                 str(current_val + 1), str(current_val + 2)]
                 else:  # DECIMAL
                     current_val = float(current_value)
-                    # Create wider range around current value for better optimization
-                    new_options = [str(max(0.1, current_val - 1.0)), str(max(0.1, current_val - 0.5)), str(max(0.1, current_val - 0.25)), str(current_val), 
-                                 str(current_val + 0.25), str(current_val + 0.5), str(current_val + 1.0), str(current_val + 1.5), str(current_val + 2.0)]
+                    # Create range around current value
+                    new_options = [str(current_val - 0.5), str(current_val - 0.25), str(current_val), 
+                                 str(current_val + 0.25), str(current_val + 0.5)]
                 param_dict['O'] = new_options
                 log.info(f"  🔧 Generated range for {param_dict['K']}: {new_options}")
             except (ValueError, TypeError):
@@ -227,7 +227,6 @@ def update_lab_parameter_ranges(
     log.info(f"  📊 Optimized {len(updated_parameters)} parameters")
 
     try:
-
         # Step 1: Update only parameters (this will wipe settings, but that's expected)
         log.info("🔄 Step 1: Updating parameters only...")
         updated_lab = api.update_lab_parameters(
@@ -237,14 +236,17 @@ def update_lab_parameter_ranges(
         )
         
         # Step 2: Clone the lab with optimized parameters to preserve settings
-        log.info("🔄 Step 2: Cloning lab to preserve settings...")
-        cloned_lab = api.clone_lab(executor, lab_id)
+        log.info("🔄 Step 2: Cloning lab with optimized parameters...")
+        clone_name = f"{lab_details.name}_optimized_{int(time.time())}"
+        cloned_lab = api.clone_lab(executor, lab_id, clone_name)
         
-        # Step 3: Keep both labs for testing purposes (don't delete original)
-        log.info("🔄 Step 3: Keeping both labs for testing purposes...")
-        log.info(f"  📋 Original lab ID: {lab_id}")
-        log.info(f"  📋 Cloned lab ID: {cloned_lab.lab_id}")
-        
+        # Step 3: Delete the original lab (which has wiped settings)
+        log.info("🔄 Step 3: Deleting original lab with wiped settings...")
+        try:
+            api.delete_lab(executor, lab_id)
+            log.info("✅ Original lab deleted successfully")
+        except Exception as e:
+            log.warning(f"⚠️ Could not delete original lab: {e}")
         
         # Step 4: Verify the cloned lab has correct settings
         log.info("🔄 Step 4: Verifying cloned lab settings...")
@@ -269,3 +271,38 @@ def update_lab_parameter_ranges(
         
         return final_lab
         
+    except Exception as e:
+        log.error(f"❌ Parameter optimization failed: {e}")
+        # Return original lab details if update fails
+        return get_lab_details(executor, lab_id)
+
+def generate_test_range(param_type: ParameterType, current_value: Optional[str]) -> Optional[list]:
+    """
+    Generate a 3-value test range based on parameter type and current value
+    
+    :param param_type: Type of the parameter
+    :param current_value: Current parameter value as string
+    :return: List of 3 test values or None if range cannot be generated
+    """
+    try:
+        if param_type == ParameterType.INTEGER:
+            base = int(float(current_value)) if current_value else 10
+            # Return [lower, current, higher]
+            return [
+                max(1, base - 2),  # Lower bound
+                base,              # Current value
+                base + 2          # Higher bound
+            ]
+            
+        elif param_type == ParameterType.DECIMAL:
+            base = float(current_value) if current_value else 1.0
+            # Return [80%, 100%, 120%] of current value
+            return [
+                round(base * 0.8, 8),  # 80% of current
+                base,                  # Current value
+                round(base * 1.2, 8)   # 120% of current
+            ]
+            
+    except (ValueError, TypeError):
+        return None
+    return None
