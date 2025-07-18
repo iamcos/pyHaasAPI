@@ -8,6 +8,11 @@ This script tests the new Phase 2 features we've implemented:
 - Advanced lab analytics (runtime, charts, logs)
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import random
 import time
 from loguru import logger
@@ -39,8 +44,8 @@ def test_authentication() -> api.RequestsExecutor:
     
     # Authenticate
     executor = executor.authenticate(
-        email="your_email@example.com",
-        password="your_password"
+        email=settings.API_EMAIL,
+        password=settings.API_PASSWORD
     )
     
     logger.info("✅ Authentication successful")
@@ -284,4 +289,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

@@ -11,6 +11,11 @@ This example demonstrates the full workflow for working with backtest results:
 Each backtest result represents a different parameter configuration that was tested.
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import time
 import random
 from typing import Optional
@@ -315,4 +320,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

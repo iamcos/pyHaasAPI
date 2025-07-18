@@ -1,0 +1,1094 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyHaasAPI.lab_manager module &mdash; pyHaasAPI 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pyHaasAPI.logger module" href="pyHaasAPI.logger.html" />
+    <link rel="prev" title="pyHaasAPI.lab_backup module" href="pyHaasAPI.lab_backup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pyHaasAPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#id1">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#optional-dependencies">Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#verification">Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#upgrading">Upgrading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#uninstalling">Uninstalling</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#basic-setup">Basic Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#getting-market-data">Getting Market Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#getting-account-information">Getting Account Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#lab-management">Lab Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#bot-management">Bot Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#complete-example">Complete Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#core-modules">Core Modules</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="pyHaasAPI.html">pyHaasAPI package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse"><code class="docutils literal notranslate"><span class="pre">ApiResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus"><code class="docutils literal notranslate"><span class="pre">LabStatus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.BacktestStatus"><code class="docutils literal notranslate"><span class="pre">BacktestStatus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig"><code class="docutils literal notranslate"><span class="pre">LabConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings"><code class="docutils literal notranslate"><span class="pre">LabSettings</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails"><code class="docutils literal notranslate"><span class="pre">LabDetails</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager"><code class="docutils literal notranslate"><span class="pre">MarketManager</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager"><code class="docutils literal notranslate"><span class="pre">LabManager</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler"><code class="docutils literal notranslate"><span class="pre">ParameterHandler</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="pyHaasAPI.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html">pyHaasAPI.api module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.ApiResponseData"><code class="docutils literal notranslate"><span class="pre">ApiResponseData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.HaasApiEndpoint"><code class="docutils literal notranslate"><span class="pre">HaasApiEndpoint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.UserState"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_scripts"><code class="docutils literal notranslate"><span class="pre">get_all_scripts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_accounts"><code class="docutils literal notranslate"><span class="pre">get_accounts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.create_lab"><code class="docutils literal notranslate"><span class="pre">create_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.start_lab_execution"><code class="docutils literal notranslate"><span class="pre">start_lab_execution()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_lab_details"><code class="docutils literal notranslate"><span class="pre">get_lab_details()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.update_lab_details"><code class="docutils literal notranslate"><span class="pre">update_lab_details()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_lab_execution"><code class="docutils literal notranslate"><span class="pre">cancel_lab_execution()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_lab_execution_update"><code class="docutils literal notranslate"><span class="pre">get_lab_execution_update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_result"><code class="docutils literal notranslate"><span class="pre">get_backtest_result()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_labs"><code class="docutils literal notranslate"><span class="pre">get_all_labs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_lab"><code class="docutils literal notranslate"><span class="pre">delete_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.clone_lab"><code class="docutils literal notranslate"><span class="pre">clone_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.change_lab_script"><code class="docutils literal notranslate"><span class="pre">change_lab_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_runtime"><code class="docutils literal notranslate"><span class="pre">get_backtest_runtime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_chart"><code class="docutils literal notranslate"><span class="pre">get_backtest_chart()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_log"><code class="docutils literal notranslate"><span class="pre">get_backtest_log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_bot"><code class="docutils literal notranslate"><span class="pre">add_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_bot_from_lab"><code class="docutils literal notranslate"><span class="pre">add_bot_from_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_bot"><code class="docutils literal notranslate"><span class="pre">delete_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_bots"><code class="docutils literal notranslate"><span class="pre">get_all_bots()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.activate_bot"><code class="docutils literal notranslate"><span class="pre">activate_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deactivate_bot"><code class="docutils literal notranslate"><span class="pre">deactivate_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.pause_bot"><code class="docutils literal notranslate"><span class="pre">pause_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.resume_bot"><code class="docutils literal notranslate"><span class="pre">resume_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot"><code class="docutils literal notranslate"><span class="pre">get_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deactivate_all_bots"><code class="docutils literal notranslate"><span class="pre">deactivate_all_bots()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_orders"><code class="docutils literal notranslate"><span class="pre">get_bot_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_positions"><code class="docutils literal notranslate"><span class="pre">get_bot_positions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_bot_order"><code class="docutils literal notranslate"><span class="pre">cancel_bot_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_all_bot_orders"><code class="docutils literal notranslate"><span class="pre">cancel_all_bot_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_script_item"><code class="docutils literal notranslate"><span class="pre">get_script_item()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_script"><code class="docutils literal notranslate"><span class="pre">add_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.edit_script"><code class="docutils literal notranslate"><span class="pre">edit_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_script"><code class="docutils literal notranslate"><span class="pre">delete_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.publish_script"><code class="docutils literal notranslate"><span class="pre">publish_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_data"><code class="docutils literal notranslate"><span class="pre">get_account_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_balance"><code class="docutils literal notranslate"><span class="pre">get_account_balance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_account_balances"><code class="docutils literal notranslate"><span class="pre">get_all_account_balances()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_orders"><code class="docutils literal notranslate"><span class="pre">get_account_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_positions"><code class="docutils literal notranslate"><span class="pre">get_account_positions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_trades"><code class="docutils literal notranslate"><span class="pre">get_account_trades()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.rename_account"><code class="docutils literal notranslate"><span class="pre">rename_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deposit_funds"><code class="docutils literal notranslate"><span class="pre">deposit_funds()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.update_lab_parameters"><code class="docutils literal notranslate"><span class="pre">update_lab_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_markets"><code class="docutils literal notranslate"><span class="pre">get_all_markets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_market_price"><code class="docutils literal notranslate"><span class="pre">get_market_price()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_order_book"><code class="docutils literal notranslate"><span class="pre">get_order_book()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_last_trades"><code class="docutils literal notranslate"><span class="pre">get_last_trades()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_market_snapshot"><code class="docutils literal notranslate"><span class="pre">get_market_snapshot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_script_record"><code class="docutils literal notranslate"><span class="pre">get_script_record()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_script_folders"><code class="docutils literal notranslate"><span class="pre">get_all_script_folders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.create_script_folder"><code class="docutils literal notranslate"><span class="pre">create_script_folder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.move_script_to_folder"><code class="docutils literal notranslate"><span class="pre">move_script_to_folder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.place_order"><code class="docutils literal notranslate"><span class="pre">place_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_order"><code class="docutils literal notranslate"><span class="pre">cancel_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_orders"><code class="docutils literal notranslate"><span class="pre">get_all_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_positions"><code class="docutils literal notranslate"><span class="pre">get_all_positions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_runtime_logbook"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime_logbook()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_runtime"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_history_status"><code class="docutils literal notranslate"><span class="pre">get_history_status()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.set_history_depth"><code class="docutils literal notranslate"><span class="pre">set_history_depth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_simulated_account"><code class="docutils literal notranslate"><span class="pre">add_simulated_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.test_account"><code class="docutils literal notranslate"><span class="pre">test_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_account"><code class="docutils literal notranslate"><span class="pre">delete_account()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.models.html">pyHaasAPI.models package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.lab.html">pyHaasAPI.lab module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html">pyHaasAPI.market_manager module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager"><code class="docutils literal notranslate"><span class="pre">MarketManager</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#main-api-module">Main API Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.ApiResponseData"><code class="docutils literal notranslate"><span class="pre">ApiResponseData</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.HaasApiEndpoint"><code class="docutils literal notranslate"><span class="pre">HaasApiEndpoint</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.UserState"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.UserState.__init__"><code class="docutils literal notranslate"><span class="pre">UserState.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.Authenticated.user_id"><code class="docutils literal notranslate"><span class="pre">Authenticated.user_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.Authenticated.interface_key"><code class="docutils literal notranslate"><span class="pre">Authenticated.interface_key</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.Authenticated.__init__"><code class="docutils literal notranslate"><span class="pre">Authenticated.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.SyncExecutor.execute"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.SyncExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.host"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.host</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.port"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.port</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.state"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.protocol"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.protocol</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.authenticate"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.authenticate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.execute"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.RequestsExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_scripts"><code class="docutils literal notranslate"><span class="pre">get_all_scripts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_accounts"><code class="docutils literal notranslate"><span class="pre">get_accounts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.create_lab"><code class="docutils literal notranslate"><span class="pre">create_lab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.start_lab_execution"><code class="docutils literal notranslate"><span class="pre">start_lab_execution()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_lab_details"><code class="docutils literal notranslate"><span class="pre">get_lab_details()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.update_lab_details"><code class="docutils literal notranslate"><span class="pre">update_lab_details()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.cancel_lab_execution"><code class="docutils literal notranslate"><span class="pre">cancel_lab_execution()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_lab_execution_update"><code class="docutils literal notranslate"><span class="pre">get_lab_execution_update()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_backtest_result"><code class="docutils literal notranslate"><span class="pre">get_backtest_result()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_labs"><code class="docutils literal notranslate"><span class="pre">get_all_labs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.delete_lab"><code class="docutils literal notranslate"><span class="pre">delete_lab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.clone_lab"><code class="docutils literal notranslate"><span class="pre">clone_lab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.change_lab_script"><code class="docutils literal notranslate"><span class="pre">change_lab_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_backtest_runtime"><code class="docutils literal notranslate"><span class="pre">get_backtest_runtime()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_backtest_chart"><code class="docutils literal notranslate"><span class="pre">get_backtest_chart()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_backtest_log"><code class="docutils literal notranslate"><span class="pre">get_backtest_log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.add_bot"><code class="docutils literal notranslate"><span class="pre">add_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.add_bot_from_lab"><code class="docutils literal notranslate"><span class="pre">add_bot_from_lab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.delete_bot"><code class="docutils literal notranslate"><span class="pre">delete_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_bots"><code class="docutils literal notranslate"><span class="pre">get_all_bots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.activate_bot"><code class="docutils literal notranslate"><span class="pre">activate_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.deactivate_bot"><code class="docutils literal notranslate"><span class="pre">deactivate_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.pause_bot"><code class="docutils literal notranslate"><span class="pre">pause_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.resume_bot"><code class="docutils literal notranslate"><span class="pre">resume_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_bot"><code class="docutils literal notranslate"><span class="pre">get_bot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.deactivate_all_bots"><code class="docutils literal notranslate"><span class="pre">deactivate_all_bots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_bot_orders"><code class="docutils literal notranslate"><span class="pre">get_bot_orders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_bot_positions"><code class="docutils literal notranslate"><span class="pre">get_bot_positions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.cancel_bot_order"><code class="docutils literal notranslate"><span class="pre">cancel_bot_order()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.cancel_all_bot_orders"><code class="docutils literal notranslate"><span class="pre">cancel_all_bot_orders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_script_item"><code class="docutils literal notranslate"><span class="pre">get_script_item()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.add_script"><code class="docutils literal notranslate"><span class="pre">add_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.edit_script"><code class="docutils literal notranslate"><span class="pre">edit_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.delete_script"><code class="docutils literal notranslate"><span class="pre">delete_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.publish_script"><code class="docutils literal notranslate"><span class="pre">publish_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_account_data"><code class="docutils literal notranslate"><span class="pre">get_account_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_account_balance"><code class="docutils literal notranslate"><span class="pre">get_account_balance()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_account_balances"><code class="docutils literal notranslate"><span class="pre">get_all_account_balances()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_account_orders"><code class="docutils literal notranslate"><span class="pre">get_account_orders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_account_positions"><code class="docutils literal notranslate"><span class="pre">get_account_positions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_account_trades"><code class="docutils literal notranslate"><span class="pre">get_account_trades()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.rename_account"><code class="docutils literal notranslate"><span class="pre">rename_account()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.deposit_funds"><code class="docutils literal notranslate"><span class="pre">deposit_funds()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.update_lab_parameters"><code class="docutils literal notranslate"><span class="pre">update_lab_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_markets"><code class="docutils literal notranslate"><span class="pre">get_all_markets()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_market_price"><code class="docutils literal notranslate"><span class="pre">get_market_price()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_order_book"><code class="docutils literal notranslate"><span class="pre">get_order_book()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_last_trades"><code class="docutils literal notranslate"><span class="pre">get_last_trades()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_market_snapshot"><code class="docutils literal notranslate"><span class="pre">get_market_snapshot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_script_record"><code class="docutils literal notranslate"><span class="pre">get_script_record()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_script_folders"><code class="docutils literal notranslate"><span class="pre">get_all_script_folders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.create_script_folder"><code class="docutils literal notranslate"><span class="pre">create_script_folder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.move_script_to_folder"><code class="docutils literal notranslate"><span class="pre">move_script_to_folder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.place_order"><code class="docutils literal notranslate"><span class="pre">place_order()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.cancel_order"><code class="docutils literal notranslate"><span class="pre">cancel_order()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_orders"><code class="docutils literal notranslate"><span class="pre">get_all_orders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_all_positions"><code class="docutils literal notranslate"><span class="pre">get_all_positions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_bot_runtime_logbook"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime_logbook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_bot_runtime"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.get_history_status"><code class="docutils literal notranslate"><span class="pre">get_history_status()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.set_history_depth"><code class="docutils literal notranslate"><span class="pre">set_history_depth()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.add_simulated_account"><code class="docutils literal notranslate"><span class="pre">add_simulated_account()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.test_account"><code class="docutils literal notranslate"><span class="pre">test_account()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.api.delete_account"><code class="docutils literal notranslate"><span class="pre">delete_account()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#client-module">Client Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#models">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#lab-management">Lab Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#market-manager">Market Manager</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager"><code class="docutils literal notranslate"><span class="pre">MarketManager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.__init__"><code class="docutils literal notranslate"><span class="pre">MarketManager.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_markets_efficiently"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_markets_efficiently()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_market_by_pair"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_market_by_pair()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.format_market_string"><code class="docutils literal notranslate"><span class="pre">MarketManager.format_market_string()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_accounts"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_accounts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_test_account"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_test_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_madhatter_script"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_madhatter_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.get_scalper_script"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_scalper_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.market_manager.MarketManager.validate_market_setup"><code class="docutils literal notranslate"><span class="pre">MarketManager.validate_market_setup()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#exceptions">Exceptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#types">Types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.UserState"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.Authenticated.user_id"><code class="docutils literal notranslate"><span class="pre">Authenticated.user_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.Authenticated.interface_key"><code class="docutils literal notranslate"><span class="pre">Authenticated.interface_key</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.Authenticated.__init__"><code class="docutils literal notranslate"><span class="pre">Authenticated.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.SyncExecutor.execute"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.SyncExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.types.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.tools.select_random_markets"><code class="docutils literal notranslate"><span class="pre">select_random_markets()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#parameter-handling">Parameter Handling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterType"><code class="docutils literal notranslate"><span class="pre">ParameterType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterType.NUMBER"><code class="docutils literal notranslate"><span class="pre">ParameterType.NUMBER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterType.BOOLEAN"><code class="docutils literal notranslate"><span class="pre">ParameterType.BOOLEAN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterType.STRING"><code class="docutils literal notranslate"><span class="pre">ParameterType.STRING</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterType.GROUP_HEADER"><code class="docutils literal notranslate"><span class="pre">ParameterType.GROUP_HEADER</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo"><code class="docutils literal notranslate"><span class="pre">ParameterInfo</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.key"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.key</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.name"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.group"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.group</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.param_type"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.param_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.current_value"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.current_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.default_value"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.default_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.options"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.options</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.min_value"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.min_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.max_value"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.max_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.is_optimizable"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.is_optimizable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterInfo.__init__"><code class="docutils literal notranslate"><span class="pre">ParameterInfo.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterHandler"><code class="docutils literal notranslate"><span class="pre">ParameterHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterHandler.__init__"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterHandler.analyze_script_parameters"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.analyze_script_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterHandler.create_optimization_plan"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.create_optimization_plan()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterHandler.apply_optimization_to_lab"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.apply_optimization_to_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.parameter_handler.ParameterHandler.validate_lab_parameters"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.validate_lab_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#price-api">Price API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI"><code class="docutils literal notranslate"><span class="pre">PriceAPI</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.__init__"><code class="docutils literal notranslate"><span class="pre">PriceAPI.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.get_all_markets"><code class="docutils literal notranslate"><span class="pre">PriceAPI.get_all_markets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.get_all_markets_by_pricesource"><code class="docutils literal notranslate"><span class="pre">PriceAPI.get_all_markets_by_pricesource()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.get_unique_pricesources"><code class="docutils literal notranslate"><span class="pre">PriceAPI.get_unique_pricesources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.get_trade_markets"><code class="docutils literal notranslate"><span class="pre">PriceAPI.get_trade_markets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.validate_market"><code class="docutils literal notranslate"><span class="pre">PriceAPI.validate_market()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.PriceAPI.get_valid_market"><code class="docutils literal notranslate"><span class="pre">PriceAPI.get_valid_market()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBook"><code class="docutils literal notranslate"><span class="pre">OrderBook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBook.bids"><code class="docutils literal notranslate"><span class="pre">OrderBook.bids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBook.asks"><code class="docutils literal notranslate"><span class="pre">OrderBook.asks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBook.model_config"><code class="docutils literal notranslate"><span class="pre">OrderBook.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBookEntry"><code class="docutils literal notranslate"><span class="pre">OrderBookEntry</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBookEntry.price"><code class="docutils literal notranslate"><span class="pre">OrderBookEntry.price</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBookEntry.amount"><code class="docutils literal notranslate"><span class="pre">OrderBookEntry.amount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference.html#pyHaasAPI.price.OrderBookEntry.model_config"><code class="docutils literal notranslate"><span class="pre">OrderBookEntry.model_config</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html">Basic Usage Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#authentication">Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#getting-market-data">Getting Market Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#account-management">Account Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#lab-management">Lab Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#bot-management">Bot Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#error-handling">Error Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../advanced_usage.html">Advanced Usage</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../licensing.html">Licensing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#mit-license">MIT License</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#usage-rights">Usage Rights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../licensing.html#free-usage">Free Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../licensing.html#commercial-licensing">Commercial Licensing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#contact-information">Contact Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#attribution">Attribution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../licensing.html#example-attribution">Example Attribution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#getting-started">Getting Started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#development-setup">Development Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#code-style">Code Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#building-documentation">Building Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#pull-request-guidelines">Pull Request Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#example-pull-request">Example Pull Request</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#issue-guidelines">Issue Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#example-issue">Example Issue</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#code-review-process">Code Review Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#release-process">Release Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#contact">Contact</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="pyHaasAPI.html">pyHaasAPI package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.SyncExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.SyncExecutor.execute"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Authenticated.__init__"><code class="docutils literal notranslate"><span class="pre">Authenticated.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Authenticated.user_id"><code class="docutils literal notranslate"><span class="pre">Authenticated.user_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.Authenticated.interface_key"><code class="docutils literal notranslate"><span class="pre">Authenticated.interface_key</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse"><code class="docutils literal notranslate"><span class="pre">ApiResponse</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.data"><code class="docutils literal notranslate"><span class="pre">ApiResponse.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.error"><code class="docutils literal notranslate"><span class="pre">ApiResponse.error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.model_config"><code class="docutils literal notranslate"><span class="pre">ApiResponse.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.success"><code class="docutils literal notranslate"><span class="pre">ApiResponse.success</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.Success"><code class="docutils literal notranslate"><span class="pre">ApiResponse.Success</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.Error"><code class="docutils literal notranslate"><span class="pre">ApiResponse.Error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ApiResponse.Data"><code class="docutils literal notranslate"><span class="pre">ApiResponse.Data</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus"><code class="docutils literal notranslate"><span class="pre">LabStatus</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus.CREATED"><code class="docutils literal notranslate"><span class="pre">LabStatus.CREATED</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus.QUEUED"><code class="docutils literal notranslate"><span class="pre">LabStatus.QUEUED</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus.RUNNING"><code class="docutils literal notranslate"><span class="pre">LabStatus.RUNNING</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus.COMPLETED"><code class="docutils literal notranslate"><span class="pre">LabStatus.COMPLETED</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabStatus.CANCELLED"><code class="docutils literal notranslate"><span class="pre">LabStatus.CANCELLED</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.BacktestStatus"><code class="docutils literal notranslate"><span class="pre">BacktestStatus</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.BacktestStatus.QUEUED"><code class="docutils literal notranslate"><span class="pre">BacktestStatus.QUEUED</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.BacktestStatus.EXECUTING"><code class="docutils literal notranslate"><span class="pre">BacktestStatus.EXECUTING</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.BacktestStatus.CANCELLED"><code class="docutils literal notranslate"><span class="pre">BacktestStatus.CANCELLED</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.BacktestStatus.DONE"><code class="docutils literal notranslate"><span class="pre">BacktestStatus.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig"><code class="docutils literal notranslate"><span class="pre">LabConfig</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig.__init__"><code class="docutils literal notranslate"><span class="pre">LabConfig.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig.auto_restart"><code class="docutils literal notranslate"><span class="pre">LabConfig.auto_restart</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig.max_epochs"><code class="docutils literal notranslate"><span class="pre">LabConfig.max_epochs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig.max_generations"><code class="docutils literal notranslate"><span class="pre">LabConfig.max_generations</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig.max_parallel"><code class="docutils literal notranslate"><span class="pre">LabConfig.max_parallel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabConfig.max_runtime"><code class="docutils literal notranslate"><span class="pre">LabConfig.max_runtime</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings"><code class="docutils literal notranslate"><span class="pre">LabSettings</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.__init__"><code class="docutils literal notranslate"><span class="pre">LabSettings.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.chart_style"><code class="docutils literal notranslate"><span class="pre">LabSettings.chart_style</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.interval"><code class="docutils literal notranslate"><span class="pre">LabSettings.interval</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.leverage"><code class="docutils literal notranslate"><span class="pre">LabSettings.leverage</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.margin_mode"><code class="docutils literal notranslate"><span class="pre">LabSettings.margin_mode</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.order_template"><code class="docutils literal notranslate"><span class="pre">LabSettings.order_template</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.position_mode"><code class="docutils literal notranslate"><span class="pre">LabSettings.position_mode</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.price_data_style"><code class="docutils literal notranslate"><span class="pre">LabSettings.price_data_style</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabSettings.trade_amount"><code class="docutils literal notranslate"><span class="pre">LabSettings.trade_amount</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails"><code class="docutils literal notranslate"><span class="pre">LabDetails</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.is_running"><code class="docutils literal notranslate"><span class="pre">LabDetails.is_running</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.model_config"><code class="docutils literal notranslate"><span class="pre">LabDetails.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.parameters"><code class="docutils literal notranslate"><span class="pre">LabDetails.parameters</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.config"><code class="docutils literal notranslate"><span class="pre">LabDetails.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.settings"><code class="docutils literal notranslate"><span class="pre">LabDetails.settings</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.user_id"><code class="docutils literal notranslate"><span class="pre">LabDetails.user_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.lab_id"><code class="docutils literal notranslate"><span class="pre">LabDetails.lab_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.script_id"><code class="docutils literal notranslate"><span class="pre">LabDetails.script_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.name"><code class="docutils literal notranslate"><span class="pre">LabDetails.name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.type"><code class="docutils literal notranslate"><span class="pre">LabDetails.type</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.status"><code class="docutils literal notranslate"><span class="pre">LabDetails.status</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.scheduled_backtests"><code class="docutils literal notranslate"><span class="pre">LabDetails.scheduled_backtests</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.completed_backtests"><code class="docutils literal notranslate"><span class="pre">LabDetails.completed_backtests</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.created_at"><code class="docutils literal notranslate"><span class="pre">LabDetails.created_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.updated_at"><code class="docutils literal notranslate"><span class="pre">LabDetails.updated_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.started_at"><code class="docutils literal notranslate"><span class="pre">LabDetails.started_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.running_since"><code class="docutils literal notranslate"><span class="pre">LabDetails.running_since</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.start_unix"><code class="docutils literal notranslate"><span class="pre">LabDetails.start_unix</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.end_unix"><code class="docutils literal notranslate"><span class="pre">LabDetails.end_unix</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.send_email"><code class="docutils literal notranslate"><span class="pre">LabDetails.send_email</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabDetails.cancel_message"><code class="docutils literal notranslate"><span class="pre">LabDetails.cancel_message</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager"><code class="docutils literal notranslate"><span class="pre">MarketManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.__init__"><code class="docutils literal notranslate"><span class="pre">MarketManager.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.format_market_string"><code class="docutils literal notranslate"><span class="pre">MarketManager.format_market_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_accounts"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_accounts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_madhatter_script"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_madhatter_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_market_by_pair"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_market_by_pair()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_markets_efficiently"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_markets_efficiently()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_scalper_script"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_scalper_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.get_test_account"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_test_account()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.MarketManager.validate_market_setup"><code class="docutils literal notranslate"><span class="pre">MarketManager.validate_market_setup()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager"><code class="docutils literal notranslate"><span class="pre">LabManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager.__init__"><code class="docutils literal notranslate"><span class="pre">LabManager.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager.activate_top_bots"><code class="docutils literal notranslate"><span class="pre">LabManager.activate_top_bots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager.cleanup_invalid_labs"><code class="docutils literal notranslate"><span class="pre">LabManager.cleanup_invalid_labs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager.create_optimized_lab"><code class="docutils literal notranslate"><span class="pre">LabManager.create_optimized_lab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.LabManager.run_backtest"><code class="docutils literal notranslate"><span class="pre">LabManager.run_backtest()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler"><code class="docutils literal notranslate"><span class="pre">ParameterHandler</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler.__init__"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler.analyze_script_parameters"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.analyze_script_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler.apply_optimization_to_lab"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.apply_optimization_to_lab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler.create_optimization_plan"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.create_optimization_plan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.html#pyHaasAPI.ParameterHandler.validate_lab_parameters"><code class="docutils literal notranslate"><span class="pre">ParameterHandler.validate_lab_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.models.html">pyHaasAPI.models package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="pyHaasAPI.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html">pyHaasAPI.api module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.ApiResponseData"><code class="docutils literal notranslate"><span class="pre">ApiResponseData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.HaasApiEndpoint"><code class="docutils literal notranslate"><span class="pre">HaasApiEndpoint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.UserState"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_scripts"><code class="docutils literal notranslate"><span class="pre">get_all_scripts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_accounts"><code class="docutils literal notranslate"><span class="pre">get_accounts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.create_lab"><code class="docutils literal notranslate"><span class="pre">create_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.start_lab_execution"><code class="docutils literal notranslate"><span class="pre">start_lab_execution()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_lab_details"><code class="docutils literal notranslate"><span class="pre">get_lab_details()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.update_lab_details"><code class="docutils literal notranslate"><span class="pre">update_lab_details()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_lab_execution"><code class="docutils literal notranslate"><span class="pre">cancel_lab_execution()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_lab_execution_update"><code class="docutils literal notranslate"><span class="pre">get_lab_execution_update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_result"><code class="docutils literal notranslate"><span class="pre">get_backtest_result()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_labs"><code class="docutils literal notranslate"><span class="pre">get_all_labs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_lab"><code class="docutils literal notranslate"><span class="pre">delete_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.clone_lab"><code class="docutils literal notranslate"><span class="pre">clone_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.change_lab_script"><code class="docutils literal notranslate"><span class="pre">change_lab_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_runtime"><code class="docutils literal notranslate"><span class="pre">get_backtest_runtime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_chart"><code class="docutils literal notranslate"><span class="pre">get_backtest_chart()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_log"><code class="docutils literal notranslate"><span class="pre">get_backtest_log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_bot"><code class="docutils literal notranslate"><span class="pre">add_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_bot_from_lab"><code class="docutils literal notranslate"><span class="pre">add_bot_from_lab()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_bot"><code class="docutils literal notranslate"><span class="pre">delete_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_bots"><code class="docutils literal notranslate"><span class="pre">get_all_bots()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.activate_bot"><code class="docutils literal notranslate"><span class="pre">activate_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deactivate_bot"><code class="docutils literal notranslate"><span class="pre">deactivate_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.pause_bot"><code class="docutils literal notranslate"><span class="pre">pause_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.resume_bot"><code class="docutils literal notranslate"><span class="pre">resume_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot"><code class="docutils literal notranslate"><span class="pre">get_bot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deactivate_all_bots"><code class="docutils literal notranslate"><span class="pre">deactivate_all_bots()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_orders"><code class="docutils literal notranslate"><span class="pre">get_bot_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_positions"><code class="docutils literal notranslate"><span class="pre">get_bot_positions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_bot_order"><code class="docutils literal notranslate"><span class="pre">cancel_bot_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_all_bot_orders"><code class="docutils literal notranslate"><span class="pre">cancel_all_bot_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_script_item"><code class="docutils literal notranslate"><span class="pre">get_script_item()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_script"><code class="docutils literal notranslate"><span class="pre">add_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.edit_script"><code class="docutils literal notranslate"><span class="pre">edit_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_script"><code class="docutils literal notranslate"><span class="pre">delete_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.publish_script"><code class="docutils literal notranslate"><span class="pre">publish_script()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_data"><code class="docutils literal notranslate"><span class="pre">get_account_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_balance"><code class="docutils literal notranslate"><span class="pre">get_account_balance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_account_balances"><code class="docutils literal notranslate"><span class="pre">get_all_account_balances()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_orders"><code class="docutils literal notranslate"><span class="pre">get_account_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_positions"><code class="docutils literal notranslate"><span class="pre">get_account_positions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_trades"><code class="docutils literal notranslate"><span class="pre">get_account_trades()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.rename_account"><code class="docutils literal notranslate"><span class="pre">rename_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deposit_funds"><code class="docutils literal notranslate"><span class="pre">deposit_funds()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.update_lab_parameters"><code class="docutils literal notranslate"><span class="pre">update_lab_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_markets"><code class="docutils literal notranslate"><span class="pre">get_all_markets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_market_price"><code class="docutils literal notranslate"><span class="pre">get_market_price()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_order_book"><code class="docutils literal notranslate"><span class="pre">get_order_book()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_last_trades"><code class="docutils literal notranslate"><span class="pre">get_last_trades()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_market_snapshot"><code class="docutils literal notranslate"><span class="pre">get_market_snapshot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_script_record"><code class="docutils literal notranslate"><span class="pre">get_script_record()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_script_folders"><code class="docutils literal notranslate"><span class="pre">get_all_script_folders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.create_script_folder"><code class="docutils literal notranslate"><span class="pre">create_script_folder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.move_script_to_folder"><code class="docutils literal notranslate"><span class="pre">move_script_to_folder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.place_order"><code class="docutils literal notranslate"><span class="pre">place_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_order"><code class="docutils literal notranslate"><span class="pre">cancel_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_orders"><code class="docutils literal notranslate"><span class="pre">get_all_orders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_positions"><code class="docutils literal notranslate"><span class="pre">get_all_positions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_runtime_logbook"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime_logbook()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_runtime"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_history_status"><code class="docutils literal notranslate"><span class="pre">get_history_status()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.set_history_depth"><code class="docutils literal notranslate"><span class="pre">set_history_depth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_simulated_account"><code class="docutils literal notranslate"><span class="pre">add_simulated_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.test_account"><code class="docutils literal notranslate"><span class="pre">test_account()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_account"><code class="docutils literal notranslate"><span class="pre">delete_account()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.domain.html">pyHaasAPI.domain module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.domain.html#pyHaasAPI.domain.BacktestPeriod"><code class="docutils literal notranslate"><span class="pre">BacktestPeriod</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.domain.html#pyHaasAPI.domain.pyHaasAPIExcpetion"><code class="docutils literal notranslate"><span class="pre">pyHaasAPIExcpetion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.domain.html#pyHaasAPI.domain.Script"><code class="docutils literal notranslate"><span class="pre">Script</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.exceptions.html">pyHaasAPI.exceptions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.iterable_extensions.html">pyHaasAPI.iterable_extensions module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.iterable_extensions.html#pyHaasAPI.iterable_extensions.first"><code class="docutils literal notranslate"><span class="pre">first()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.iterable_extensions.html#pyHaasAPI.iterable_extensions.find_idx"><code class="docutils literal notranslate"><span class="pre">find_idx()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.lab.html">pyHaasAPI.lab module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.lab_backup.html">pyHaasAPI.lab_backup module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.ChangeHaasScriptParameterRequest"><code class="docutils literal notranslate"><span class="pre">ChangeHaasScriptParameterRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.update_params"><code class="docutils literal notranslate"><span class="pre">update_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.wait_for_execution"><code class="docutils literal notranslate"><span class="pre">wait_for_execution()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.backtest"><code class="docutils literal notranslate"><span class="pre">backtest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.get_lab_default_params"><code class="docutils literal notranslate"><span class="pre">get_lab_default_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.parse_parameter_type"><code class="docutils literal notranslate"><span class="pre">parse_parameter_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.get_lab_parameters"><code class="docutils literal notranslate"><span class="pre">get_lab_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.update_lab_parameter_ranges"><code class="docutils literal notranslate"><span class="pre">update_lab_parameter_ranges()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.lab_backup.html#pyHaasAPI.lab_backup.generate_test_range"><code class="docutils literal notranslate"><span class="pre">generate_test_range()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">pyHaasAPI.lab_manager module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pyHaasAPI.lab_manager.LabConfig"><code class="docutils literal notranslate"><span class="pre">LabConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyHaasAPI.lab_manager.LabSettings"><code class="docutils literal notranslate"><span class="pre">LabSettings</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyHaasAPI.lab_manager.LabManager"><code class="docutils literal notranslate"><span class="pre">LabManager</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.logger.html">pyHaasAPI.logger module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html">pyHaasAPI.market_manager module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager"><code class="docutils literal notranslate"><span class="pre">MarketManager</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.model.html">pyHaasAPI.model module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.ApiResponse"><code class="docutils literal notranslate"><span class="pre">ApiResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.UserDetails"><code class="docutils literal notranslate"><span class="pre">UserDetails</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.AppLogin"><code class="docutils literal notranslate"><span class="pre">AppLogin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.HaasBot"><code class="docutils literal notranslate"><span class="pre">HaasBot</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.HaasScriptItemWithDependencies"><code class="docutils literal notranslate"><span class="pre">HaasScriptItemWithDependencies</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CloudMarket"><code class="docutils literal notranslate"><span class="pre">CloudMarket</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CreateLabRequest"><code class="docutils literal notranslate"><span class="pre">CreateLabRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.UserAccount"><code class="docutils literal notranslate"><span class="pre">UserAccount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.HaasScriptSettings"><code class="docutils literal notranslate"><span class="pre">HaasScriptSettings</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.LabRecord"><code class="docutils literal notranslate"><span class="pre">LabRecord</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.StartLabExecutionRequest"><code class="docutils literal notranslate"><span class="pre">StartLabExecutionRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.PaginatedResponse"><code class="docutils literal notranslate"><span class="pre">PaginatedResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CustomReportWrapper"><code class="docutils literal notranslate"><span class="pre">CustomReportWrapper</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.LabBacktestSummary"><code class="docutils literal notranslate"><span class="pre">LabBacktestSummary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.BacktestSummary"><code class="docutils literal notranslate"><span class="pre">BacktestSummary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.LabBacktestResult"><code class="docutils literal notranslate"><span class="pre">LabBacktestResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.EditHaasScriptSourceCodeSettings"><code class="docutils literal notranslate"><span class="pre">EditHaasScriptSourceCodeSettings</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CustomReport"><code class="docutils literal notranslate"><span class="pre">CustomReport</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.GetBacktestResultRequest"><code class="docutils literal notranslate"><span class="pre">GetBacktestResultRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.LicenseDetails"><code class="docutils literal notranslate"><span class="pre">LicenseDetails</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.AuthenticatedSessionResponseData"><code class="docutils literal notranslate"><span class="pre">AuthenticatedSessionResponseData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.AuthenticatedSessionResponse"><code class="docutils literal notranslate"><span class="pre">AuthenticatedSessionResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CreateBotRequest"><code class="docutils literal notranslate"><span class="pre">CreateBotRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.EnumDecimalType"><code class="docutils literal notranslate"><span class="pre">EnumDecimalType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CloudTradeContract"><code class="docutils literal notranslate"><span class="pre">CloudTradeContract</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CloudTradeMarket"><code class="docutils literal notranslate"><span class="pre">CloudTradeMarket</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.AddBotFromLabRequest"><code class="docutils literal notranslate"><span class="pre">AddBotFromLabRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.LabDetails"><code class="docutils literal notranslate"><span class="pre">LabDetails</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.LabExecutionUpdate"><code class="docutils literal notranslate"><span class="pre">LabExecutionUpdate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.AccountDetails"><code class="docutils literal notranslate"><span class="pre">AccountDetails</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.AccountData"><code class="docutils literal notranslate"><span class="pre">AccountData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.BacktestRecord"><code class="docutils literal notranslate"><span class="pre">BacktestRecord</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.HaasScriptFolder"><code class="docutils literal notranslate"><span class="pre">HaasScriptFolder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.model.html#id0"><code class="docutils literal notranslate"><span class="pre">PaginatedResponse</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.parameter_handler.html">pyHaasAPI.parameter_handler module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameter_handler.html#pyHaasAPI.parameter_handler.ParameterType"><code class="docutils literal notranslate"><span class="pre">ParameterType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameter_handler.html#pyHaasAPI.parameter_handler.ParameterInfo"><code class="docutils literal notranslate"><span class="pre">ParameterInfo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameter_handler.html#pyHaasAPI.parameter_handler.ParameterHandler"><code class="docutils literal notranslate"><span class="pre">ParameterHandler</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.parameters.html">pyHaasAPI.parameters module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.ParameterType"><code class="docutils literal notranslate"><span class="pre">ParameterType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.ScriptParameter"><code class="docutils literal notranslate"><span class="pre">ScriptParameter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.ParameterGroup"><code class="docutils literal notranslate"><span class="pre">ParameterGroup</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.ParameterRange"><code class="docutils literal notranslate"><span class="pre">ParameterRange</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.LabParameter"><code class="docutils literal notranslate"><span class="pre">LabParameter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.ScriptParameters"><code class="docutils literal notranslate"><span class="pre">ScriptParameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.LabStatus"><code class="docutils literal notranslate"><span class="pre">LabStatus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.BacktestStatus"><code class="docutils literal notranslate"><span class="pre">BacktestStatus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.LabAlgorithm"><code class="docutils literal notranslate"><span class="pre">LabAlgorithm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.LabConfig"><code class="docutils literal notranslate"><span class="pre">LabConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.parameters.html#pyHaasAPI.parameters.LabSettings"><code class="docutils literal notranslate"><span class="pre">LabSettings</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.price.html">pyHaasAPI.price module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.price.html#pyHaasAPI.price.PriceAPI"><code class="docutils literal notranslate"><span class="pre">PriceAPI</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.price.html#pyHaasAPI.price.OrderBook"><code class="docutils literal notranslate"><span class="pre">OrderBook</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.price.html#pyHaasAPI.price.OrderBookEntry"><code class="docutils literal notranslate"><span class="pre">OrderBookEntry</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.tools.html">pyHaasAPI.tools module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.tools.html#pyHaasAPI.tools.select_random_markets"><code class="docutils literal notranslate"><span class="pre">select_random_markets()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.types.html">pyHaasAPI.types module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.types.html#pyHaasAPI.types.UserState"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.types.html#pyHaasAPI.types.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.types.html#pyHaasAPI.types.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.types.html#pyHaasAPI.types.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.types.html#pyHaasAPI.types.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pyHaasAPI.api.html">pyHaasAPI.api module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.ApiResponseData"><code class="docutils literal notranslate"><span class="pre">ApiResponseData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.HaasApiEndpoint"><code class="docutils literal notranslate"><span class="pre">HaasApiEndpoint</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.HaasApiError"><code class="docutils literal notranslate"><span class="pre">HaasApiError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.UserState"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.UserState.__init__"><code class="docutils literal notranslate"><span class="pre">UserState.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Guest"><code class="docutils literal notranslate"><span class="pre">Guest</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Authenticated"><code class="docutils literal notranslate"><span class="pre">Authenticated</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Authenticated.user_id"><code class="docutils literal notranslate"><span class="pre">Authenticated.user_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Authenticated.interface_key"><code class="docutils literal notranslate"><span class="pre">Authenticated.interface_key</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.Authenticated.__init__"><code class="docutils literal notranslate"><span class="pre">Authenticated.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.SyncExecutor"><code class="docutils literal notranslate"><span class="pre">SyncExecutor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.SyncExecutor.execute"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.SyncExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">SyncExecutor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.host"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.host</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.port"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.port</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.state"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.state</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.protocol"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.protocol</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.authenticate"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.authenticate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.execute"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.RequestsExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">RequestsExecutor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_scripts"><code class="docutils literal notranslate"><span class="pre">get_all_scripts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_accounts"><code class="docutils literal notranslate"><span class="pre">get_accounts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.create_lab"><code class="docutils literal notranslate"><span class="pre">create_lab()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.start_lab_execution"><code class="docutils literal notranslate"><span class="pre">start_lab_execution()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_lab_details"><code class="docutils literal notranslate"><span class="pre">get_lab_details()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.update_lab_details"><code class="docutils literal notranslate"><span class="pre">update_lab_details()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_lab_execution"><code class="docutils literal notranslate"><span class="pre">cancel_lab_execution()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_lab_execution_update"><code class="docutils literal notranslate"><span class="pre">get_lab_execution_update()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_result"><code class="docutils literal notranslate"><span class="pre">get_backtest_result()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_labs"><code class="docutils literal notranslate"><span class="pre">get_all_labs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_lab"><code class="docutils literal notranslate"><span class="pre">delete_lab()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.clone_lab"><code class="docutils literal notranslate"><span class="pre">clone_lab()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.change_lab_script"><code class="docutils literal notranslate"><span class="pre">change_lab_script()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_runtime"><code class="docutils literal notranslate"><span class="pre">get_backtest_runtime()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_chart"><code class="docutils literal notranslate"><span class="pre">get_backtest_chart()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_backtest_log"><code class="docutils literal notranslate"><span class="pre">get_backtest_log()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_bot"><code class="docutils literal notranslate"><span class="pre">add_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_bot_from_lab"><code class="docutils literal notranslate"><span class="pre">add_bot_from_lab()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_bot"><code class="docutils literal notranslate"><span class="pre">delete_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_bots"><code class="docutils literal notranslate"><span class="pre">get_all_bots()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.activate_bot"><code class="docutils literal notranslate"><span class="pre">activate_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deactivate_bot"><code class="docutils literal notranslate"><span class="pre">deactivate_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.pause_bot"><code class="docutils literal notranslate"><span class="pre">pause_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.resume_bot"><code class="docutils literal notranslate"><span class="pre">resume_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot"><code class="docutils literal notranslate"><span class="pre">get_bot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deactivate_all_bots"><code class="docutils literal notranslate"><span class="pre">deactivate_all_bots()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_orders"><code class="docutils literal notranslate"><span class="pre">get_bot_orders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_positions"><code class="docutils literal notranslate"><span class="pre">get_bot_positions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_bot_order"><code class="docutils literal notranslate"><span class="pre">cancel_bot_order()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_all_bot_orders"><code class="docutils literal notranslate"><span class="pre">cancel_all_bot_orders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_script_item"><code class="docutils literal notranslate"><span class="pre">get_script_item()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_script"><code class="docutils literal notranslate"><span class="pre">add_script()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.edit_script"><code class="docutils literal notranslate"><span class="pre">edit_script()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_script"><code class="docutils literal notranslate"><span class="pre">delete_script()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.publish_script"><code class="docutils literal notranslate"><span class="pre">publish_script()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_data"><code class="docutils literal notranslate"><span class="pre">get_account_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_balance"><code class="docutils literal notranslate"><span class="pre">get_account_balance()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_account_balances"><code class="docutils literal notranslate"><span class="pre">get_all_account_balances()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_orders"><code class="docutils literal notranslate"><span class="pre">get_account_orders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_positions"><code class="docutils literal notranslate"><span class="pre">get_account_positions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_account_trades"><code class="docutils literal notranslate"><span class="pre">get_account_trades()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.rename_account"><code class="docutils literal notranslate"><span class="pre">rename_account()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.deposit_funds"><code class="docutils literal notranslate"><span class="pre">deposit_funds()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.update_lab_parameters"><code class="docutils literal notranslate"><span class="pre">update_lab_parameters()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_markets"><code class="docutils literal notranslate"><span class="pre">get_all_markets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_market_price"><code class="docutils literal notranslate"><span class="pre">get_market_price()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_order_book"><code class="docutils literal notranslate"><span class="pre">get_order_book()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_last_trades"><code class="docutils literal notranslate"><span class="pre">get_last_trades()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_market_snapshot"><code class="docutils literal notranslate"><span class="pre">get_market_snapshot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_script_record"><code class="docutils literal notranslate"><span class="pre">get_script_record()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_script_folders"><code class="docutils literal notranslate"><span class="pre">get_all_script_folders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.create_script_folder"><code class="docutils literal notranslate"><span class="pre">create_script_folder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.move_script_to_folder"><code class="docutils literal notranslate"><span class="pre">move_script_to_folder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.place_order"><code class="docutils literal notranslate"><span class="pre">place_order()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.cancel_order"><code class="docutils literal notranslate"><span class="pre">cancel_order()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_orders"><code class="docutils literal notranslate"><span class="pre">get_all_orders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_all_positions"><code class="docutils literal notranslate"><span class="pre">get_all_positions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_runtime_logbook"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime_logbook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_bot_runtime"><code class="docutils literal notranslate"><span class="pre">get_bot_runtime()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.get_history_status"><code class="docutils literal notranslate"><span class="pre">get_history_status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.set_history_depth"><code class="docutils literal notranslate"><span class="pre">set_history_depth()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.add_simulated_account"><code class="docutils literal notranslate"><span class="pre">add_simulated_account()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.test_account"><code class="docutils literal notranslate"><span class="pre">test_account()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.api.html#pyHaasAPI.api.delete_account"><code class="docutils literal notranslate"><span class="pre">delete_account()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pyHaasAPI.models.html">pyHaasAPI.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.models.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.models.auth.html">pyHaasAPI.models.auth module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.models.base.html">pyHaasAPI.models.base module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.models.common.html">pyHaasAPI.models.common module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.models.scripts.html">pyHaasAPI.models.scripts module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptParameter"><code class="docutils literal notranslate"><span class="pre">ScriptParameter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptConnection"><code class="docutils literal notranslate"><span class="pre">ScriptConnection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptInput"><code class="docutils literal notranslate"><span class="pre">ScriptInput</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptOutput"><code class="docutils literal notranslate"><span class="pre">ScriptOutput</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptSubOutput"><code class="docutils literal notranslate"><span class="pre">ScriptSubOutput</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptCommand"><code class="docutils literal notranslate"><span class="pre">ScriptCommand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptComponent"><code class="docutils literal notranslate"><span class="pre">ScriptComponent</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptCompileResult"><code class="docutils literal notranslate"><span class="pre">ScriptCompileResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.ScriptRecord"><code class="docutils literal notranslate"><span class="pre">ScriptRecord</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.GetScriptRecordRequest"><code class="docutils literal notranslate"><span class="pre">GetScriptRecordRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyHaasAPI.models.scripts.html#pyHaasAPI.models.scripts.GetScriptRecordResponse"><code class="docutils literal notranslate"><span class="pre">GetScriptRecordResponse</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pyHaasAPI.lab.html">pyHaasAPI.lab module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pyHaasAPI.market_manager.html">pyHaasAPI.market_manager module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager"><code class="docutils literal notranslate"><span class="pre">MarketManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.__init__"><code class="docutils literal notranslate"><span class="pre">MarketManager.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_markets_efficiently"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_markets_efficiently()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_market_by_pair"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_market_by_pair()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.format_market_string"><code class="docutils literal notranslate"><span class="pre">MarketManager.format_market_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_accounts"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_accounts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_test_account"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_test_account()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_scripts_by_name"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_scripts_by_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_madhatter_script"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_madhatter_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.get_scalper_script"><code class="docutils literal notranslate"><span class="pre">MarketManager.get_scalper_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyHaasAPI.market_manager.html#pyHaasAPI.market_manager.MarketManager.validate_market_setup"><code class="docutils literal notranslate"><span class="pre">MarketManager.validate_market_setup()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/basic_usage.html">Basic Usage Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#getting-market-data">Getting Market Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#account-management">Account Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#lab-management">Lab Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#bot-management">Bot Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyHaasAPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api_reference.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="pyHaasAPI.html">pyHaasAPI package</a></li>
+      <li class="breadcrumb-item active">pyHaasAPI.lab_manager module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/modules/pyHaasAPI.lab_manager.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-pyHaasAPI.lab_manager">
+<span id="pyhaasapi-lab-manager-module"></span><h1>pyHaasAPI.lab_manager module<a class="headerlink" href="#module-pyHaasAPI.lab_manager" title="Link to this heading"></a></h1>
+<p>Lab Manager for HaasOnline Labs
+Consolidated lab creation, parameter optimization, and backtest management</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyHaasAPI.lab_manager.</span></span><span class="sig-name descname"><span class="pre">LabConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_parallel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_generations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_runtime</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Lab configuration settings</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig.max_parallel">
+<span class="sig-name descname"><span class="pre">max_parallel</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig.max_parallel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig.max_generations">
+<span class="sig-name descname"><span class="pre">max_generations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">30</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig.max_generations" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig.max_epochs">
+<span class="sig-name descname"><span class="pre">max_epochs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig.max_epochs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig.max_runtime">
+<span class="sig-name descname"><span class="pre">max_runtime</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig.max_runtime" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig.auto_restart">
+<span class="sig-name descname"><span class="pre">auto_restart</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig.auto_restart" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_parallel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_generations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_runtime</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pyHaasAPI.lab_manager.LabConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyHaasAPI.lab_manager.</span></span><span class="sig-name descname"><span class="pre">LabSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">leverage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chart_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trade_amount</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">price_data_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'CandleStick'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabSettings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Lab settings configuration</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.leverage">
+<span class="sig-name descname"><span class="pre">leverage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.leverage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.position_mode">
+<span class="sig-name descname"><span class="pre">position_mode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.position_mode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.margin_mode">
+<span class="sig-name descname"><span class="pre">margin_mode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.margin_mode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.interval">
+<span class="sig-name descname"><span class="pre">interval</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.interval" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.chart_style">
+<span class="sig-name descname"><span class="pre">chart_style</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">300</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.chart_style" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.trade_amount">
+<span class="sig-name descname"><span class="pre">trade_amount</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.trade_amount" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.order_template">
+<span class="sig-name descname"><span class="pre">order_template</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">500</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.order_template" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.price_data_style">
+<span class="sig-name descname"><span class="pre">price_data_style</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'CandleStick'</span></em><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.price_data_style" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabSettings.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">leverage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chart_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trade_amount</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">price_data_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'CandleStick'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pyHaasAPI.lab_manager.LabSettings.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyHaasAPI.lab_manager.</span></span><span class="sig-name descname"><span class="pre">LabManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Comprehensive lab management with parameter optimization</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabManager.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabManager.create_optimized_lab">
+<span class="sig-name descname"><span class="pre">create_optimized_lab</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">account_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">market</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pyHaasAPI.model.html#pyHaasAPI.model.CloudMarket" title="pyHaasAPI.model.CloudMarket"><span class="pre">CloudMarket</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">lab_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyHaasAPI.lab_manager.LabConfig" title="pyHaasAPI.lab_manager.LabConfig"><span class="pre">LabConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyHaasAPI.lab_manager.LabSettings" title="pyHaasAPI.lab_manager.LabSettings"><span class="pre">LabSettings</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabManager.create_optimized_lab"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabManager.create_optimized_lab" title="Link to this definition"></a></dt>
+<dd><p>Create a lab with parameter optimization, ensuring no invalid labs slow down the system</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabManager.run_backtest">
+<span class="sig-name descname"><span class="pre">run_backtest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lab_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">hours</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">120</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout_minutes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabManager.run_backtest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabManager.run_backtest" title="Link to this definition"></a></dt>
+<dd><p>Run backtest with specified duration and wait for completion</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lab_id</strong> – Lab ID to run backtest on</p></li>
+<li><p><strong>hours</strong> – Number of hours to backtest</p></li>
+<li><p><strong>timeout_minutes</strong> – Timeout for completion wait</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict containing backtest results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabManager.activate_top_bots">
+<span class="sig-name descname"><span class="pre">activate_top_bots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lab_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabManager.activate_top_bots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabManager.activate_top_bots" title="Link to this definition"></a></dt>
+<dd><p>Activate top performing bots from backtest results</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyHaasAPI.lab_manager.LabManager.cleanup_invalid_labs">
+<span class="sig-name descname"><span class="pre">cleanup_invalid_labs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyHaasAPI/lab_manager.html#LabManager.cleanup_invalid_labs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyHaasAPI.lab_manager.LabManager.cleanup_invalid_labs" title="Link to this definition"></a></dt>
+<dd><p>Clean up labs with invalid parameters or stuck in queue that slow down the system</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pyHaasAPI.lab_backup.html" class="btn btn-neutral float-left" title="pyHaasAPI.lab_backup module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pyHaasAPI.logger.html" class="btn btn-neutral float-right" title="pyHaasAPI.logger module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyHaasAPI Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -7,7 +7,7 @@ name = "pyHaasAPI"
 version = "0.1.0"
 description = "Python library for HaasOnline API - Free for individual traders and research institutions. Commercial licensing available for hedge funds and financial institutions."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "pyHaasAPI Contributors"}
 ]
@@ -19,7 +19,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Financial and Insurance Industry",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -39,6 +38,10 @@ Homepage = "https://github.com/iamcos/pyHaasAPI"
 Repository = "https://github.com/iamcos/pyHaasAPI"
 Documentation = "https://github.com/iamcos/pyHaasAPI#readme"
 Issues = "https://github.com/iamcos/pyHaasAPI/issues"
+
+[tool.setuptools.packages.find]
+include = ["pyHaasAPI*"]
+exclude = ["tests*", "examples*", "docs*", "scripts*", "tools*", "utils*", "experiments*", "logs*", "data*", "results*", "config*"]
 
 [project.optional-dependencies]
 test = [

@@ -6,6 +6,11 @@ This script tests the set_history_depth function with a single market
 to verify it works before running the bulk operation.
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 from pyHaasAPI import api
 
 
@@ -19,8 +24,8 @@ def main():
         port=8090,
         state=api.Guest()
     ).authenticate(
-        email="your_email@example.com",
-        password="your_password"
+        email=settings.API_EMAIL,
+        password=settings.API_PASSWORD
     )
     print("✅ Authenticated!")
     
@@ -70,4 +75,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

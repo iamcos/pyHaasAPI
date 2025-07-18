@@ -6,6 +6,11 @@ This script retrieves and examines the structure of backtest chart data
 to see what information is available (price data, indicators, etc.)
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 from pyHaasAPI import api
 
@@ -95,4 +100,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

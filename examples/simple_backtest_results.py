@@ -6,6 +6,11 @@ This example directly replicates the cURL request for GET_BACKTEST_RESULT_PAGE
 with the exact parameters from the provided example.
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 from pyHaasAPI import api
 from pyHaasAPI.model import GetBacktestResultRequest
 
@@ -77,4 +82,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

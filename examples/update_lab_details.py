@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import random
 
 from pyHaasAPI import api
@@ -5,7 +8,17 @@ from pyHaasAPI.model import CreateLabRequest
 
 
 def main():
-    executor = api.RequestsExecutor(host="127.0.0.1", port=8090, state=api.Guest())
+    API_HOST = os.environ.get("API_HOST", "127.0.0.1")
+    API_PORT = int(os.environ.get("API_PORT", 8090))
+    API_EMAIL = os.environ.get("API_EMAIL")
+    API_PASSWORD = os.environ.get("API_PASSWORD")
+
+    if not all([API_HOST, API_PORT, API_EMAIL, API_PASSWORD]):
+        print("Missing one or more required environment variables: API_HOST, API_PORT, API_EMAIL, API_PASSWORD")
+        print("Please create a .env file with these values.")
+        return
+
+    executor = api.RequestsExecutor(host=API_HOST, port=API_PORT, state=api.Guest())
 
     markets = api.get_all_markets(executor)
     market = random.choice(markets)
@@ -13,7 +26,7 @@ def main():
 
     # Authenticate to get access for the all endpoints
     executor = executor.authenticate(
-        email="your_email@example.com", password="your_password"
+        email=API_EMAIL, password=API_PASSWORD
     )
 
     accounts = api.get_accounts(executor)
@@ -36,13 +49,13 @@ def main():
             script_id=script.script_id,
             name="My first lab",
             account_id=account.account_id,
-            market=market.market,
+            market=f"{market.price_source.upper()}_{market.primary.upper()}_{market.secondary.upper()}_",
             interval=0,
             default_price_data_style="CandleStick",
         ),
     )
     print(f"{lab_details=}")
-    lab_details.parameters[0].options = [1, 2, 3, 4, 5]
+    lab_details.parameters[0]['O'] = [1, 2, 3, 4, 5]
     api.update_lab_details(executor, lab_details)
 
 

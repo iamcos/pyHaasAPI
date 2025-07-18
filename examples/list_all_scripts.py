@@ -2,6 +2,10 @@
 """
 Minimal example: List all script items and print their key fields
 """
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
 from pyHaasAPI import api
 
 def main():
@@ -19,4 +23,5 @@ def main():
         print(f"ID: {script.script_id}, Name: {script.script_name}, Type: {script.script_type}, Folder: {script.folder_id}")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

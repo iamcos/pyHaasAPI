@@ -2,6 +2,10 @@
 """
 Minimal example: Place an order and track it
 """
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
 from pyHaasAPI import api
 import time
 
@@ -66,4 +70,5 @@ def main():
     print(balance)
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

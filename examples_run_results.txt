@@ -1,0 +1,48 @@
+
+===== examples/backtest_results_workflow.py =====
+16:29:08 | INFO     | __main__:main:236 - 🚀 Starting Backtest Results Workflow Demo
+16:29:09 | ERROR    | __main__:main:250 - ❌ Authentication failed: Failed to login
+
+===== examples/bot_management.py =====
+2025-07-17 16:29:10.023 | DEBUG    | pyHaasAPI.api:_execute_inner:249 - [Guest]: Requesting url='http://127.0.0.1:8090/UserAPI.php' with query_params={'channel': 'LOGIN_WITH_CREDENTIALS', 'email': 'admin@admin.com', 'password': 'adm2inadm4in!', 'interfaceKey': '472830965359532984'}
+2025-07-17 16:29:10.440 | DEBUG    | pyHaasAPI.api:_execute_inner:249 - [Guest]: Requesting url='http://127.0.0.1:8090/UserAPI.php' with query_params={'channel': 'LOGIN_WITH_ONE_TIME_CODE', 'email': 'admin@admin.com', 'pincode': 129034, 'interfaceKey': '472830965359532984'}
+Traceback (most recent call last):
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/examples/bot_management.py", line 36, in <module>
+    main()
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/examples/bot_management.py", line 11, in main
+    ).authenticate(email="admin@admin.com", password="adm2inadm4in!")
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/pyHaasAPI/api.py", line 182, in authenticate
+    raise HaasApiError(resp.error or "Failed to login")
+pyHaasAPI.api.HaasApiError: Failed to login
+
+===== examples/bot_trading_test.py =====
+
+===== examples/bulk_create_labs_for_pairs.py =====
+2025-07-17 16:29:35.702 | DEBUG    | pyHaasAPI.api:_execute_inner:249 - [Guest]: Requesting url='http://127.0.0.1:8090/UserAPI.php' with query_params={'channel': 'LOGIN_WITH_CREDENTIALS', 'email': 'your_email@example.com', 'password': 'your_password', 'interfaceKey': '2494175434084957313'}
+2025-07-17 16:29:36.837 | DEBUG    | pyHaasAPI.api:_execute_inner:249 - [Guest]: Requesting url='http://127.0.0.1:8090/UserAPI.php' with query_params={'channel': 'LOGIN_WITH_ONE_TIME_CODE', 'email': 'your_email@example.com', 'pincode': 173080, 'interfaceKey': '2494175434084957313'}
+
+🚀 Bulk Lab Creation for Trading Pairs
+========================================
+Traceback (most recent call last):
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/examples/bulk_create_labs_for_pairs.py", line 107, in <module>
+    main() 
+    ^^^^^^
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/examples/bulk_create_labs_for_pairs.py", line 58, in main
+    ).authenticate(
+      ^^^^^^^^^^^^^
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/pyHaasAPI/api.py", line 182, in authenticate
+    raise HaasApiError(resp.error or "Failed to login")
+pyHaasAPI.api.HaasApiError: Failed to login
+
+===== examples/bulk_set_history_depth.py =====
+🚀 Bulk Set History Depth
+========================================
+📅 How many months of history to sync? (1-60): Traceback (most recent call last):
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/examples/bulk_set_history_depth.py", line 133, in <module>
+    main() 
+    ^^^^^^
+  File "/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/examples/bulk_set_history_depth.py", line 22, in main
+    months = int(input("📅 How many months of history to sync? (1-60): "))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

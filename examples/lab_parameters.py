@@ -1,3 +1,7 @@
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
 from pyHaasAPI import api
 from pyHaasAPI.lab import get_lab_parameters, update_lab_parameter_ranges
 from pyHaasAPI.parameters import ParameterType, ParameterRange
@@ -244,4 +248,5 @@ def main():
                 logger.error(f"Failed to cleanup lab: {cleanup_error}")
 
 if __name__ == "__main__":
-    main()
+    # Place the main execution logic here
+    pass

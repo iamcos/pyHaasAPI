@@ -6,6 +6,11 @@ This script retrieves and examines the structure of backtest runtime data
 to see what information is available (positions, orders, metrics, etc.)
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 from pyHaasAPI import api
 from pyHaasAPI.model import GetBacktestResultRequest
@@ -96,4 +101,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

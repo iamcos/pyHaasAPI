@@ -15,15 +15,15 @@ import os
 import random
 import logging
 from dotenv import load_dotenv
+from config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+
 def main():
-    # Load environment variables
-    load_dotenv()
-    
     # Create and authenticate executor
     executor = RequestsExecutor(
         host=os.getenv("HAAS_API_HOST", "127.0.0.1"),
@@ -102,4 +102,5 @@ def main():
         print('Done')
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

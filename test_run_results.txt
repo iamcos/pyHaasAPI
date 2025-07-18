@@ -1,0 +1,8 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.13, pytest-8.4.1, pluggy-1.6.0 -- /Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/.venv311/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI
+configfile: pyproject.toml
+collecting ... collected 0 items
+
+============================ no tests ran in 0.12s =============================

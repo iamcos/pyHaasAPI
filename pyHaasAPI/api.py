@@ -266,7 +266,18 @@ class RequestsExecutor(Generic[State]):
                     log.debug(f"Converting to JSON string pydantic `{key}` field")
                     query_params[key] = value.model_dump_json(by_alias=True)
 
-        resp = requests.get(url, params=query_params)
+        # PATCH: Use POST with form-encoded data for UPDATE_LAB_DETAILS
+        if query_params and query_params.get("channel") == "UPDATE_LAB_DETAILS":
+            # Ensure all values are JSON-encoded strings
+            form_data = {}
+            for k, v in query_params.items():
+                if isinstance(v, (str, int, float, bool, type(None))):
+                    form_data[k] = str(v) if not isinstance(v, str) else v
+                else:
+                    form_data[k] = json.dumps(v, default=self._custom_encoder(by_alias=True))
+            resp = requests.post(url, data=form_data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        else:
+            resp = requests.get(url, params=query_params)
         resp.raise_for_status()
 
         ta = TypeAdapter(ApiResponse[response_type])

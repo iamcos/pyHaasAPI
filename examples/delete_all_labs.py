@@ -1,3 +1,7 @@
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
 from pyHaasAPI import api
 
 
@@ -15,4 +19,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Place the main execution logic here
+    pass

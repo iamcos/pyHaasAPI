@@ -3,6 +3,11 @@
 Test script for GET_SCRIPT_RECORD endpoint
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 from pyHaasAPI import api
 
@@ -93,4 +98,5 @@ def main():
     print("\n🎉 Test completed!")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

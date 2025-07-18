@@ -52,6 +52,41 @@ updated_lab = update_lab_parameter_ranges(
 )
 #+end_src
 
+*** Parameter Update API Structure
+
+#+begin_quote
+ALL lab updates (parameters, settings, config) must be sent as a POST request with Content-Type: application/x-www-form-urlencoded. All fields must be JSON-encoded strings in the form data. See example scripts for the consolidated workflow.
+#+end_quote
+
+When updating lab parameters via the API, use the following structure:
+
+- The `parameters` field must be a list of dicts, each with:
+  - `K`: parameter key (string)
+  - `O`: options/values (list)
+  - `I`: is input (bool)
+  - `IS`: is selected (bool)
+  - `T`: type (int, optional)
+
+Example:
+#+begin_src json
+[
+  {"K": "TradeAmount", "O": [10], "I": false, "IS": false},
+  {"K": "Interval", "O": [5, 3], "I": true, "IS": true},
+  {"K": "SomeFlag", "O": ["True"], "I": false, "IS": false}
+]
+#+end_src
+
+**Best Practices:**
+- You can add, remove, or reorder parameters as needed.
+- The API does not require all fields from GET responses (e.g., `T` is optional for updates).
+- Do NOT use `.model_dump()` or any object serialization—just plain dicts/lists.
+- If the lab has no parameters, you can send an empty list or add new ones.
+- Always send the full list of parameters you want the lab to have; omitted parameters will be removed.
+
+**Common Mistakes:**
+- Passing objects or using Pydantic serialization (e.g., `.model_dump()`) will cause errors.
+- Not including required fields (`K`, `O`, `I`, `IS`) in each parameter dict.
+
 ** Execution
 
 Start a backtest over a specific time period:
@@ -159,6 +194,27 @@ results = api.get_backtest_result(
 - =update_lab_parameter_ranges()=: Modify parameter values
 - =get_lab_parameters()=: Get current parameters
 - =validate_parameters()=: Check parameter validity
+
+*** Script Parameter Extraction Utility
+
+To programmatically extract valid parameter ranges and options for a script, use the `extract_script_parameter_ranges` function from `pyHaasAPI/api/scripts.py`.
+
+- This function takes a script record (from GET_SCRIPT_RECORD) as input.
+- It returns a list of parameter dicts, each with keys: K (key), N (name), T (type), MIN, MAX, O (options), default, and suggested_range.
+- Numeric parameters will have a suggested_range based on min/max and step.
+- Enum parameters will have all possible options in suggested_range.
+
+Example usage:
+#+begin_src python
+from pyHaasAPI.api.scripts import extract_script_parameter_ranges
+
+# script_record = ... (result from GET_SCRIPT_RECORD)
+param_info = extract_script_parameter_ranges(script_record)
+for param in param_info:
+    print(param)
+#+end_src
+
+This utility is useful for generating valid lab parameter updates, randomization, or UI forms.
 
 * Common Issues
 
