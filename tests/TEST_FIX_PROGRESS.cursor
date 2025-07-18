@@ -1,0 +1,62 @@
+# Test Suite Standardization & Fix Progress Tracker
+
+**Purpose:**
+Standardize all test scripts in the project to use the recommended authentication/import pattern, ensure .env usage, add main blocks, use relative imports, and verify each script is runnable and consistent with documentation.
+
+**Date Started:** 2024-07-17
+**Last Updated:** [update as you work]
+
+---
+
+## Checklist & Status
+
+- [x] tests/quick_account_test.py — completed
+- [x] tests/test_account_functions.py — completed
+- [x] tests/test_account_functions_complete.py — completed
+- [x] tests/test_auth_manual.py — completed
+- [x] tests/test_simulated_account.py — completed
+- [x] tests/integration/test_account_management.py — completed
+- [x] tests/integration/test_basic_operations.py — completed
+- [x] tests/integration/test_bot_management.py — completed
+- [x] tests/integration/test_enhanced_backtesting_fixed.py — completed
+- [x] tests/integration/test_enhanced_backtesting.py — completed
+- [ ] tests/integration/test_enhanced_mcp_client.py — pending
+- [ ] tests/integration/test_lab_management.py — pending
+- [ ] tests/integration/test_market_data_standalone.py — pending
+- [ ] tests/integration/test_market_data.py — pending
+- [ ] tests/integration/test_market_fetch.py — pending
+- [ ] tests/integration/test_mcp_client.py — pending
+- [ ] tests/integration/test_order_management.py — pending
+- [ ] tests/integration/test_parameter_iteration_backtesting.py — pending
+- [ ] tests/integration/test_script_management.py — pending
+- [ ] tests/integration/test_single_lab_parameter_optimization.py — pending
+- [ ] tests/integration/test_smart_client.py — pending
+- [ ] ... (add more as discovered)
+
+## What to Check for Each Script
+- [ ] Uses `from config import settings` for all credentials and host/port
+- [ ] Loads `.env` if needed
+- [ ] Uses recommended authentication pattern
+- [ ] Has a main block for direct execution
+- [ ] Uses relative imports for local helpers
+- [ ] Script runs successfully with `PYTHONPATH=.` from project root
+- [ ] Any test-specific logic or output is preserved
+
+## Instructions for Contributors
+- Update this file as you patch/verify each script.
+- Mark scripts as `[x]` completed, `[ ]` pending, or `[~]` in_progress.
+- Add notes for any issues, skipped scripts, or special cases.
+- If you add new test scripts, add them to this checklist.
+- Refer to `RUNNING_TESTS.cursor` for the standard pattern and troubleshooting.
+
+## Example Entry
+- [x] tests/integration/test_enhanced_backtesting_fixed.py — completed
+  - [x] Uses config/settings.py for auth
+  - [x] Loads .env
+  - [x] Has main block
+  - [x] Runs successfully
+  - [ ] (add any issues/notes here)
+
+---
+
+**Keep this file up to date as you work!** 

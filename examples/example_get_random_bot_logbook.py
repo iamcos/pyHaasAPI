@@ -26,6 +26,7 @@ How it works:
 import random
 import os
 from pyHaasAPI import api
+from config import settings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -79,4 +80,5 @@ def main():
     print("\nDone.")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

@@ -1,0 +1,13 @@
+{
+  "lab_id": "30e56c63-a606-42a6-9e23-4322daad86eb",
+  "name": "Clone_2_Example_Lab_1751233645",
+  "script_id": "77d7585510cae1d6715da3af01ed403c",
+  "created_at": "2025-06-30T04:47:27.781202",
+  "parameter_range": {
+    "start": 1.0,
+    "end": 10.0,
+    "step": 0.5,
+    "values_count": 19
+  },
+  "parameters_updated": 2
+}

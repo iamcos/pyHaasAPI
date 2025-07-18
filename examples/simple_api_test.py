@@ -3,6 +3,11 @@
 Simple test script for new API functions
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import random
 from pyHaasAPI import api
 
@@ -15,8 +20,8 @@ def main():
         port=8090,
         state=api.Guest()
     ).authenticate(
-        email="garrypotterr@gmail.com",
-        password="IQYTCQJIQYTCQJ"
+        email=settings.API_EMAIL,
+        password=settings.API_PASSWORD
     )
     
     print("✅ Authentication successful")
@@ -93,4 +98,5 @@ def main():
     print("\n🎉 Test completed!")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

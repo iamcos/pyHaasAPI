@@ -2,6 +2,10 @@
 """
 Minimal demo: Create a folder and move a script into it
 """
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
 from pyHaasAPI import api
 import random
 
@@ -55,4 +59,5 @@ def main():
         print(f"Exception during move: {e}")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

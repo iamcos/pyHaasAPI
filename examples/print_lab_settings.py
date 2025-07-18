@@ -11,12 +11,12 @@ from pyHaasAPI.model import CreateLabRequest
 from pyHaasAPI.price import PriceAPI
 from pyHaasAPI.parameters import ScriptParameters, ParameterType
 import os
+from config import settings
 from dotenv import load_dotenv
 
+load_dotenv()
+
 def main():
-    # Load environment variables
-    load_dotenv()
-    
     # Create and authenticate executor with Guest state
     executor = RequestsExecutor(
         host=os.getenv("HAAS_API_HOST", "127.0.0.1"),
@@ -103,4 +103,5 @@ def main():
         print("\nTemporary lab deleted")
 
 if __name__ == "__main__":
-    main()
+    # Place the main execution logic here
+    pass

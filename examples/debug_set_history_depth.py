@@ -3,6 +3,11 @@
 Debug Set History Depth Response
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import requests
 import json
 from pyHaasAPI import api
@@ -58,4 +63,5 @@ def main():
         print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

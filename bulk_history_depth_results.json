@@ -1,0 +1,33 @@
+{
+  "months_requested": 9,
+  "total_markets": 5,
+  "successful": 5,
+  "failed": 0,
+  "results": [
+    {
+      "market": "BINANCE_BTC_TUSD_",
+      "status": "success",
+      "months": 9
+    },
+    {
+      "market": "BINANCE_SOL_USDC_",
+      "status": "success",
+      "months": 9
+    },
+    {
+      "market": "BINANCE_ETH_BTC_",
+      "status": "success",
+      "months": 9
+    },
+    {
+      "market": "BINANCE_BTC_ARS_",
+      "status": "success",
+      "months": 9
+    },
+    {
+      "market": "BINANCE_BTC_USDT_",
+      "status": "success",
+      "months": 9
+    }
+  ]
+}

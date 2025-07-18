@@ -4,6 +4,11 @@ Phase 2 Test - Script Management
 Focused test for script CRUD operations
 """
 
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
+
 import time
 import random
 from loguru import logger
@@ -144,4 +149,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

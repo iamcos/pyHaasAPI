@@ -5,6 +5,10 @@ Print Scalper Bot Parameter Keys
 Finds a lab using the scalper bot, fetches its parameters, and prints the full keys for
 "Stop Loss (%)" and "Take Profit (%)" (including any prefixes).
 """
+import os
+from config import settings
+from dotenv import load_dotenv
+load_dotenv()
 from pyHaasAPI import api
 from pyHaasAPI.model import GetBacktestResultRequest
 
@@ -49,4 +53,5 @@ def main():
         print(f"  - {param.get('K', '')}")
 
 if __name__ == "__main__":
-    main() 
+    # Place the main execution logic here
+    pass 

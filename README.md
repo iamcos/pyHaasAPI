@@ -160,10 +160,33 @@ This library was developed through reverse engineering of the HaasOnline API. Ou
 
 ## Documentation
 
-* [API Reference](docs/api_reference.md)
-* [Lab Management](docs/labs.org)
-* [API Coverage](docs/api_coverage.org)
-* [Implementation Status](API_STATUS.md)
+📚 **Comprehensive Documentation Available:**
+
+* **📖 [Full Documentation](docs/build/html/index.html)** - Complete guide with examples
+* **🔧 [API Reference](docs/build/html/modules/pyHaasAPI.html)** - Complete API documentation
+* **🚀 [Quick Start Guide](docs/build/html/quickstart.html)** - Get up and running quickly
+* **📋 [Installation Guide](docs/build/html/installation.html)** - Installation instructions
+* **📝 [Contributing Guide](docs/build/html/contributing.html)** - How to contribute
+* **⚖️ [Licensing Information](docs/build/html/licensing.html)** - License details
+
+### Building Documentation Locally
+```bash
+# Quick build
+./build_docs.sh
+
+# Manual build
+cd docs && make html
+
+# View documentation
+open docs/build/html/index.html
+```
+
+### Documentation Features
+- ✅ **Auto-generated API docs** from source code
+- ✅ **Search functionality** across all documentation
+- ✅ **Mobile responsive** design
+- ✅ **Code examples** with syntax highlighting
+- ✅ **Cross-references** between related sections
 
 ## Examples
 
