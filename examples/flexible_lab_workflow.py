@@ -97,9 +97,11 @@ def main():
     parser.add_argument('--markets-file', type=str, help='File containing markets (one per line)')
     parser.add_argument('--exchange', type=str, default='BINANCE', help='Exchange name (default: BINANCE)')
     parser.add_argument('--source-lab', type=str, help='Source lab name (default: "Example")')
+    parser.add_argument('--account-id', type=str, help='Specific account ID to use (default: first available account)')
     parser.add_argument('--start-time', type=str, help='Start time in format YYYY-MM-DD HH:MM (default: April 7th 2025 13:00)')
     parser.add_argument('--end-time', type=str, help='End time in format YYYY-MM-DD HH:MM (default: now)')
     parser.add_argument('--list-markets', action='store_true', help='List available markets and exit')
+    parser.add_argument('--list-accounts', action='store_true', help='List available accounts and exit')
     parser.add_argument('--validate-only', action='store_true', help='Only validate markets, don\'t run workflow')
     
     args = parser.parse_args()
@@ -119,7 +121,18 @@ def main():
     executor = authenticator.get_executor()
     logger.info("✅ Authentication successful")
     
-    # Step 2: Get available markets if requested
+    # Step 2: Get available accounts if requested
+    if args.list_accounts:
+        logger.info("\n📋 Available Accounts:")
+        accounts = api.get_accounts(executor)
+        if accounts:
+            for account in accounts:
+                logger.info(f"   {account.name} (ID: {account.account_id})")
+        else:
+            logger.info("   No accounts available")
+        return
+    
+    # Step 3: Get available markets if requested
     if args.list_markets:
         logger.info("\n📊 Available Markets:")
         available_markets = get_available_markets(executor)
@@ -130,7 +143,7 @@ def main():
             logger.info("   No markets available or could not fetch market list")
         return
     
-    # Step 3: Determine target markets
+    # Step 4: Determine target markets
     target_markets = []
     
     if args.markets:
@@ -147,7 +160,7 @@ def main():
         logger.error("❌ No markets specified!")
         return
     
-    # Step 4: Validate markets
+    # Step 5: Validate markets
     logger.info(f"\n🔍 Validating {len(target_markets)} markets...")
     available_markets = get_available_markets(executor)
     valid_markets, invalid_markets = validate_markets(target_markets, available_markets)
@@ -167,7 +180,7 @@ def main():
         logger.info("\n🔍 Market validation complete!")
         return
     
-    # Step 5: Find the source lab
+    # Step 6: Find the source lab
     source_lab_name = args.source_lab or "Example"
     logger.info(f"\n🔍 Looking for source lab: {source_lab_name}")
     labs = api.get_all_labs(executor)
@@ -183,17 +196,34 @@ def main():
     source_lab = source_labs[0]
     logger.info(f"✅ Found source lab: {source_lab.lab_id}")
     
-    # Step 6: Get account
+    # Step 7: Get account
     logger.info("\n📋 Getting account information...")
     accounts = api.get_accounts(executor)
     if not accounts:
         logger.error("❌ No accounts found!")
         return
     
-    account = accounts[0]
-    logger.info(f"✅ Using account: {account.name} (ID: {account.account_id})")
+    # Use specific account ID if provided
+    if args.account_id:
+        account = None
+        for acc in accounts:
+            if acc.account_id == args.account_id:
+                account = acc
+                break
+        
+        if not account:
+            logger.error(f"❌ Account with ID '{args.account_id}' not found!")
+            logger.info("Available accounts:")
+            for acc in accounts:
+                logger.info(f"   - {acc.name} (ID: {acc.account_id})")
+            return
+        
+        logger.info(f"✅ Using specified account: {account.name} (ID: {account.account_id})")
+    else:
+        account = accounts[0]
+        logger.info(f"✅ Using first available account: {account.name} (ID: {account.account_id})")
     
-    # Step 7: Prepare market configurations
+    # Step 8: Prepare market configurations
     logger.info(f"\n📊 Preparing market configurations for {len(valid_markets)} markets...")
     market_configs = []
     
@@ -211,7 +241,7 @@ def main():
     
     logger.info(f"✅ Prepared {len(market_configs)} market configurations")
     
-    # Step 8: Define backtest period
+    # Step 9: Define backtest period
     if args.start_time:
         try:
             start_dt = datetime.strptime(args.start_time, "%Y-%m-%d %H:%M")
@@ -236,7 +266,7 @@ def main():
     logger.info(f"   Start: {datetime.fromtimestamp(start_unix)} (Unix: {start_unix})")
     logger.info(f"   End: {datetime.fromtimestamp(end_unix)} (Unix: {end_unix})")
     
-    # Step 9: Define config
+    # Step 10: Define config
     config = LabConfig(
         max_population=10,    # Max Population
         max_generations=100,  # Max Generations
@@ -252,7 +282,7 @@ def main():
     logger.info(f"   Mix Rate: {config.mix_rate}")
     logger.info(f"   Adjust Rate: {config.adjust_rate}")
     
-    # Step 10: Run the workflow
+    # Step 11: Run the workflow
     logger.info(f"\n🚀 Starting flexible workflow for {len(market_configs)} markets...")
     
     results = api.bulk_clone_and_backtest_labs(
@@ -266,7 +296,7 @@ def main():
         delay_between_labs=2.0
     )
     
-    # Step 11: Process results
+    # Step 12: Process results
     logger.info(f"\n📊 Final Results Summary:")
     logger.info("=" * 50)
     
@@ -291,7 +321,7 @@ def main():
         for result in failed:
             logger.info(f"   ❌ {result['lab_name']}: {result['error']}")
     
-    # Step 12: Summary
+    # Step 13: Summary
     logger.info(f"\n🎉 Flexible Workflow Complete!")
     logger.info(f"   Total Markets: {len(market_configs)}")
     logger.info(f"   Successful: {len(successful)}")
