@@ -1,0 +1,32 @@
+# Sample Markets File
+# One market per line
+# Lines starting with # are comments and will be ignored
+# Format: PRIMARY/SECONDARY (e.g., BTC/USDT)
+
+# Major cryptocurrencies
+BTC/USDT
+ETH/USDT
+BNB/USDT
+
+# DeFi tokens
+AVAX/USDT
+SOL/USDT
+ADA/USDT
+XRP/USDT
+
+# Layer 1 and Layer 2
+DOT/USDT
+LINK/USDT
+MATIC/USDT
+
+# Meme coins
+DOGE/USDT
+TRX/USDT
+
+# Other popular pairs
+LTC/USDT
+ATOM/USDT
+NEAR/USDT
+
+# Add your own markets below:
+# YOUR_COIN/USDT 

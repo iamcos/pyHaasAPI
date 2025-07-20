@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Integrated Lab Cloning and Backtesting Workflow
+Integrated Lab Cloning and Backtesting Workflow - DEMONSTRATION
 
 This script demonstrates the new integrated workflow that automatically handles:
 1. ✅ Lab cloning with all settings preserved
 2. ✅ Market and account updates
 3. ✅ Config parameter validation and correction
 4. ✅ Backtest execution with proper validation
+
+⚠️ NOTE: This example uses predefined markets for demonstration purposes.
+For flexible market selection, use examples/flexible_lab_workflow.py instead.
 
 This is the RECOMMENDED approach for production use.
 """
