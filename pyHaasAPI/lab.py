@@ -193,7 +193,14 @@ def update_lab_parameter_ranges(
     # Convert parameters to proper format and validate
     updated_parameters = []
     for param in lab_details.parameters:
-        param_dict = param if isinstance(param, dict) else param.model_dump()
+        # Handle both dict and object parameters
+        if isinstance(param, dict):
+            param_dict = param
+        elif hasattr(param, 'model_dump'):
+            param_dict = param.model_dump()
+        else:
+            # Fallback for other object types
+            param_dict = dict(param) if hasattr(param, '__iter__') else str(param)
         
         # Validate parameter has required fields
         if not all(key in param_dict for key in ['K', 'T', 'O']):
@@ -203,20 +210,31 @@ def update_lab_parameter_ranges(
         # Generate parameter ranges if randomize is enabled
         if randomize and param_dict.get('T') in [0, 1]:  # INTEGER or DECIMAL types
             current_value = param_dict['O'][0] if param_dict['O'] else '0'
+            
+            # Check if the value is actually numeric (not a boolean or string)
+            try:
+                # Try to parse as float first to handle both int and decimal
+                current_val = float(current_value)
+                
+                # Skip if it's a boolean value (0.0 or 1.0) or if the original was a string
+                if current_value.lower() in ['true', 'false'] or param_dict.get('T') == 3:
+                    log.info(f"  ⏭️ Skipping non-numeric parameter {param_dict['K']}: {current_value}")
+                    updated_parameters.append(param_dict)
+                    continue
+                
                 if param_dict.get('T') == 0:  # INTEGER
-                    current_val = int(current_value)
+                    current_val = int(current_val)
                     # Create wider range around current value for better optimization
-                    new_options = [str(max(1, current_val - 5)), str(max(1, current_val - 3)), str(max(1, current_val - 1)), str(current_val), 
-                                 str(current_val + 1), str(current_val + 3), str(current_val + 5), str(current_val + 7), str(current_val + 10)]
+                    new_options = [str(max(1, current_val - 5)), str(max(1, current_val - 3)), str(max(1, current_val - 1)), str(current_val),
+                                   str(current_val + 1), str(current_val + 3), str(current_val + 5), str(current_val + 7), str(current_val + 10)]
                 else:  # DECIMAL
-                    current_val = float(current_value)
                     # Create wider range around current value for better optimization
-                    new_options = [str(max(0.1, current_val - 1.0)), str(max(0.1, current_val - 0.5)), str(max(0.1, current_val - 0.25)), str(current_val), 
-                                 str(current_val + 0.25), str(current_val + 0.5), str(current_val + 1.0), str(current_val + 1.5), str(current_val + 2.0)]
+                    new_options = [str(max(0.1, current_val - 1.0)), str(max(0.1, current_val - 0.5)), str(max(0.1, current_val - 0.25)), str(current_val),
+                                   str(current_val + 0.25), str(current_val + 0.5), str(current_val + 1.0), str(current_val + 1.5), str(current_val + 2.0)]
                 param_dict['O'] = new_options
                 log.info(f"  🔧 Generated range for {param_dict['K']}: {new_options}")
             except (ValueError, TypeError):
-                log.warning(f"  ⚠️ Could not generate range for {param_dict['K']}, keeping original")
+                log.info(f"  ⏭️ Skipping non-numeric parameter {param_dict['K']}: {current_value}")
         
         updated_parameters.append(param_dict)
 
@@ -224,48 +242,39 @@ def update_lab_parameter_ranges(
         log.warning("⚠️ No valid parameters found for optimization")
         return lab_details
 
-    log.info(f"  📊 Optimized {len(updated_parameters)} parameters")
+    # Count how many parameters got ranges
+    ranged_params = sum(1 for p in updated_parameters if len(p.get('O', [])) > 1)
+    log.info(f"  📊 Total parameters: {len(updated_parameters)}")
+    log.info(f"  📊 Parameters with ranges: {ranged_params}")
+    log.info(f"  📊 Parameters without ranges: {len(updated_parameters) - ranged_params}")
 
     try:
-
-        # Step 1: Update only parameters (this will wipe settings, but that's expected)
-        log.info("🔄 Step 1: Updating parameters only...")
+        # Step 1: Update parameters directly (simpler approach)
+        log.info("🔄 Step 1: Updating parameters directly...")
+        
+        # Convert dictionaries to ScriptParameter objects
+        from pyHaasAPI.parameters import ScriptParameter
+        script_parameters = []
+        for param_dict in updated_parameters:
+            script_param = ScriptParameter(
+                K=param_dict['K'],
+                T=param_dict['T'],
+                O=param_dict['O'],
+                I=param_dict['I'],
+                IS=param_dict['IS']
+            )
+            script_parameters.append(script_param)
+        
         updated_lab = api.update_lab_parameters(
             executor, 
             lab_id, 
-            updated_parameters
+            script_parameters
         )
         
-        # Step 2: Clone the lab with optimized parameters to preserve settings
-        log.info("🔄 Step 2: Cloning lab to preserve settings...")
-        cloned_lab = api.clone_lab(executor, lab_id)
+        log.info("✅ Parameters updated successfully!")
+        return updated_lab
         
-        # Step 3: Keep both labs for testing purposes (don't delete original)
-        log.info("🔄 Step 3: Keeping both labs for testing purposes...")
-        log.info(f"  📋 Original lab ID: {lab_id}")
-        log.info(f"  📋 Cloned lab ID: {cloned_lab.lab_id}")
-        
-        
-        # Step 4: Verify the cloned lab has correct settings
-        log.info("🔄 Step 4: Verifying cloned lab settings...")
-        final_lab = get_lab_details(executor, cloned_lab.lab_id)
-        final_settings = final_lab.settings.model_dump()
-        
-        for k, v in final_settings.items():
-            log.info(f"  {k}: {v}")
-        
-        # Check for critical settings that were lost
-        critical_fields = ['account_id', 'market_tag', 'trade_amount', 'chart_style', 'order_template']
-        lost_fields = []
-        for field in critical_fields:
-            if not final_settings.get(field):
-                lost_fields.append(field)
-        
-        if lost_fields:
-            log.error(f"❌ CRITICAL: Settings lost after cloning: {lost_fields}")
-            return final_lab
-        else:
-            log.info("✅ All critical settings preserved successfully after cloning!")
-        
-        return final_lab
+    except Exception as e:
+        log.error(f"❌ Error during lab parameter update: {e}")
+        return lab_details
         

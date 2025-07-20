@@ -237,11 +237,11 @@ class LabConfig(BaseModel):
     """Lab configuration model"""
     model_config = ConfigDict(populate_by_name=True)
     
-    max_positions: int = Field(alias="MP")
+    max_population: int = Field(alias="MP")
     max_generations: int = Field(alias="MG")
-    max_evaluations: int = Field(alias="ME")
-    min_roi: float = Field(alias="MR")
-    acceptable_risk: float = Field(alias="AR")
+    max_elites: int = Field(alias="ME")
+    mix_rate: float = Field(alias="MR")
+    adjust_rate: float = Field(alias="AR")
     
 class LabSettings(BaseModel):
     """Unified lab settings model that handles both API and friendly names"""

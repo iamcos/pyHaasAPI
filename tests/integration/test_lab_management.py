@@ -175,7 +175,7 @@ class LabIntegrationTester:
             )
             print(f"  ✅ Backtest started")
             return True
-        except Exception as e:
+    except Exception as e:
             print(f"  ❌ Failed to start backtest: {e}")
             return False
 
@@ -196,15 +196,15 @@ class LabIntegrationTester:
             best_result = max(results.items, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
             print(f"  ✅ Best ROI: {best_result.summary.ReturnOnInvestment if best_result.summary else 0}")
             return results
-        except Exception as e:
+    except Exception as e:
             print(f"  ❌ Failed to get results: {e}")
             return None
-
+    
     def delete_lab(self, lab_id: str):
-        try:
+    try:
             api.delete_lab(self.executor, lab_id)
             print(f"  🧹 Lab {lab_id} cleaned up")
-        except Exception as e:
+    except Exception as e:
             print(f"  ⚠️ Failed to clean up lab {lab_id}: {e}")
 
     def run(self):
@@ -333,7 +333,7 @@ class LabIntegrationTester:
                 with open(f"lab_config_{lab.lab_id}_updated.json", "w") as f:
                     json.dump(details if isinstance(details, dict) else details.__dict__, f, indent=2, default=str)
                 updated_count += 1
-            except Exception as e:
+    except Exception as e:
                 print(f"  ❌ Failed to update lab {lab.lab_id}: {e}")
         print(f"\n✅ Updated and saved {updated_count} labs that were not running.")
 

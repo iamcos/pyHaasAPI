@@ -429,7 +429,7 @@ class AddBotFromLabRequest:
     backtest_id: str
     bot_name: str
     account_id: str
-    market: CloudMarket
+    market: str  # Changed from CloudMarket to str
     leverage: int = 0
 
 
