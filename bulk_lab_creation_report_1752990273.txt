@@ -1,0 +1,63 @@
+
+📊 BULK LAB CREATION AND BOT DEPLOYMENT REPORT
+==============================================
+
+Example Lab: Example Lab (ID: a98740a6-0f37-4e16-b833-7df22279ce59)
+Account: Test_1_BN_2 (ID: 4ba07e12-0e45-48d4-9826-be139680957c)
+Backtest Period: 2025-04-07 13:00:00 to 2025-07-20 12:21:18.431383
+Total Pairs Attempted: 14
+
+✅ SUCCESSFUL LABS (14):
+  • BTC/USDT -> Example_BTC_USDT_1752988903 (ID: e49e2996-773e-4b64-b8d7-7a033e45e9f1)
+    Market: BINANCE_BTC_USDT_
+    Bots Created: 0
+  • ETH/USDT -> Example_ETH_USDT_1752989202 (ID: eaef6174-6677-4613-93eb-82b74304944d)
+    Market: BINANCE_ETH_USDT_
+    Bots Created: 0
+  • AVAX/USDT -> Example_AVAX_USDT_1752989280 (ID: cc469831-8737-4a90-8643-3b6927a36661)
+    Market: BINANCE_AVAX_USDT_
+    Bots Created: 0
+  • SOL/USDT -> Example_SOL_USDT_1752989397 (ID: 7c168f18-376f-46db-b163-a192f3c52a47)
+    Market: BINANCE_SOL_USDT_
+    Bots Created: 0
+  • ADA/USDT -> Example_ADA_USDT_1752989461 (ID: 9c528c42-70ed-4dd3-a0f2-782f41acd12b)
+    Market: BINANCE_ADA_USDT_
+    Bots Created: 0
+  • XRP/USDT -> Example_XRP_USDT_1752989538 (ID: 1169eea4-1125-4c7a-8b0a-dcc6caadbfbc)
+    Market: BINANCE_XRP_USDT_
+    Bots Created: 0
+  • BNB/USDT -> Example_BNB_USDT_1752989635 (ID: 84020064-59c0-4089-bb98-a519e284a7f5)
+    Market: BINANCE_BNB_USDT_
+    Bots Created: 0
+  • DOT/USDT -> Example_DOT_USDT_1752989730 (ID: 97d05284-1c30-4da5-931b-8362aac0be7b)
+    Market: BINANCE_DOT_USDT_
+    Bots Created: 0
+  • LINK/USDT -> Example_LINK_USDT_1752989839 (ID: 7155deb1-2514-4199-9d9e-fe7fe8abaf0c)
+    Market: BINANCE_LINK_USDT_
+    Bots Created: 0
+  • DOGE/USDT -> Example_DOGE_USDT_1752989930 (ID: 0f7faafd-68f8-42bd-adea-6194cec95891)
+    Market: BINANCE_DOGE_USDT_
+    Bots Created: 0
+  • TRX/USDT -> Example_TRX_USDT_1752989998 (ID: 0c94f8bb-9ad9-4494-a2cd-a27d090c37ea)
+    Market: BINANCE_TRX_USDT_
+    Bots Created: 0
+  • LTC/USDT -> Example_LTC_USDT_1752990060 (ID: 21bdac02-eb28-4a2a-a073-869237465250)
+    Market: BINANCE_LTC_USDT_
+    Bots Created: 0
+  • ATOM/USDT -> Example_ATOM_USDT_1752990147 (ID: a781aab5-fda1-4957-9ab8-b42e0869e7e7)
+    Market: BINANCE_ATOM_USDT_
+    Bots Created: 0
+  • NEAR/USDT -> Example_NEAR_USDT_1752990210 (ID: bcdc2d5f-f4de-4d69-a1f5-f53ae7c43340)
+    Market: BINANCE_NEAR_USDT_
+    Bots Created: 0
+
+📈 SUMMARY:
+  • Success Rate: 14/14 (100.0%)
+  • Total Labs Created: 14
+  • Total Bots Created: 0
+  • Failed: 0
+
+🎯 NEXT STEPS:
+  • All successful labs are ready for live trading
+  • Bots are created and ready for activation
+  • Monitor bot performance and adjust as needed

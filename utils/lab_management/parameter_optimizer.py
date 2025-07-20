@@ -275,8 +275,22 @@ class ParameterOptimizer:
                 
                 script_parameters.append(script_param)
             
-            # Update the lab with optimized parameters
-            api.update_lab_parameters(executor, lab_id, script_parameters)
+            # Convert ScriptParameter objects back to dictionaries for LabDetails
+            # LabDetails expects List[Dict[str, Any]] for parameters
+            parameter_dicts = []
+            for script_param in script_parameters:
+                param_dict = {
+                    'K': script_param.key,
+                    'T': script_param.param_type,
+                    'O': script_param.options,
+                    'I': script_param.is_included,
+                    'IS': script_param.is_selected
+                }
+                parameter_dicts.append(param_dict)
+            
+            # Update the lab using update_lab_details
+            lab_details.parameters = parameter_dicts
+            api.update_lab_details(executor, lab_details)
             logger.info("✅ Lab parameters updated with optimization plan")
             return True
             

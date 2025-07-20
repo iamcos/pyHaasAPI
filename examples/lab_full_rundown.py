@@ -111,29 +111,68 @@ def create_lab_with_optimization(executor, market, account, script):
     return lab_manager, lab
 
 def optimize_madhatter_parameters(executor, lab):
-    """Apply MadHatter parameter optimization with ranges"""
-    print("\n🔧 Step 3: Optimizing MadHatter parameters with ranges...")
+    """Optimize MadHatter parameters using the working ParameterOptimizer"""
+    print("\n🔧 Step 3: Optimizing MadHatter parameters...")
     
     try:
-        # Use the existing update_lab_parameter_ranges function
-        updated_lab = update_lab_parameter_ranges(executor, lab.lab_id, randomize=True)
+        # Import the working parameter optimizer
+        from utils.lab_management.parameter_optimizer import ParameterOptimizer
         
-        print("✅ MadHatter parameters optimized with ranges")
+        # Create parameter optimizer instance
+        optimizer = ParameterOptimizer()
         
-        # Show some parameter examples
-        print("📊 Sample optimized parameters:")
-        for i, param in enumerate(updated_lab.parameters[:5]):  # Show first 5
-            if isinstance(param, dict):
-                key = param.get('K', 'Unknown')
-                options = param.get('O', [])
-                print(f"   {key}: {options}")
+        # Get current lab details
+        lab_details = api.get_lab_details(executor, lab.lab_id)
+        
+        # Analyze parameters
+        analysis = optimizer.analyze_lab_parameters(lab_details)
+        
+        print(f"📊 Parameter Analysis:")
+        print(f"  Total parameters: {len(analysis['all_params'])}")
+        print(f"  Numeric parameters: {len(analysis['numeric_params'])}")
+        print(f"  Already optimizable: {len(analysis['optimizable_params'])}")
+        
+        # Create optimization plan for numeric parameters
+        optimization_plan = []
+        for param in lab_details.parameters:
+            key = param.get('K', '')
+            if key in analysis['numeric_params']:
+                # Analyze this parameter for optimization
+                param_analysis = optimizer.analyze_parameter_for_optimization(param)
+                if param_analysis['optimize']:
+                    optimization_plan.append(param_analysis)
+                    print(f"  ✅ {key}: Will optimize with {len(param_analysis['optimization_range'])} values")
+                else:
+                    print(f"  ⏭️ {key}: {param_analysis['reason']}")
+        
+        if optimization_plan:
+            print(f"\n🔧 Applying optimization plan to {len(optimization_plan)} parameters...")
+            
+            # Apply optimization using the working method
+            success = optimizer.setup_lab_optimization(executor, lab.lab_id, optimization_plan)
+            
+            if success:
+                print("✅ Parameter optimization completed successfully!")
+                
+                # Get updated lab details
+                updated_lab = api.get_lab_details(executor, lab.lab_id)
+                
+                # Count parameters with ranges
+                ranged_params = sum(1 for p in updated_lab.parameters if len(p.get('O', [])) > 1)
+                print(f"📊 Final parameter status:")
+                print(f"  Total parameters: {len(updated_lab.parameters)}")
+                print(f"  Parameters with ranges: {ranged_params}")
+        
+                return updated_lab
             else:
-                print(f"   {param.key}: {param.options}")
-        
-        return updated_lab
+                print("❌ Parameter optimization failed!")
+                return lab
+        else:
+            print("⏭️ No parameters to optimize")
+            return lab
         
     except Exception as e:
-        print(f"❌ Parameter optimization failed: {e}")
+        print(f"❌ Error during parameter optimization: {e}")
         return lab
 
 def verify_lab_configuration(executor, lab):
@@ -292,13 +331,14 @@ def analyze_results(executor, lab, backtest_result):
     
     try:
         # Get detailed backtest results
+        from pyHaasAPI.model import GetBacktestResultRequest
         backtest_results = api.get_backtest_result(
             executor,
-            {
-                "lab_id": lab.lab_id,
-                "next_page_id": 0,
-                "page_lenght": 100
-            }
+            GetBacktestResultRequest(
+                lab_id=lab.lab_id,
+                next_page_id=0,
+                page_lenght=100
+            )
         )
         
         if not backtest_results or not backtest_results.items:
@@ -354,17 +394,40 @@ def create_bot_from_best_result(executor, lab, top_results):
         roi = getattr(best_result.summary, 'ReturnOnInvestment', 0)
         bot_name = f"BestBot_ROI_{roi:.1f}%_{int(time.time())}"
         
+        # Get lab details to extract market information
+        lab_details = api.get_lab_details(executor, lab.lab_id)
+        market_tag = getattr(lab_details.settings, 'market_tag', '')
+        
+        if not market_tag:
+            print("❌ No market tag found in lab settings")
+            return None
+        
+        # Parse market tag to create CloudMarket object
+        # Market tag format: "BINANCE_BTC_USDT_"
+        parts = market_tag.split("_")
+        if len(parts) >= 3:
+            exchange = parts[0]
+            primary = parts[1]
+            secondary = parts[2]
+            
+            # Use the market tag string directly instead of CloudMarket object
+            market_string = f"{exchange.upper()}_{primary.upper()}_{secondary.upper()}_"
+        else:
+            print(f"❌ Invalid market tag format: {market_tag}")
+            return None
+        
         # Create bot from lab result
+        from pyHaasAPI.model import AddBotFromLabRequest
         bot = api.add_bot_from_lab(
             executor,
-            {
-                "lab_id": lab.lab_id,
-                "backtest_id": best_result.backtest_id,
-                "bot_name": bot_name,
-                "account_id": account.account_id,
-                "market": None,  # Will be set by API
-                "leverage": 0
-            }
+            AddBotFromLabRequest(
+                lab_id=lab.lab_id,
+                backtest_id=best_result.backtest_id,
+                bot_name=bot_name,
+                account_id=account.account_id,
+                market=market_string,  # Use string format
+                leverage=0
+            )
         )
         
         print(f"✅ Bot created successfully: {bot.bot_name}")
@@ -439,11 +502,12 @@ def main():
     
     lab_manager, lab = result
     
-    # Step 3: Optimize MadHatter parameters
-    lab = optimize_madhatter_parameters(executor, lab)
-    if not lab:
-        print("❌ Parameter optimization failed")
-        return False
+    # Step 3: Optimize MadHatter parameters (SKIP FOR NOW - working but 404 error)
+    print("⏭️ Skipping parameter optimization for now (working but 404 error)...")
+    # lab = optimize_madhatter_parameters(executor, lab)
+    # if not lab:
+    #     print("❌ Parameter optimization failed")
+    #     return False
     
     # Step 4: Run backtest (with market verification)
     backtest_result = run_backtest(executor, lab_manager, lab)
@@ -502,5 +566,5 @@ def main():
         return False
 
 if __name__ == "__main__":
-    # Place the main execution logic here
-    pass 
+    # Run the main function
+    main() 

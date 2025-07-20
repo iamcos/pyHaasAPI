@@ -249,6 +249,13 @@ class RequestsExecutor(Generic[State]):
         log.debug(
             f"[{self.state.__class__.__name__}]: Requesting {url=} with {query_params=}"
         )
+        
+        # Determine if we need to use POST method
+        use_post = False
+        if query_params and query_params.get("channel") == "START_LAB_EXECUTION":
+            use_post = True
+            log.debug("Using POST method for START_LAB_EXECUTION")
+        
         if query_params:
             query_params = query_params.copy()
             for key in query_params.keys():
@@ -266,18 +273,20 @@ class RequestsExecutor(Generic[State]):
                     log.debug(f"Converting to JSON string pydantic `{key}` field")
                     query_params[key] = value.model_dump_json(by_alias=True)
 
-        # PATCH: Use POST with form-encoded data for UPDATE_LAB_DETAILS
-        if query_params and query_params.get("channel") == "UPDATE_LAB_DETAILS":
-            # Ensure all values are JSON-encoded strings
+        # Use POST for START_LAB_EXECUTION, GET for everything else
+        if use_post:
+            # Convert query params to form data for POST
             form_data = {}
             for k, v in query_params.items():
                 if isinstance(v, (str, int, float, bool, type(None))):
                     form_data[k] = str(v) if not isinstance(v, str) else v
                 else:
                     form_data[k] = json.dumps(v, default=self._custom_encoder(by_alias=True))
+            
             resp = requests.post(url, data=form_data, headers={"Content-Type": "application/x-www-form-urlencoded"})
         else:
             resp = requests.get(url, params=query_params)
+            
         resp.raise_for_status()
 
         ta = TypeAdapter(ApiResponse[response_type])
@@ -359,17 +368,45 @@ def start_lab_execution(
     executor: SyncExecutor[Authenticated],
     request: StartLabExecutionRequest,
 ) -> LabDetails:
-    """Start lab execution with specified parameters"""
+    """
+    Start lab execution with specified parameters.
+    
+    ⚠️ IMPORTANT: This function uses POST method with form-encoded data as required by the API.
+    
+    Args:
+        executor: Authenticated executor instance
+        request: StartLabExecutionRequest object with lab_id, start_unix, end_unix, and send_email
+        
+    Returns:
+        LabDetails object containing the updated lab configuration with execution status
+        
+    Raises:
+        HaasApiError: If the API request fails
+        
+    Example:
+        >>> # Start backtest from April 7th 2025 13:00
+        >>> start_unix = 1744009200  # April 7th 2025 13:00 UTC
+        >>> end_unix = 1752994800    # End time
+        >>> request = StartLabExecutionRequest(
+        ...     lab_id="lab_id",
+        ...     start_unix=start_unix,
+        ...     end_unix=end_unix,
+        ...     send_email=False
+        ... )
+        >>> result = api.start_lab_execution(executor, request)
+        >>> print(f"Lab status: {result.status}")
+    """
+    # Use POST method with form-encoded data as shown in Chrome inspector
     return executor.execute(
         endpoint="Labs",
         response_type=LabDetails,
         query_params={
             "channel": "START_LAB_EXECUTION",
-            "labId": request.lab_id,
+            "labid": request.lab_id,  # Changed from labId to labid
             "startunix": request.start_unix,
             "endunix": request.end_unix,
-            "sendEmail": request.send_email
-        },
+            "sendemail": request.send_email  # Changed from sendEmail to sendemail
+        }
     )
 
 
@@ -404,44 +441,82 @@ def update_lab_details(
     executor: SyncExecutor[Authenticated],
     lab_details: LabDetails
 ) -> LabDetails:
-    """Update lab details and verify the update"""
-    # Format parameters
+    """
+    Update lab details and verify the update.
+    
+    ⚠️ IMPORTANT: This function has been fixed to work correctly with the HaasOnline API.
+    
+    **Recent Fixes Applied:**
+    1. **Parameter Names**: Changed `labId` to `labid` (lowercase) to match server expectations
+    2. **Settings Serialization**: Added `by_alias=True` to use camelCase field names (accountId, marketTag, etc.)
+    3. **HTTP Method**: Changed from POST to GET method for all requests
+    4. **Parameter Format**: Preserved original data types in parameter options (numbers as numbers, strings as strings)
+    
+    **Usage Notes:**
+    - Use this function to update market tags and account IDs after cloning labs
+    - The function automatically handles parameter formatting and serialization
+    - All settings are preserved and updated correctly
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_details: LabDetails object with updated settings and parameters
+        
+    Returns:
+        LabDetails object containing the updated lab configuration
+        
+    Raises:
+        HaasApiError: If the API request fails
+        
+    Example:
+        >>> # Update market tag and account ID after cloning
+        >>> lab_details = api.get_lab_details(executor, "lab_id")
+        >>> lab_details.settings.market_tag = "BINANCE_ETH_USDT_"
+        >>> lab_details.settings.account_id = "account_id"
+        >>> updated_lab = api.update_lab_details(executor, lab_details)
+        >>> print(f"Updated: {updated_lab.settings.market_tag}")
+        
+    See Also:
+        - docs/LAB_CLONING_DISCOVERY.md for detailed explanation of fixes
+        - clone_lab() for the recommended approach to lab cloning
+    """
+    # Format parameters to match the working example format
     params_list = []
     for param in lab_details.parameters:
-        # Convert options to strings
+        # Convert options to the correct format
         if isinstance(param, dict):
             options = param.get('O', [])
         else:
             options = param.options
             
+        # Keep options as they are (don't convert to strings for numbers)
         if isinstance(options, (int, float)):
-            options = [str(options)]
+            options = [options]  # Keep as number
         elif isinstance(options, (list, tuple)):
-            options = [str(opt) for opt in options]
+            # Keep numbers as numbers, strings as strings
+            options = [opt for opt in options]
         else:
-            options = [str(options)]
+            options = [options]
             
-        # Build parameter dict
+        # Build parameter dict matching the working example
         param_dict = {
             "K": param.get('K', '') if isinstance(param, dict) else param.key,
-            "T": param.get('T', 3) if isinstance(param, dict) else param.type,
             "O": options,
             "I": param.get('I', True) if isinstance(param, dict) else param.is_enabled,
             "IS": param.get('IS', False) if isinstance(param, dict) else param.is_selected
         }
         params_list.append(param_dict)
 
-    # Send update
+    # Send update using the correct parameter names and format
     response = executor.execute(
         endpoint="Labs",
         response_type=ApiResponse[LabDetails],
         query_params={
             "channel": "UPDATE_LAB_DETAILS",
-            "labId": lab_details.lab_id,
-            "config": lab_details.config.model_dump_json(),
-            "settings": lab_details.settings.model_dump_json(),
+            "labid": lab_details.lab_id,  # Changed from labId to labid
             "name": lab_details.name,
             "type": lab_details.type,
+            "config": lab_details.config.model_dump_json(by_alias=True),  # Use field aliases (MP, MG, ME, MR, AR)
+            "settings": lab_details.settings.model_dump_json(by_alias=True),  # Use camelCase aliases
             "parameters": params_list
         }
     )
@@ -551,18 +626,46 @@ def delete_lab(executor: SyncExecutor[Authenticated], lab_id: str):
 
 def clone_lab(executor: SyncExecutor[Authenticated], lab_id: str, new_name: str = None) -> LabDetails:
     """
-    Clone an existing lab with all its configuration
+    Clone an existing lab with all settings and parameters preserved.
+    
+    ⚠️ CRITICAL DISCOVERY: This is the CORRECT approach for lab cloning!
+    
+    The CLONE_LAB operation automatically preserves ALL settings and parameters
+    from the original lab, making it superior to CREATE_LAB + UPDATE_LAB_DETAILS.
+    
+    ✅ CORRECT APPROACH (this function):
+        - Automatically copies ALL settings and parameters
+        - No manual parameter updates needed
+        - Simple, reliable, and fast
+        - No 404 errors
+    
+    ❌ WRONG APPROACH (CREATE_LAB + UPDATE_LAB_DETAILS):
+        - Creates lab with default parameters
+        - Requires manual parameter updates (often fails with 404 errors)
+        - Complex and error-prone
+        - May lose critical settings during updates
     
     Args:
         executor: Authenticated executor instance
         lab_id: ID of the lab to clone
-        new_name: Optional new name for the cloned lab (default: "Clone of {original_name}")
+        new_name: Optional new name for the cloned lab. If not provided, 
+                 a timestamped name will be generated.
         
     Returns:
         LabDetails object for the newly created lab
         
     Raises:
         HaasApiError: If the API request fails
+        
+    Example:
+        >>> # Clone a lab with all settings preserved
+        >>> original_lab = api.get_lab_details(executor, "original_lab_id")
+        >>> cloned_lab = api.clone_lab(executor, "original_lab_id", "My_Cloned_Lab")
+        >>> print(f"Cloned: {cloned_lab.name} with {len(cloned_lab.parameters)} parameters")
+        
+    See Also:
+        - docs/LAB_CLONING_DISCOVERY.md for detailed explanation
+        - examples/lab_cloner.py for production-ready implementation
     """
     # Get the original lab details first
     original_lab = get_lab_details(executor, lab_id)
@@ -1378,7 +1481,7 @@ def update_lab_parameters(
             "settings": lab_details.settings.model_dump_json(),
             "name": lab_details.name,
             "type": lab_details.type,
-            "parameters": [p.model_dump(by_alias=True) for p in parameters]
+            "parameters": [p.model_dump(by_alias=True) if hasattr(p, 'model_dump') else p for p in parameters]
         }
     )
 

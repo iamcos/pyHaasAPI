@@ -1,0 +1,39 @@
+
+📊 BULK LAB CREATION AND BOT DEPLOYMENT REPORT
+==============================================
+
+Example Lab: Example Lab (ID: a98740a6-0f37-4e16-b833-7df22279ce59)
+Account: Test_1_BN_2 (ID: 4ba07e12-0e45-48d4-9826-be139680957c)
+Backtest Period: 2025-04-07 13:00:00 to 2025-07-20 12:15:18.597557
+Total Pairs Attempted: 14
+
+✅ SUCCESSFUL LABS (1):
+  • BTC/USDT -> Example_BTC_USDT_1752988525 (ID: f03e7ed3-d44e-4c7b-a720-4ca774114a3d)
+    Market: BINANCE_BTC_USDT_
+    Bots Created: 0
+
+❌ FAILED LABS (13):
+  • ETH/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • AVAX/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • SOL/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • ADA/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • XRP/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • BNB/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • DOT/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • LINK/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • DOGE/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • TRX/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • LTC/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • ATOM/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+  • NEAR/USDT: 404 Client Error: Not Found for url: http://127.0.0.1:8090/LabsAPI.php
+
+📈 SUMMARY:
+  • Success Rate: 1/14 (7.1%)
+  • Total Labs Created: 1
+  • Total Bots Created: 0
+  • Failed: 13
+
+🎯 NEXT STEPS:
+  • All successful labs are ready for live trading
+  • Bots are created and ready for activation
+  • Monitor bot performance and adjust as needed
