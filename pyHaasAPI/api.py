@@ -15,6 +15,8 @@ from typing import (
     TypeVar,
     cast,
     List,
+    Dict,
+    Any,
 )
 
 import requests
@@ -364,18 +366,101 @@ def create_lab(executor: SyncExecutor[Authenticated], req: CreateLabRequest) -> 
         },
     )
 
+def ensure_lab_config_parameters(
+    executor: SyncExecutor[Authenticated],
+    lab_id: str,
+    config: Optional[LabConfig] = None
+) -> LabDetails:
+    """
+    Ensure a lab has proper config parameters before backtesting.
+    
+    This function validates and applies the correct config parameters (MP, MG, ME, MR, AR)
+    to ensure the lab is ready for backtesting. This is a CRITICAL step that should
+    be called before any backtest execution.
+    
+    ⚠️ **REQUIRED STEP**: This function should be called before `start_lab_execution`
+    to ensure proper backtest configuration.
+    
+    Args:
+        executor: Authenticated executor instance
+        lab_id: ID of the lab to configure
+        config: Optional LabConfig object. If not provided, uses default intelligent mode config
+        
+    Returns:
+        LabDetails object with updated config parameters
+        
+    Raises:
+        HaasApiError: If the API request fails
+        
+    Example:
+        >>> # Ensure lab has proper config before backtesting
+        >>> lab_details = api.ensure_lab_config_parameters(executor, "lab_id")
+        >>> # Now safe to start backtest
+        >>> api.start_lab_execution(executor, request)
+        
+    See Also:
+        - docs/CONFIG_PARAMETER_FIX_SUMMARY.md for detailed explanation
+        - start_lab_execution() for backtest execution
+    """
+    # Get current lab details
+    lab_details = get_lab_details(executor, lab_id)
+    
+    # Use provided config or default intelligent mode config
+    if config is None:
+        config = LabConfig(
+            max_population=10,    # Max Population
+            max_generations=100,  # Max Generations  
+            max_elites=3,         # Max Elites
+            mix_rate=40.0,        # Mix Rate
+            adjust_rate=25.0      # Adjust Rate
+        )
+    
+    # Check if config needs updating
+    current_config = lab_details.config
+    config_needs_update = (
+        current_config.max_population != config.max_population or
+        current_config.max_generations != config.max_generations or
+        current_config.max_elites != config.max_elites or
+        current_config.mix_rate != config.mix_rate or
+        current_config.adjust_rate != config.adjust_rate
+    )
+    
+    if config_needs_update:
+        log.info(f"🔄 Updating lab config parameters for lab {lab_id}")
+        log.info(f"   Current: MP={current_config.max_population}, MG={current_config.max_generations}, ME={current_config.max_elites}, MR={current_config.mix_rate}, AR={current_config.adjust_rate}")
+        log.info(f"   Target:  MP={config.max_population}, MG={config.max_generations}, ME={config.max_elites}, MR={config.mix_rate}, AR={config.adjust_rate}")
+        
+        # Update the lab details with new config
+        lab_details.config = config
+        updated_lab = update_lab_details(executor, lab_details)
+        
+        log.info(f"✅ Lab config parameters updated successfully")
+        return updated_lab
+    else:
+        log.info(f"✅ Lab {lab_id} already has correct config parameters")
+        return lab_details
+
+
 def start_lab_execution(
     executor: SyncExecutor[Authenticated],
     request: StartLabExecutionRequest,
+    ensure_config: bool = True,
+    config: Optional[LabConfig] = None
 ) -> LabDetails:
     """
     Start lab execution with specified parameters.
     
     ⚠️ IMPORTANT: This function uses POST method with form-encoded data as required by the API.
     
+    🔧 **NEW FEATURE**: Automatic config parameter validation and correction.
+    When `ensure_config=True` (default), this function will automatically ensure
+    the lab has proper config parameters before starting the backtest.
+    
     Args:
         executor: Authenticated executor instance
         request: StartLabExecutionRequest object with lab_id, start_unix, end_unix, and send_email
+        ensure_config: If True, automatically ensure proper config parameters before execution
+        config: Optional LabConfig to apply if ensure_config=True. If None, uses default intelligent mode config
         
     Returns:
         LabDetails object containing the updated lab configuration with execution status
@@ -384,7 +469,7 @@ def start_lab_execution(
         HaasApiError: If the API request fails
         
     Example:
-        >>> # Start backtest from April 7th 2025 13:00
+        >>> # Start backtest with automatic config validation (recommended)
         >>> start_unix = 1744009200  # April 7th 2025 13:00 UTC
         >>> end_unix = 1752994800    # End time
         >>> request = StartLabExecutionRequest(
@@ -393,9 +478,21 @@ def start_lab_execution(
         ...     end_unix=end_unix,
         ...     send_email=False
         ... )
-        >>> result = api.start_lab_execution(executor, request)
+        >>> result = api.start_lab_execution(executor, request)  # ensure_config=True by default
         >>> print(f"Lab status: {result.status}")
+        
+        >>> # Start backtest without config validation (advanced users only)
+        >>> result = api.start_lab_execution(executor, request, ensure_config=False)
+        
+        >>> # Start backtest with custom config
+        >>> custom_config = LabConfig(max_population=20, max_generations=200, max_elites=5, mix_rate=50.0, adjust_rate=30.0)
+        >>> result = api.start_lab_execution(executor, request, config=custom_config)
     """
+    # Ensure proper config parameters if requested
+    if ensure_config:
+        log.info(f"🔧 Ensuring proper config parameters for lab {request.lab_id} before backtest execution")
+        ensure_lab_config_parameters(executor, request.lab_id, config)
+    
     # Use POST method with form-encoded data as shown in Chrome inspector
     return executor.execute(
         endpoint="Labs",
@@ -2010,4 +2107,259 @@ def delete_account(executor: SyncExecutor[Authenticated], account_id: str) -> bo
             "accountid": account_id,
         },
     )
+
+
+def clone_and_backtest_lab(
+    executor: SyncExecutor[Authenticated],
+    source_lab_id: str,
+    new_lab_name: str,
+    market_tag: str,
+    account_id: str,
+    start_unix: int,
+    end_unix: int,
+    config: Optional[LabConfig] = None,
+    send_email: bool = False
+) -> Dict[str, Any]:
+    """
+    Complete workflow: Clone a lab, update market/account, ensure config, and start backtest.
+    
+    This function provides a complete, production-ready pipeline that handles:
+    1. ✅ Cloning the source lab with all settings preserved
+    2. ✅ Updating market tag and account ID for the new market
+    3. ✅ Ensuring proper config parameters (MP, MG, ME, MR, AR)
+    4. ✅ Starting the backtest with validation
+    
+    This is the RECOMMENDED approach for bulk lab creation and backtesting.
+    
+    Args:
+        executor: Authenticated executor instance
+        source_lab_id: ID of the source lab to clone
+        new_lab_name: Name for the new cloned lab
+        market_tag: Market tag (e.g., "BINANCE_BTC_USDT_")
+        account_id: Account ID to use for the lab
+        start_unix: Backtest start time (Unix timestamp)
+        end_unix: Backtest end time (Unix timestamp)
+        config: Optional LabConfig. If None, uses default intelligent mode config
+        send_email: Whether to send email notifications
+        
+    Returns:
+        Dictionary containing:
+        - success: bool - Whether the operation was successful
+        - lab_id: str - ID of the created lab
+        - lab_name: str - Name of the created lab
+        - market_tag: str - Market tag that was set
+        - account_id: str - Account ID that was set
+        - config_applied: LabConfig - Config that was applied
+        - backtest_started: bool - Whether backtest was started
+        - error: str - Error message if any
+        
+    Raises:
+        HaasApiError: If any API request fails
+        
+    Example:
+        >>> # Complete workflow for cloning and backtesting
+        >>> result = api.clone_and_backtest_lab(
+        ...     executor=executor,
+        ...     source_lab_id="example_lab_id",
+        ...     new_lab_name="BTC_USDT_Backtest",
+        ...     market_tag="BINANCE_BTC_USDT_",
+        ...     account_id="account_id",
+        ...     start_unix=1744009200,  # April 7th 2025 13:00
+        ...     end_unix=1752994800,    # End time
+        ...     config=LabConfig(max_population=10, max_generations=100, max_elites=3, mix_rate=40.0, adjust_rate=25.0)
+        ... )
+        >>> 
+        >>> if result['success']:
+        ...     print(f"✅ Lab created: {result['lab_name']}")
+        ...     print(f"✅ Backtest started: {result['backtest_started']}")
+        ... else:
+        ...     print(f"❌ Failed: {result['error']}")
+        
+    See Also:
+        - docs/LAB_CLONING_DISCOVERY.md for detailed explanation
+        - docs/CONFIG_PARAMETER_FIX_SUMMARY.md for config parameter details
+    """
+    try:
+        log.info(f"🚀 Starting complete lab cloning and backtesting workflow")
+        log.info(f"   Source Lab: {source_lab_id}")
+        log.info(f"   New Name: {new_lab_name}")
+        log.info(f"   Market: {market_tag}")
+        log.info(f"   Account: {account_id}")
+        
+        # Step 1: Clone the lab
+        log.info(f"📋 Step 1: Cloning lab...")
+        cloned_lab = clone_lab(executor, source_lab_id, new_lab_name)
+        log.info(f"✅ Lab cloned successfully: {cloned_lab.lab_id}")
+        
+        # Step 2: Update market tag and account ID
+        log.info(f"🔄 Step 2: Updating market and account...")
+        lab_details = get_lab_details(executor, cloned_lab.lab_id)
+        lab_details.settings.market_tag = market_tag
+        lab_details.settings.account_id = account_id
+        updated_lab = update_lab_details(executor, lab_details)
+        log.info(f"✅ Market and account updated: {market_tag} / {account_id}")
+        
+        # Step 3: Ensure proper config parameters
+        log.info(f"🔧 Step 3: Ensuring config parameters...")
+        config_applied = ensure_lab_config_parameters(executor, cloned_lab.lab_id, config)
+        log.info(f"✅ Config parameters verified/updated")
+        
+        # Step 4: Start backtest
+        log.info(f"🚀 Step 4: Starting backtest...")
+        backtest_request = StartLabExecutionRequest(
+            lab_id=cloned_lab.lab_id,
+            start_unix=start_unix,
+            end_unix=end_unix,
+            send_email=send_email
+        )
+        
+        # Use ensure_config=False since we already ensured it
+        execution_result = start_lab_execution(executor, backtest_request, ensure_config=False)
+        log.info(f"✅ Backtest started successfully")
+        
+        return {
+            "success": True,
+            "lab_id": cloned_lab.lab_id,
+            "lab_name": cloned_lab.name,
+            "market_tag": market_tag,
+            "account_id": account_id,
+            "config_applied": config_applied.config,
+            "backtest_started": True,
+            "execution_status": execution_result.status,
+            "error": None
+        }
+        
+    except Exception as e:
+        error_msg = f"Failed in lab cloning and backtesting workflow: {str(e)}"
+        log.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "lab_id": None,
+            "lab_name": new_lab_name,
+            "market_tag": market_tag,
+            "account_id": account_id,
+            "config_applied": None,
+            "backtest_started": False,
+            "execution_status": None,
+            "error": error_msg
+        }
+
+
+def bulk_clone_and_backtest_labs(
+    executor: SyncExecutor[Authenticated],
+    source_lab_id: str,
+    market_configs: List[Dict[str, str]],
+    start_unix: int,
+    end_unix: int,
+    config: Optional[LabConfig] = None,
+    send_email: bool = False,
+    delay_between_labs: float = 2.0
+) -> List[Dict[str, Any]]:
+    """
+    Bulk clone and backtest labs for multiple markets.
+    
+    This function provides a production-ready bulk workflow that handles multiple markets
+    with proper error handling and progress tracking.
+    
+    Args:
+        executor: Authenticated executor instance
+        source_lab_id: ID of the source lab to clone
+        market_configs: List of dicts with 'name', 'market_tag', and 'account_id'
+        start_unix: Backtest start time (Unix timestamp)
+        end_unix: Backtest end time (Unix timestamp)
+        config: Optional LabConfig. If None, uses default intelligent mode config
+        send_email: Whether to send email notifications
+        delay_between_labs: Delay between lab creations (seconds)
+        
+    Returns:
+        List of result dictionaries from clone_and_backtest_lab
+        
+    Example:
+        >>> # Bulk workflow for multiple markets
+        >>> market_configs = [
+        ...     {"name": "BTC_USDT_Backtest", "market_tag": "BINANCE_BTC_USDT_", "account_id": "account1"},
+        ...     {"name": "ETH_USDT_Backtest", "market_tag": "BINANCE_ETH_USDT_", "account_id": "account1"},
+        ...     {"name": "SOL_USDT_Backtest", "market_tag": "BINANCE_SOL_USDT_", "account_id": "account1"}
+        ... ]
+        >>> 
+        >>> results = api.bulk_clone_and_backtest_labs(
+        ...     executor=executor,
+        ...     source_lab_id="example_lab_id",
+        ...     market_configs=market_configs,
+        ...     start_unix=1744009200,
+        ...     end_unix=1752994800
+        ... )
+        >>> 
+        >>> # Process results
+        >>> successful = [r for r in results if r['success']]
+        >>> failed = [r for r in results if not r['success']]
+        >>> print(f"✅ Successful: {len(successful)}")
+        >>> print(f"❌ Failed: {len(failed)}")
+    """
+    log.info(f"🚀 Starting bulk lab cloning and backtesting workflow")
+    log.info(f"   Source Lab: {source_lab_id}")
+    log.info(f"   Markets: {len(market_configs)}")
+    log.info(f"   Start Time: {start_unix}")
+    log.info(f"   End Time: {end_unix}")
+    
+    results = []
+    
+    for i, market_config in enumerate(market_configs, 1):
+        log.info(f"\n📋 Processing market {i}/{len(market_configs)}: {market_config['name']}")
+        
+        try:
+            result = clone_and_backtest_lab(
+                executor=executor,
+                source_lab_id=source_lab_id,
+                new_lab_name=market_config['name'],
+                market_tag=market_config['market_tag'],
+                account_id=market_config['account_id'],
+                start_unix=start_unix,
+                end_unix=end_unix,
+                config=config,
+                send_email=send_email
+            )
+            
+            results.append(result)
+            
+            if result['success']:
+                log.info(f"✅ Success: {market_config['name']} (Lab: {result['lab_id']})")
+            else:
+                log.error(f"❌ Failed: {market_config['name']} - {result['error']}")
+                
+        except Exception as e:
+            error_result = {
+                "success": False,
+                "lab_id": None,
+                "lab_name": market_config['name'],
+                "market_tag": market_config['market_tag'],
+                "account_id": market_config['account_id'],
+                "config_applied": None,
+                "backtest_started": False,
+                "execution_status": None,
+                "error": f"Exception in bulk workflow: {str(e)}"
+            }
+            results.append(error_result)
+            log.error(f"❌ Exception for {market_config['name']}: {str(e)}")
+        
+        # Delay between labs to avoid rate limits
+        if i < len(market_configs):
+            log.info(f"⏳ Waiting {delay_between_labs}s before next lab...")
+            import time
+            time.sleep(delay_between_labs)
+    
+    # Summary
+    successful = [r for r in results if r['success']]
+    failed = [r for r in results if not r['success']]
+    
+    log.info(f"\n📊 Bulk Workflow Summary:")
+    log.info(f"   ✅ Successful: {len(successful)}/{len(market_configs)}")
+    log.info(f"   ❌ Failed: {len(failed)}/{len(market_configs)}")
+    
+    if failed:
+        log.info(f"   Failed markets:")
+        for result in failed:
+            log.info(f"     - {result['lab_name']}: {result['error']}")
+    
+    return results
 
