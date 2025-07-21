@@ -1,8 +1,14 @@
 # AI Trading Tools Guide
 
+**Last updated: July 2024**
+
+> **Note:** The tools described here are implemented in [`tools/analysis/ai_trading_tools.py`](../tools/analysis/ai_trading_tools.py) and can be used via the Enhanced MCP server or directly in Python scripts. See also [docs/lab_workflows.md](./lab_workflows.md) and [examples/README.md](../examples/README.md) for lab/bot creation, parameter optimization, and robust, tested workflow examples.
+
 ## Overview
 
-The Enhanced MCP Server provides advanced AI-powered trading tools for HaasOnline automation. These tools enable intelligent market analysis, parameter optimization, portfolio management, and automated strategy deployment.
+The Enhanced MCP Server provides advanced AI-powered trading tools for HaasOnline automation. These tools enable intelligent market analysis, parameter optimization, portfolio management, and automated strategy deployment. All major workflows are covered by robust, tested example scripts as of July 2024. See [examples/utility_advanced_example.py](../examples/utility_advanced_example.py), [examples/lab_lifecycle_example.py](../examples/lab_lifecycle_example.py), and [examples/README.md](../examples/README.md) for real-world usage and error handling patterns.
+
+---
 
 ## 🧠 AI Tools Overview
 

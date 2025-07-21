@@ -1,6 +1,24 @@
 # Testing Status Summary
 
-## ✅ **Market Format Fix - COMPLETED**
+## ✅ Example Scripts - FULLY UPDATED & TESTED (July 2024)
+
+All example scripts in the examples/ directory have been updated and tested against the current API. Each script is robust to API changes, handles errors gracefully, and prints actionable user instructions if a workflow cannot proceed. See examples/README.md for a full index and usage guide.
+
+### Example Scripts Covered
+- lab_lifecycle_example.py
+- bot_lifecycle_example.py
+- account_management_example.py
+- haasscript_management_example.py
+- price_market_example.py
+- user_management_example.py
+- utility_advanced_example.py
+
+### Known Issues / TODOs
+- Simulated account creation may fail with "Invalid drivercode" on some servers (see account_management_example.py)
+- Some endpoints (e.g., backtest start, script edit) may return partial or unexpected responses; scripts now handle these gracefully
+- See TODO list in project for further improvements
+
+## ✅ Market Format Fix - COMPLETED
 
 ### **Issue Resolved**
 The market format has been successfully fixed across all relevant files. The correct format is now being used:
@@ -21,7 +39,7 @@ The correct format is confirmed by:
 - README.md examples showing `BINANCE_BTC_USDT_`
 - `debug_markets.py` file showing `BINANCE_BTC_USDT`
 
-## ✅ **Market Data Endpoints - FULLY WORKING**
+## ✅ Market Data Endpoints - FULLY WORKING
 
 ### **All Endpoints Tested and Working**
 - ✅ `get_market_price` - Returns price data (dict with 8 items)
@@ -35,7 +53,7 @@ The correct format is confirmed by:
 3. **Market Snapshot**: Added required `pricesource` parameter extraction
 4. **Test Infrastructure**: Optimized retry mechanism with 5-second delays
 
-## 🚀 **Market Fetching Optimization - DISCOVERED & DOCUMENTED**
+## 🚀 Market Fetching Optimization - DISCOVERED & DOCUMENTED
 
 ### **Critical Performance Discovery**
 **Problem**: `api.get_all_markets()` is slow and unreliable, causing 504 Gateway Timeout errors.
@@ -89,7 +107,7 @@ This optimization is crucial for:
 - **Multi-exchange strategies** requiring market availability
 - **Production environments** where reliability is critical
 
-## 🔧 **Test Infrastructure Improvements**
+## 🔧 Test Infrastructure Improvements
 
 ### **Authentication Fix**
 - ✅ Fixed `test_utils.py` to store the authenticated executor instead of the original one
@@ -102,7 +120,7 @@ This optimization is crucial for:
   - `get_price_sources` (doesn't exist)
 - ✅ All working functions now properly implemented and tested
 
-## ✅ **Server Status - STABLE**
+## ✅ Server Status - STABLE
 
 ### **Current Status**
 - ✅ **Server is stable** - No more 504 Gateway Timeout errors
@@ -116,21 +134,21 @@ This optimization is crucial for:
 3. **Market format is correct** - All files use proper uppercase format
 4. **API structure is sound** - Functions properly implemented and tested
 
-## 🎯 **Next Steps**
+## 🎯 Next Steps
 
-### **Immediate Testing**
+### Immediate Testing
 1. ✅ Market data endpoints - **COMPLETED**
 2. 🔄 Order management endpoints - Ready for testing
 3. 🔄 Account management endpoints - Ready for testing  
 4. 🔄 Bot management endpoints - Ready for testing
 
-### **Expected Results**
+### Expected Results
 With the market format fix and stable server, all endpoints should work with proper market names like:
 - `BINANCE_BTC_USDT_`
 - `BINANCE_ETH_USDT_`
 - `COINBASE_BTC_USD_`
 
-## 📊 **Summary**
+## 📊 Summary
 
 | Component | Status | Notes |
 |-----------|--------|-------|
