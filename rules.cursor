@@ -6,13 +6,15 @@
 # This is enforced in CloudMarket.format_market_tag and CreateLabRequest.with_generated_name.
 # When creating or referencing a market in lab, bot, or backtest requests, always use this format.
 # Do not add extra fields or change the separator.
-# Document any exceptions in 'docs/'.
+# Document any exceptions in 'docs/lab_workflows.md'.
 
 [market_fetching_optimization]
 # CRITICAL: Always use exchange-specific market fetching instead of get_all_markets()
 # 
-# ❌ AVOID: api.get_all_markets(executor) - Slow, unreliable, causes 504 timeouts
-# ✅ USE: PriceAPI.get_trade_markets(exchange) - Fast, reliable, per-exchange error handling
+# 
+ AVOID: api.get_all_markets(executor) - Slow, unreliable, causes 504 timeouts
+# 
+ USE: PriceAPI.get_trade_markets(exchange) - Fast, reliable, per-exchange error handling
 #
 # Implementation pattern:
 # from pyHaasAPI.price import PriceAPI
@@ -29,7 +31,7 @@
 # Performance: 10x faster than get_all_markets(), avoids server overload
 # Reliability: Individual exchange failures don't break entire operation
 # Compatibility: BINANCE/KRAKEN work, COINBASE has invalid pricesource errors
-# Documentation: See docs/market_fetching_optimization.md for complete guide
+# Documentation: See docs/lab_workflows.md for complete guide
 
 [python]
 python_version = "3.11"
@@ -91,7 +93,7 @@ data_validation_library = "pydantic"
 # All scripts and entry points must have a main guard (if __name__ == "__main__":).
 # No business logic in the root directory; only entry points, config, and documentation.
 # All new features should be accompanied by documentation and tests.
-# All architectural changes must be documented in 'docs/'.
+# All architectural changes must be documented in 'docs/lab_workflows.md'.
 
 [api_endpoints]
 # All API endpoint names must end with 'API' (e.g., 'LabsAPI', 'AccountAPI') when constructing URLs or endpoint strings.
@@ -99,7 +101,7 @@ data_validation_library = "pydantic"
 # Example: url = f"{self.protocol}://{self.host}:{self.port}/{endpoint}API.php"
 # When adding new endpoints or refactoring, always ensure the 'API' suffix is present.
 # This convention ensures all API requests are routed correctly and consistently.
-# Document any exceptions or changes to this rule in 'docs/'.
+# Document any exceptions or changes to this rule in 'docs/lab_workflows.md'.
 
 [api_discovery_rules]
 # Based on reverse engineering from lab_parameters.py and other examples:
@@ -120,6 +122,7 @@ data_validation_library = "pydantic"
 # - is_selected (alias: "IS") - Boolean for parameter selection state
 # Always use LabParameter properties: current_value, possible_values, display_name, group_path
 # ParameterRange constructor only accepts: start, end, step (no decimals parameter)
+# See docs/lab_workflows.md for parameter update and mapping details.
 
 [lab_management]
 # Lab creation workflow:
@@ -132,6 +135,7 @@ data_validation_library = "pydantic"
 # 7. Update parameters via UPDATE_LAB_DETAILS
 # 8. Clean up via DELETE_LAB
 # LabDetails response includes: parameters, config, settings, lab_id, script_id, name, status
+# See docs/lab_workflows.md for full workflow and troubleshooting.
 
 [api_response_structure]
 # All API responses are wrapped in ApiResponse<T> with:
@@ -156,5 +160,11 @@ data_validation_library = "pydantic"
 # Log all API interactions for debugging
 # Test parameter updates and verify changes
 # Use random accounts and markets for testing
+# See docs/lab_workflows.md for up-to-date testing and workflow practices.
+
+[robust_headers]
+# For API calls, only use browser-matching headers and robust POST logic for endpoints that are known to require it (e.g., START_LAB_EXECUTION).
+# For all other endpoints, use the default executor logic unless issues are observed.
+# Document any exceptions or changes to this rule in 'docs/lab_workflows.md'.
 
 # Add new rules here as the project evolves. 

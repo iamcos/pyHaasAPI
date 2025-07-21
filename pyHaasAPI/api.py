@@ -58,6 +58,7 @@ from pyHaasAPI.parameters import (
     ParameterRange,
     ScriptParameter,
 )
+import time
 
 
 ApiResponseData = TypeVar(
@@ -446,65 +447,40 @@ def start_lab_execution(
     request: StartLabExecutionRequest,
     ensure_config: bool = True,
     config: Optional[LabConfig] = None
-) -> LabDetails:
+) -> dict:
     """
-    Start lab execution with specified parameters.
-    
-    ⚠️ IMPORTANT: This function uses POST method with form-encoded data as required by the API.
-    
-    🔧 **NEW FEATURE**: Automatic config parameter validation and correction.
-    When `ensure_config=True` (default), this function will automatically ensure
-    the lab has proper config parameters before starting the backtest.
-    
-    Args:
-        executor: Authenticated executor instance
-        request: StartLabExecutionRequest object with lab_id, start_unix, end_unix, and send_email
-        ensure_config: If True, automatically ensure proper config parameters before execution
-        config: Optional LabConfig to apply if ensure_config=True. If None, uses default intelligent mode config
-        
-    Returns:
-        LabDetails object containing the updated lab configuration with execution status
-        
-    Raises:
-        HaasApiError: If the API request fails
-        
-    Example:
-        >>> # Start backtest with automatic config validation (recommended)
-        >>> start_unix = 1744009200  # April 7th 2025 13:00 UTC
-        >>> end_unix = 1752994800    # End time
-        >>> request = StartLabExecutionRequest(
-        ...     lab_id="lab_id",
-        ...     start_unix=start_unix,
-        ...     end_unix=end_unix,
-        ...     send_email=False
-        ... )
-        >>> result = api.start_lab_execution(executor, request)  # ensure_config=True by default
-        >>> print(f"Lab status: {result.status}")
-        
-        >>> # Start backtest without config validation (advanced users only)
-        >>> result = api.start_lab_execution(executor, request, ensure_config=False)
-        
-        >>> # Start backtest with custom config
-        >>> custom_config = LabConfig(max_population=20, max_generations=200, max_elites=5, mix_rate=50.0, adjust_rate=30.0)
-        >>> result = api.start_lab_execution(executor, request, config=custom_config)
+    Start lab execution with specified parameters, using a robust direct POST that matches the browser/curl.
     """
-    # Ensure proper config parameters if requested
     if ensure_config:
         log.info(f"🔧 Ensuring proper config parameters for lab {request.lab_id} before backtest execution")
         ensure_lab_config_parameters(executor, request.lab_id, config)
-    
-    # Use POST method with form-encoded data as shown in Chrome inspector
-    return executor.execute(
-        endpoint="Labs",
-        response_type=LabDetails,
-        query_params={
-            "channel": "START_LAB_EXECUTION",
-            "labid": request.lab_id,  # Changed from labId to labid
-            "startunix": request.start_unix,
-            "endunix": request.end_unix,
-            "sendemail": request.send_email  # Changed from sendEmail to sendemail
-        }
-    )
+
+    import requests
+    lab_id = request.lab_id
+    start_unix = request.start_unix
+    end_unix = request.end_unix
+    interface_key = getattr(executor.state, 'interface_key', None)
+    user_id = getattr(executor.state, 'user_id', None)
+    url = f"http://{executor.host}:{executor.port}/LabsAPI.php?channel=START_LAB_EXECUTION"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,pl;q=0.6,de;q=0.5,fr;q=0.4',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': f'http://{executor.host}:{executor.port}',
+        'Referer': f'http://{executor.host}:{executor.port}/Labs/{lab_id}',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+    data = f"labid={lab_id}&startunix={start_unix}&endunix={end_unix}&sendemail={str(request.send_email).lower()}&interfacekey={interface_key}&userid={user_id}"
+    resp = requests.post(url, headers=headers, data=data)
+    resp.raise_for_status()
+    return resp.json()
 
 
 def get_lab_details(
@@ -755,14 +731,13 @@ def clone_lab(executor: SyncExecutor[Authenticated], lab_id: str, new_name: str 
         HaasApiError: If the API request fails
         
     Example:
-        >>> # Clone a lab with all settings preserved
-        >>> original_lab = api.get_lab_details(executor, "original_lab_id")
-        >>> cloned_lab = api.clone_lab(executor, "original_lab_id", "My_Cloned_Lab")
-        >>> print(f"Cloned: {cloned_lab.name} with {len(cloned_lab.parameters)} parameters")
-        
+        >>> # Clone a lab and give it a new name
+        >>> cloned_lab = api.clone_lab(executor, "source_lab_id", new_name="BTC_USDT_Clone")
+        >>> print(f"Cloned lab ID: {cloned_lab.lab_id}")
+    
     See Also:
         - docs/LAB_CLONING_DISCOVERY.md for detailed explanation
-        - examples/lab_cloner.py for production-ready implementation
+        - clone_and_backtest_lab() for full workflow
     """
     # Get the original lab details first
     original_lab = get_lab_details(executor, lab_id)
@@ -951,13 +926,14 @@ def get_all_bots(executor: SyncExecutor[Authenticated]) -> list[HaasBot]:
     )
 
 
-def activate_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
+def activate_bot(executor: SyncExecutor[Authenticated], bot_id: str, cleanreports: bool = False) -> HaasBot:
     """
     Activate a bot to start trading
     
     Args:
         executor: Authenticated executor instance
         bot_id: ID of the bot to activate
+        cleanreports: Whether to clean previous reports (default: False)
         
     Returns:
         Updated HaasBot object with activation status
@@ -965,86 +941,74 @@ def activate_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
     Raises:
         HaasApiError: If the API request fails
     """
-    return executor.execute(
+    resp = executor.execute(
         endpoint="Bot",
-        response_type=HaasBot,
+        response_type=object,  # Accept any type
         query_params={
             "channel": "ACTIVATE_BOT",
             "botid": bot_id,
+            "cleanreports": cleanreports,
         },
     )
+    # If the response is a HaasBot, return it. If it's True, fetch the bot object.
+    from pyHaasAPI.model import HaasBot
+    if isinstance(resp, HaasBot):
+        return resp
+    if resp is True:
+        return get_bot(executor, bot_id)
+    raise HaasApiError(f"Unexpected response from ACTIVATE_BOT: {resp}")
 
 
-def deactivate_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
-    """
-    Deactivate a bot to stop trading
-    
-    Args:
-        executor: Authenticated executor instance
-        bot_id: ID of the bot to deactivate
-        
-    Returns:
-        Updated HaasBot object with deactivation status
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
-    return executor.execute(
+def deactivate_bot(executor: SyncExecutor[Authenticated], bot_id: str, cancelorders: bool = False) -> HaasBot:
+    resp = executor.execute(
         endpoint="Bot",
-        response_type=HaasBot,
+        response_type=object,
         query_params={
             "channel": "DEACTIVATE_BOT",
             "botid": bot_id,
+            "cancelorders": cancelorders,
         },
     )
+    from pyHaasAPI.model import HaasBot
+    if isinstance(resp, HaasBot):
+        return resp
+    if resp is True:
+        return get_bot(executor, bot_id)
+    raise HaasApiError(f"Unexpected response from DEACTIVATE_BOT: {resp}")
 
 
 def pause_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
-    """
-    Pause a bot's execution (temporarily stop trading)
-    
-    Args:
-        executor: Authenticated executor instance
-        bot_id: ID of the bot to pause
-        
-    Returns:
-        Updated HaasBot object with pause status
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
-    return executor.execute(
+    resp = executor.execute(
         endpoint="Bot",
-        response_type=HaasBot,
+        response_type=object,
         query_params={
             "channel": "PAUSE_BOT",
             "botid": bot_id,
         },
     )
+    from pyHaasAPI.model import HaasBot
+    if isinstance(resp, HaasBot):
+        return resp
+    if resp is True:
+        return get_bot(executor, bot_id)
+    raise HaasApiError(f"Unexpected response from PAUSE_BOT: {resp}")
 
 
 def resume_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
-    """
-    Resume a paused bot's execution
-    
-    Args:
-        executor: Authenticated executor instance
-        bot_id: ID of the bot to resume
-        
-    Returns:
-        Updated HaasBot object with resume status
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
-    return executor.execute(
+    resp = executor.execute(
         endpoint="Bot",
-        response_type=HaasBot,
+        response_type=object,
         query_params={
             "channel": "RESUME_BOT",
             "botid": bot_id,
         },
     )
+    from pyHaasAPI.model import HaasBot
+    if isinstance(resp, HaasBot):
+        return resp
+    if resp is True:
+        return get_bot(executor, bot_id)
+    raise HaasApiError(f"Unexpected response from RESUME_BOT: {resp}")
 
 
 def get_bot(executor: SyncExecutor[Authenticated], bot_id: str) -> HaasBot:
@@ -2295,6 +2259,10 @@ def bulk_clone_and_backtest_labs(
         >>> failed = [r for r in results if not r['success']]
         >>> print(f"✅ Successful: {len(successful)}")
         >>> print(f"❌ Failed: {len(failed)}")
+    
+    See Also:
+        - docs/BULK_LAB_CREATION_TUTORIAL.md for a user-friendly guide
+        - clone_and_backtest_lab() for single-market workflow
     """
     log.info(f"🚀 Starting bulk lab cloning and backtesting workflow")
     log.info(f"   Source Lab: {source_lab_id}")
@@ -2345,7 +2313,6 @@ def bulk_clone_and_backtest_labs(
         # Delay between labs to avoid rate limits
         if i < len(market_configs):
             log.info(f"⏳ Waiting {delay_between_labs}s before next lab...")
-            import time
             time.sleep(delay_between_labs)
     
     # Summary
@@ -2362,4 +2329,211 @@ def bulk_clone_and_backtest_labs(
             log.info(f"     - {result['lab_name']}: {result['error']}")
     
     return results
+
+
+def ensure_history_synced(
+    executor: SyncExecutor[Authenticated],
+    market: str,
+    months: int = 12
+) -> bool:
+    """
+    Ensure that the specified market has sufficient history depth before backtesting.
+    If the current history depth is less than the requested months, set it automatically.
+
+    Args:
+        executor: Authenticated executor instance
+        market: Market tag (e.g., "BINANCE_BTC_USDT_")
+        months: Minimum months of history required (default: 12)
+
+    Returns:
+        True if history is already sufficient or was set successfully, False otherwise
+
+    Example:
+        >>> ensure_history_synced(executor, "BINANCE_BTC_USDT_", months=12)
+    """
+    try:
+        history_status = get_history_status(executor)
+        info = history_status.get(market)
+        if info and info.get("months", 0) >= months:
+            return True
+        return set_history_depth(executor, market, months)
+    except Exception as e:
+        log.error(f"Failed to ensure history sync for {market}: {e}")
+        return False
+
+
+def get_chart(
+    executor: SyncExecutor[Authenticated],
+    market: str,
+    interval: int = 15,
+    style: int = 301
+) -> dict:
+    """
+    Get chart data for a specific market and interval (triggers history sync if not present).
+
+    Args:
+        executor: Authenticated executor instance
+        market: Market tag (e.g., "BINANCE_BTC_USDT_")
+        interval: Chart interval (default: 15)
+        style: Chart style (default: 301)
+
+    Returns:
+        Chart data dictionary
+
+    Example:
+        >>> get_chart(executor, "BINANCE_BTC_USDT_", interval=15, style=301)
+    """
+    return executor.execute(
+        endpoint="Price",
+        response_type=dict,
+        query_params={
+            "channel": "GET_CHART",
+            "market": market,
+            "interval": interval,
+            "style": style
+        }
+    )
+
+
+def ensure_market_history_ready(
+    executor: SyncExecutor[Authenticated],
+    market: str,
+    months: int = 36,
+    poll_interval: int = 5,
+    timeout: int = 300
+) -> bool:
+    """
+    Ensure a market is in the history sync list, synched, and set to the desired history depth.
+    Triggers sync if needed, waits for Status 3, and sets history depth.
+
+    Args:
+        executor: Authenticated executor instance
+        market: Market tag (e.g., "BINANCE_BTC_USDT_")
+        months: Desired history depth (default: 36)
+        poll_interval: Polling interval in seconds (default: 5)
+        timeout: Max wait time in seconds (default: 300)
+
+    Returns:
+        True if market is synched and set to desired depth, False otherwise
+
+    Example:
+        >>> ensure_market_history_ready(executor, "BINANCE_BTC_USDT_", months=36)
+    """
+    try:
+        # Trigger GET_CHART to initiate sync
+        try:
+            get_chart(executor, market, interval=15, style=301)
+        except Exception:
+            pass  # Ignore errors, just want to trigger sync
+        waited = 0
+        info = None
+        while True:
+            history_status = get_history_status(executor)
+            info = history_status.get(market)
+            if info and info.get("Status") == 3:
+                break
+            time.sleep(poll_interval)
+            waited += poll_interval
+            if waited >= timeout:
+                return False
+        # Set history depth
+        return set_history_depth(executor, market, months)
+    except Exception as e:
+        log.error(f"Failed to ensure market history ready for {market}: {e}")
+        return False
+
+def app_login(
+    executor: SyncExecutor[Authenticated],
+    app_id: str,
+    app_secret: str
+) -> dict:
+    """
+    Log in to the app using app_id and app_secret.
+    Args:
+        executor: Authenticated executor instance
+        app_id: Application ID
+        app_secret: Application secret
+    Returns:
+        Login response dictionary
+    Example:
+        >>> app_login(executor, "my_app_id", "my_secret")
+    """
+    return executor.execute(
+        endpoint="User",
+        response_type=dict,
+        query_params={
+            "channel": "APP_LOGIN",
+            "app_id": app_id,
+            "app_secret": app_secret
+        }
+    )
+
+def check_token(
+    executor: SyncExecutor[Authenticated],
+    token: str
+) -> bool:
+    """
+    Check if a user token is valid.
+    Args:
+        executor: Authenticated executor instance
+        token: User token
+    Returns:
+        True if token is valid, False otherwise
+    Example:
+        >>> check_token(executor, "token123")
+    """
+    resp = executor.execute(
+        endpoint="User",
+        response_type=dict,
+        query_params={
+            "channel": "CHECK_TOKEN",
+            "token": token
+        }
+    )
+    return resp.get("valid", False)
+
+def logout(
+    executor: SyncExecutor[Authenticated]
+) -> bool:
+    """
+    Log out the current user session.
+    Args:
+        executor: Authenticated executor instance
+    Returns:
+        True if logout was successful, False otherwise
+    Example:
+        >>> logout(executor)
+    """
+    resp = executor.execute(
+        endpoint="User",
+        response_type=dict,
+        query_params={
+            "channel": "LOGOUT"
+        }
+    )
+    return resp.get("Success", False)
+
+def is_device_approved(
+    executor: SyncExecutor[Authenticated],
+    device_id: str
+) -> bool:
+    """
+    Check if a device is approved for the user.
+    Args:
+        executor: Authenticated executor instance
+        device_id: Device identifier
+    Returns:
+        True if device is approved, False otherwise
+    Example:
+        >>> is_device_approved(executor, "device123")
+    """
+    resp = executor.execute(
+        endpoint="User",
+        response_type=dict,
+        query_params={
+            "channel": "IS_DEVICE_APPROVED",
+            "deviceid": device_id
+        }
+    )
+    return resp.get("approved", False)
 
