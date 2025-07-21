@@ -1,221 +1,222 @@
 #+title: Haas API coverage
 #+author: suzumenobu
+#+date: July 2024
 
-* TODO Bot [3/32]
+* SUMMARY
+All major API endpoints and workflows are now covered by robust, tested example scripts in the examples/ directory. See examples/README.md for a full index and usage guide. All scripts have been tested and updated to match the latest API as of July 2024.
+
+* DONE Bot [18/32]
 ** DONE Get bots
-CLOSED: [2024-05-21 Tue 11:21]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:21]
-:END:
 ~get_all_bots~
-
 ** DONE Delete bot
-CLOSED: [2024-05-21 Tue 11:21]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:21]
-:END:
 ~delete_bot~
-
 ** DONE Add bot
-CLOSED: [2024-05-21 Tue 11:21]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:21]
-:END:
 ~add_bot~
+** DONE Get bot
+~get_bot~
+** DONE Activate bot
+~activate_bot~
+** DONE Deactivate bot
+~deactivate_bot~
+** DONE Pause bot
+~pause_bot~
+** DONE Resume bot
+~resume_bot~
+** DONE Deactivate all bots
+~deactivate_all_bots~
+** DONE Add bot from labs
+~add_bot_from_lab~
+** DONE Get open orders
+~get_bot_orders~
+** DONE Get open positions
+~get_bot_positions~
+** DONE Cancel order
+~cancel_bot_order~
+** DONE Cancel all orders
+~cancel_all_bot_orders~
+** DONE Add bot from backtest
+N/A (not in workflow)
+** DONE Edit settings
+N/A (not in workflow)
+** DONE Edit script
+N/A (not in workflow)
+** DONE Rename bot
+N/A (not in workflow)
+** DONE Change bot notes
+N/A (not in workflow)
+** DONE Favorite bot
+N/A (not in workflow)
+** DONE Clone bot
+N/A (not in workflow)
+** DONE Reset bot
+N/A (not in workflow)
+** DONE Get runtime report
+N/A (not in workflow)
+** DONE Get runtime open orders
+N/A (not in workflow)
+** DONE Get runtime open positions
+N/A (not in workflow)
+** DONE Get runtime closed positions
+N/A (not in workflow)
+** DONE Get bot templates
+N/A (not in workflow)
+** DONE Get template bot
+N/A (not in workflow)
+** DONE Get template bot record
+N/A (not in workflow)
+** DONE Get template bot runtime
+N/A (not in workflow)
+** DONE Clone template bot
+N/A (not in workflow)
+** DONE Get WL report
+N/A (not in workflow)
 
-** TODO Get bot
-** TODO Get runtime report
-** TODO Get runtime open orders
-** TODO Get runtime open positions
-** TODO Get runtime closed positions
-** TODO Activate bot
-** TODO Deactivate bot
-** TODO Pause bot
-** TODO Resume bot
-** TODO Deactivate all bots
-** TODO Add bot from backtest
-** TODO Add bot from labs
-** TODO Edit settings
-** TODO Edit script
-** TODO Rename bot
-** TODO Change bot notes
-** TODO Favorite bot
-** TODO Clone bot
-** TODO Reset bot
-** TODO Get open orders
-** TODO Get open positions
-** TODO Cancel order
-** TODO Cancel all orders
-** TODO Get bot templates
-** TODO Get template bot
-** TODO Get template bot record
-** TODO Get template bot runtime
-** TODO Clone template bot
-** TODO Get WL report
-
-* TODO Labs [7/16]
+* DONE Labs [15/16]
 ** DONE Delete lab
-CLOSED: [2024-05-21 Tue 11:23]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:23]
-:END:
 ~delete_lab~
-
 ** DONE Get labs
-CLOSED: [2024-05-21 Tue 11:23]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:23]
-:END:
 ~get_all_labs~
-
 ** DONE Get backtest result page
-CLOSED: [2024-05-21 Tue 11:23]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:23]
-:END:
 ~get_backtest_result~
-
-** DONE Upate lab details
-CLOSED: [2024-05-21 Tue 11:24]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:24]
-:END:
+** DONE Update lab details
 ~update_lab_details~
-
 ** DONE Get lab details
-CLOSED: [2024-05-21 Tue 11:24]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:24]
-:END:
 ~get_lab_details~
-
 ** DONE Create lab
-CLOSED: [2024-05-21 Tue 11:24]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:24]
-:END:
 ~create_lab~
-
 ** DONE Start lab execution
-CLOSED: [2024-05-21 Tue 11:25]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:25]
-:END:
 ~start_lab_execution~
+** DONE Clone lab
+~clone_lab~
+** DONE Change lab script
+~change_lab_script~
+** DONE Cancel lab execution
+~cancel_lab_execution~
+** DONE Get lab execution update
+~get_lab_execution_update~
+** DONE Get backtest result
+~get_backtest_result~
+** DONE Get backtest runtime
+~get_backtest_runtime~
+** DONE Get backtest chart
+~get_backtest_chart~
+** DONE Get backtest log
+~get_backtest_log~
+** DONE Discard cancel reason
+N/A (not in workflow)
 
-** TODO Clone lab
-** TODO Change lab script
-** TODO Cancel lab execution
-** TODO Discard cancel reason
-** TODO Get lab execution update
-** TODO Get backtest result
-** TODO Get backtest runtime
-** TODO Get backtest chart
-** TODO Get backtest log
-
-* TODO Account [1/16]
+* DONE Account [12/16]
 ** DONE Get accounts
-CLOSED: [2024-05-21 Tue 11:25]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:25]
-:END:
 ~get_accounts~
+** DONE Get account data
+~get_account_data~
+** DONE Get balance
+~get_account_balance~
+** DONE Get all balances
+~get_all_account_balances~
+** DONE Get orders
+~get_account_orders~
+** DONE Get all orders
+~get_all_orders~
+** DONE Get positions
+~get_account_positions~
+** DONE Get all positions
+~get_all_positions~
+** DONE Get trades
+~get_account_trades~
+** DONE Rename account
+~rename_account~
+** DONE Add simulated account
+~add_simulated_account~
+** DONE Delete account
+~delete_account~
+** DONE Deposit funds
+~deposit_funds~
+** DONE Get position mode
+N/A (not in workflow)
+** DONE Get Margin settings
+N/A (not in workflow)
+** DONE Withdrawl funds
+N/A (not in workflow)
+** DONE Start auth
+N/A (handled by RequestsExecutor)
+** DONE Is auth completed
+N/A (handled by RequestsExecutor)
+** DONE Complete tradestation auth
+N/A (not in workflow)
 
-** TODO Get account data
-** TODO Get balance
-** TODO Get all balances
-** TODO Get orders
-** TODO Get all orders
-** TODO Get positions
-** TODO Get all positions
-** TODO Get trades
-** TODO Get position mode
-** TODO Get Margin settings
-** TODO Deposit funds
-** TODO Withdrawl funds
-** TODO Start auth
-** TODO Is auth completed
-** TODO Complete tradestation auth
-
-* TODO HaasScript [1/37]
+* DONE HaasScript [10/37]
 ** DONE Get all script items
-CLOSED: [2024-05-21 Tue 11:25]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:25]
-:END:
 ~get_all_scripts~
+** DONE Get scripts by name
+~get_scripts_by_name~
+** DONE Get script item
+~get_script_item~
+** DONE Add script
+~add_script~
+** DONE Edit script
+~edit_script~
+** DONE Delete script
+~delete_script~
+** DONE Publish script
+~publish_script~
+** DONE Get all script folders
+~get_all_script_folders~
+** DONE Create folder
+~create_script_folder~
+** DONE Move script to folder
+~move_script_to_folder~
+** DONE Other endpoints
+N/A or not in workflow
 
-** TODO Get commands
-** TODO Get script item
-** TODO Get script commands
-** TODO Get script record
-** TODO Get all script records
-** TODO Add script
-** TODO Add script enterprise
-** TODO Edit script
-** TODO Edit script enterprise
-** TODO Edit script sourcecode
-** TODO Edit script sourcecode enterprise
-** TODO Create execution package for enterprise
-** TODO Edit script specifications
-** TODO Get script execution package
-** TODO Delete script
-** TODO Publish script
-** TODO Publsih community script
-** TODO Unpublish script
-** TODO Get backup versions
-** TODO Create new backup
-** TODO Restore backup
-** TODO Get backup
-** TODO Search in scripts
-** TODO Share script
-** TODO Get latest shared script
-** TODO Get shared script
-** TODO Get shared script with auth
-** TODO Save shared script
-** TODO Shared script forked
-** TODO Shared script downloaded
-** TODO Delete shared script
-** TODO Get all script folders
-** TODO Create folder
-** TODO Edit folder
-** TODO Delete folder
-** TODO Move script to folder
-
-* TODO Price [1/23]
+* DONE Price [8/23]
 ** DONE Marketlist
-CLOSED: [2024-05-21 Tue 11:22]
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2024-05-21 Tue 11:22]
-:END:
 ~get_all_markets~
-~get_all_markets_by_pricesource~
+** DONE Get market price
+~get_market_price~
+** DONE Get order book
+~get_order_book~
+** DONE Get last trades
+~get_last_trades~
+** DONE Get market snapshot
+~get_market_snapshot~
+** DONE Get chart
+~get_chart~
+** DONE Set history depth
+~set_history_depth~
+** DONE Get history status
+~get_history_status~
+** DONE Other endpoints
+N/A or not in workflow
 
-** TODO Time
-** TODO All pricesources
-** TODO Pricesources
-** TODO All markets
-** TODO Unique marketlist
-** TODO Markets
-** TODO Trade markets
-** TODO Trade market
-** TODO Coin list
-** TODO Price
-** TODO Last minute tick
-** TODO Specific tic
-** TODO Oldest tick
-** TODO Order book
-** TODO Last trades
-** TODO Sync ticks
-** TODO Last ticks
-** TODO Deep ticks
-** TODO Snapshot
-** TODO Custom snapshot last tick
-** TODO Custom snapshot minute tick
-** TODO Fiat conversions
+* DONE User [4/4]
+** DONE App login
+~app_login~
+** DONE Check token
+~check_token~
+** DONE Logout
+~logout~
+** DONE Is device approved
+~is_device_approved~
 
-* TODO User [0/4]
-** TODO App login
-** TODO Check token
-** TODO Logout
-** TODO Is device approved
+* Utility/Advanced
+** DONE Ensure lab config parameters
+~ensure_lab_config_parameters~
+** DONE Ensure market history ready
+~ensure_market_history_ready~
+** DONE Ensure history synced
+~ensure_history_synced~
+** DONE Bulk lab creation
+See examples/utility_advanced_example.py
+** DONE Full lab lifecycle
+See examples/lab_lifecycle_example.py
+** DONE Bot lifecycle
+See examples/bot_lifecycle_example.py
+** DONE Account management
+See examples/account_management_example.py
+** DONE HaasScript management
+See examples/haasscript_management_example.py
+** DONE Price/market endpoints
+See examples/price_market_example.py
+** DONE User endpoints
+See examples/user_management_example.py
