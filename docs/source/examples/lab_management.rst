@@ -78,3 +78,45 @@ Full Workflow
 -------------
 
 This workflow demonstrates creating, updating, and deleting a lab. You can expand it to include parameter updates, backtesting, and more. 
+
+Updating Lab Configuration for Mad Hatter Bot
+--------------------------------------------
+
+This section demonstrates how to find a lab using the Mad Hatter bot, update its parameters (such as 'StopLoss' and 'TakeProfit'), and save the changes.
+
+.. code-block:: python
+
+    from pyHaasAPI import api
+    from config import settings
+
+    executor = api.RequestsExecutor(
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        state=api.Guest()
+    ).authenticate(
+        email=settings.API_EMAIL,
+        password=settings.API_PASSWORD
+    )
+
+    # Find a lab using the Mad Hatter bot
+    labs = api.get_all_labs(executor)
+    mad_hatter_labs = [lab for lab in labs if "MadHatter" in lab.name or "Mad Hatter" in lab.name]
+    if not mad_hatter_labs:
+        print("No Mad Hatter labs found!")
+    else:
+        lab = mad_hatter_labs[0]
+        print(f"Found Mad Hatter lab: {lab.name} (ID: {lab.lab_id})")
+
+        # Fetch lab details
+        lab_details = api.get_lab_details(executor, lab.lab_id)
+
+        # Update parameters (e.g., set StopLoss to 2.0 and TakeProfit to 3.0)
+        for param in lab_details.parameters:
+            if param.get("K") == "StopLoss":
+                param["O"] = ["2.0"]
+            if param.get("K") == "TakeProfit":
+                param["O"] = ["3.0"]
+        updated_lab = api.update_lab_details(executor, lab_details)
+        print("Updated Mad Hatter lab parameters.")
+
+You can expand this workflow to update any parameter supported by the Mad Hatter bot, or to automate parameter sweeps for optimization. 
