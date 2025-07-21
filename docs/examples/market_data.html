@@ -105,12 +105,44 @@
 <li class="toctree-l3"><a class="reference internal" href="basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Market Data Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.html">Backtesting Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="parameter_optimization.html">Parameter Optimization Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="error_handling.html">Error Handling Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Market Data Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parameter_optimization.html">Parameter Optimization Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parameter_optimization.html#setting-parameter-ranges">Setting Parameter Ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="parameter_optimization.html#running-parameter-optimization">Running Parameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="error_handling.html">Error Handling Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="error_handling.html#catching-api-errors">Catching API Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="error_handling.html#handling-missing-resources">Handling Missing Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="error_handling.html#retrying-on-failure">Retrying on Failure</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced_usage.html">Advanced Usage</a><ul>
@@ -213,10 +245,33 @@
 <li class="toctree-l2"><a class="reference internal" href="basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Market Data Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backtesting.html">Backtesting Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Market Data Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -246,8 +301,59 @@
              
   <section id="market-data-examples">
 <h1>Market Data Examples<a class="headerlink" href="#market-data-examples" title="Link to this heading"></a></h1>
-<p>This page will contain examples for market data workflows using pyHaasAPI.</p>
-<p><em>Content coming soon.</em></p>
+<p>This page demonstrates how to fetch and use market data with pyHaasAPI, including getting market lists, prices, order books, and recent trades.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#listing-all-markets" id="id1">Listing All Markets</a></p></li>
+<li><p><a class="reference internal" href="#getting-market-price" id="id2">Getting Market Price</a></p></li>
+<li><p><a class="reference internal" href="#getting-order-book" id="id3">Getting Order Book</a></p></li>
+<li><p><a class="reference internal" href="#getting-recent-trades" id="id4">Getting Recent Trades</a></p></li>
+</ul>
+</nav>
+<section id="listing-all-markets">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Listing All Markets</a><a class="headerlink" href="#listing-all-markets" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyHaasAPI</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">config</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
+
+<span class="n">executor</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">RequestsExecutor</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_HOST</span><span class="p">,</span>
+    <span class="n">port</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_PORT</span><span class="p">,</span>
+    <span class="n">state</span><span class="o">=</span><span class="n">api</span><span class="o">.</span><span class="n">Guest</span><span class="p">()</span>
+<span class="p">)</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span>
+    <span class="n">email</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_EMAIL</span><span class="p">,</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_PASSWORD</span>
+<span class="p">)</span>
+
+<span class="n">markets</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">get_all_markets</span><span class="p">(</span><span class="n">executor</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">market</span> <span class="ow">in</span> <span class="n">markets</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Market: </span><span class="si">{</span><span class="n">market</span><span class="o">.</span><span class="n">price_source</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">market</span><span class="o">.</span><span class="n">primary</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">market</span><span class="o">.</span><span class="n">secondary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="getting-market-price">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Getting Market Price</a><a class="headerlink" href="#getting-market-price" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the price for a specific market</span>
+<span class="n">market</span> <span class="o">=</span> <span class="n">markets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">price</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">get_market_price</span><span class="p">(</span><span class="n">executor</span><span class="p">,</span> <span class="n">market</span><span class="o">.</span><span class="n">format_market_tag</span><span class="p">(</span><span class="n">market</span><span class="o">.</span><span class="n">price_source</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Price for </span><span class="si">{</span><span class="n">market</span><span class="o">.</span><span class="n">primary</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">market</span><span class="o">.</span><span class="n">secondary</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">price</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="getting-order-book">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Getting Order Book</a><a class="headerlink" href="#getting-order-book" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">order_book</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">get_order_book</span><span class="p">(</span><span class="n">executor</span><span class="p">,</span> <span class="n">market</span><span class="o">.</span><span class="n">format_market_tag</span><span class="p">(</span><span class="n">market</span><span class="o">.</span><span class="n">price_source</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Order Book: </span><span class="si">{</span><span class="n">order_book</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="getting-recent-trades">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Getting Recent Trades</a><a class="headerlink" href="#getting-recent-trades" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trades</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">get_last_trades</span><span class="p">(</span><span class="n">executor</span><span class="p">,</span> <span class="n">market</span><span class="o">.</span><span class="n">format_market_tag</span><span class="p">(</span><span class="n">market</span><span class="o">.</span><span class="n">price_source</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Recent Trades: </span><span class="si">{</span><span class="n">trades</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This workflow covers the basics of market data access. You can expand it to include chart data, market snapshots, and more.</p>
+</section>
 </section>
 
 

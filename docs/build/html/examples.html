@@ -105,12 +105,44 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html">Market Data Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html">Backtesting Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/parameter_optimization.html">Parameter Optimization Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/error_handling.html">Error Handling Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html">Market Data Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/market_data.html#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/market_data.html#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/market_data.html#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/market_data.html#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/parameter_optimization.html">Parameter Optimization Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/parameter_optimization.html#setting-parameter-ranges">Setting Parameter Ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/parameter_optimization.html#running-parameter-optimization">Running Parameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/error_handling.html">Error Handling Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/error_handling.html#catching-api-errors">Catching API Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/error_handling.html#handling-missing-resources">Handling Missing Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/error_handling.html#retrying-on-failure">Retrying on Failure</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="advanced_usage.html">Advanced Usage</a><ul>
@@ -213,10 +245,33 @@
 <li class="toctree-l2"><a class="reference internal" href="examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="examples/lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/market_data.html">Market Data Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/backtesting.html">Backtesting Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/market_data.html">Market Data Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -259,12 +314,44 @@
 <li class="toctree-l2"><a class="reference internal" href="examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="examples/lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/market_data.html">Market Data Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/backtesting.html">Backtesting Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/parameter_optimization.html">Parameter Optimization Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/error_handling.html">Error Handling Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/market_data.html">Market Data Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/market_data.html#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/parameter_optimization.html">Parameter Optimization Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/parameter_optimization.html#setting-parameter-ranges">Setting Parameter Ranges</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/parameter_optimization.html#running-parameter-optimization">Running Parameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/error_handling.html">Error Handling Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/error_handling.html#catching-api-errors">Catching API Errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/error_handling.html#handling-missing-resources">Handling Missing Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/error_handling.html#retrying-on-failure">Retrying on Failure</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
