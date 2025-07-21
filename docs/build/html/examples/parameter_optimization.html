@@ -105,12 +105,44 @@
 <li class="toctree-l3"><a class="reference internal" href="basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="market_data.html">Market Data Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.html">Backtesting Examples</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Parameter Optimization Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="error_handling.html">Error Handling Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="market_data.html">Market Data Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="market_data.html#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="market_data.html#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="market_data.html#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l3"><a class="reference internal" href="market_data.html#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Parameter Optimization Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#setting-parameter-ranges">Setting Parameter Ranges</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-parameter-optimization">Running Parameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="error_handling.html">Error Handling Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="error_handling.html#catching-api-errors">Catching API Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="error_handling.html#handling-missing-resources">Handling Missing Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="error_handling.html#retrying-on-failure">Retrying on Failure</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced_usage.html">Advanced Usage</a><ul>
@@ -213,10 +245,33 @@
 <li class="toctree-l2"><a class="reference internal" href="basic_usage.html#complete-working-example">Complete Working Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="lab_management.html">Lab Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="bot_management.html">Bot Management Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="market_data.html">Market Data Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backtesting.html">Backtesting Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lab_management.html">Lab Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#creating-a-lab">Creating a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#updating-lab-details">Updating Lab Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#deleting-a-lab">Deleting a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lab_management.html#full-workflow">Full Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bot_management.html">Bot Management Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#listing-bots">Listing Bots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#creating-a-bot-from-a-lab">Creating a Bot from a Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#activating-and-deactivating-a-bot">Activating and Deactivating a Bot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bot_management.html#deleting-a-bot">Deleting a Bot</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="market_data.html">Market Data Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="market_data.html#listing-all-markets">Listing All Markets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="market_data.html#getting-market-price">Getting Market Price</a></li>
+<li class="toctree-l2"><a class="reference internal" href="market_data.html#getting-order-book">Getting Order Book</a></li>
+<li class="toctree-l2"><a class="reference internal" href="market_data.html#getting-recent-trades">Getting Recent Trades</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="backtesting.html">Backtesting Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#starting-a-backtest">Starting a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#monitoring-backtest-status">Monitoring Backtest Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#retrieving-backtest-results">Retrieving Backtest Results</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -246,8 +301,56 @@
              
   <section id="parameter-optimization-examples">
 <h1>Parameter Optimization Examples<a class="headerlink" href="#parameter-optimization-examples" title="Link to this heading"></a></h1>
-<p>This page will contain examples for parameter optimization workflows using pyHaasAPI.</p>
-<p><em>Content coming soon.</em></p>
+<p>This page demonstrates how to optimize parameters for a lab using pyHaasAPI, including setting parameter ranges and running optimizations.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#setting-parameter-ranges" id="id1">Setting Parameter Ranges</a></p></li>
+<li><p><a class="reference internal" href="#running-parameter-optimization" id="id2">Running Parameter Optimization</a></p></li>
+</ul>
+</nav>
+<section id="setting-parameter-ranges">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Setting Parameter Ranges</a><a class="headerlink" href="#setting-parameter-ranges" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyHaasAPI</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">config</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+<span class="n">executor</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">RequestsExecutor</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_HOST</span><span class="p">,</span>
+    <span class="n">port</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_PORT</span><span class="p">,</span>
+    <span class="n">state</span><span class="o">=</span><span class="n">api</span><span class="o">.</span><span class="n">Guest</span><span class="p">()</span>
+<span class="p">)</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span>
+    <span class="n">email</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_EMAIL</span><span class="p">,</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">API_PASSWORD</span>
+<span class="p">)</span>
+
+<span class="c1"># Assume you have a lab_id</span>
+<span class="n">lab_id</span> <span class="o">=</span> <span class="s2">&quot;your_lab_id&quot;</span>
+<span class="n">lab_details</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">get_lab_details</span><span class="p">(</span><span class="n">executor</span><span class="p">,</span> <span class="n">lab_id</span><span class="p">)</span>
+
+<span class="c1"># Set a range for a parameter (e.g., StopLoss)</span>
+<span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">lab_details</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;StopLoss&quot;</span><span class="p">:</span>
+        <span class="n">param</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">)]</span>  <span class="c1"># 1 to 10</span>
+<span class="n">updated_lab</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">update_lab_details</span><span class="p">(</span><span class="n">executor</span><span class="p">,</span> <span class="n">lab_details</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Parameter range set.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="running-parameter-optimization">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Running Parameter Optimization</a><a class="headerlink" href="#running-parameter-optimization" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start backtests for each parameter value (simple grid search)</span>
+<span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">updated_lab</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;StopLoss&quot;</span><span class="p">:</span>
+            <span class="n">param</span><span class="p">[</span><span class="s2">&quot;O&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)]</span>
+    <span class="n">api</span><span class="o">.</span><span class="n">update_lab_details</span><span class="p">(</span><span class="n">executor</span><span class="p">,</span> <span class="n">updated_lab</span><span class="p">)</span>
+    <span class="c1"># Start a backtest for this value (see backtesting example)</span>
+    <span class="c1"># ...</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Started backtest for StopLoss=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This workflow covers the basics of parameter optimization. You can expand it to use genetic algorithms, analyze results, and automate the search for optimal parameters.</p>
+</section>
 </section>
 
 
