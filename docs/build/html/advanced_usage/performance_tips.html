@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Performance Tips &mdash; pyHaasAPI 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Custom Integrations" href="custom_integrations.html" />
+    <link rel="prev" title="Advanced Parameter Optimization" href="parameter_optimization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pyHaasAPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#id1">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#optional-dependencies">Optional Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#verification">Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#upgrading">Upgrading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#uninstalling">Uninstalling</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#basic-setup">Basic Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#getting-market-data">Getting Market Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#getting-account-information">Getting Account Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#lab-management">Lab Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#bot-management">Bot Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#complete-example">Complete Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#core-modules">Core Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.html">pyHaasAPI package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../modules/pyHaasAPI.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/pyHaasAPI.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.api.html">pyHaasAPI.api module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.models.html">pyHaasAPI.models package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../modules/pyHaasAPI.models.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.lab.html">pyHaasAPI.lab module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.market_manager.html">pyHaasAPI.market_manager module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#main-api-module">Main API Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#client-module">Client Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#models">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#lab-management">Lab Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#market-manager">Market Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#exceptions">Exceptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#types">Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#parameter-handling">Parameter Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#price-api">Price API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html">Basic Usage Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#authentication">Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#getting-market-data">Getting Market Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#account-management">Account Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#lab-management">Lab Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#bot-management">Bot Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#error-handling">Error Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/lab_management.html">Lab Management Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/bot_management.html">Bot Management Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/market_data.html">Market Data Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/backtesting.html">Backtesting Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/parameter_optimization.html">Parameter Optimization Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/error_handling.html">Error Handling Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced_usage.html">Advanced Usage</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="authentication.html">Advanced Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="error_handling.html">Advanced Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parameter_optimization.html">Advanced Parameter Optimization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Performance Tips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom_integrations.html">Custom Integrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="debugging.html">Debugging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../licensing.html">Licensing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#mit-license">MIT License</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#usage-rights">Usage Rights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../licensing.html#free-usage">Free Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../licensing.html#commercial-licensing">Commercial Licensing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#contact-information">Contact Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../licensing.html#attribution">Attribution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../licensing.html#example-attribution">Example Attribution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#getting-started">Getting Started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#development-setup">Development Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#code-style">Code Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#building-documentation">Building Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#pull-request-guidelines">Pull Request Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#example-pull-request">Example Pull Request</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#issue-guidelines">Issue Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#example-issue">Example Issue</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#code-review-process">Code Review Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#release-process">Release Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#contact">Contact</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules/pyHaasAPI.html">pyHaasAPI package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../modules/pyHaasAPI.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.models.html">pyHaasAPI.models package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../modules/pyHaasAPI.models.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../modules/pyHaasAPI.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.api.html">pyHaasAPI.api module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.domain.html">pyHaasAPI.domain module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.exceptions.html">pyHaasAPI.exceptions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.iterable_extensions.html">pyHaasAPI.iterable_extensions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.lab.html">pyHaasAPI.lab module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.lab_backup.html">pyHaasAPI.lab_backup module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.lab_manager.html">pyHaasAPI.lab_manager module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.logger.html">pyHaasAPI.logger module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.market_manager.html">pyHaasAPI.market_manager module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.model.html">pyHaasAPI.model module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.parameter_handler.html">pyHaasAPI.parameter_handler module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.parameters.html">pyHaasAPI.parameters module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.price.html">pyHaasAPI.price module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.tools.html">pyHaasAPI.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.types.html">pyHaasAPI.types module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/pyHaasAPI.api.html">pyHaasAPI.api module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/pyHaasAPI.models.html">pyHaasAPI.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../modules/pyHaasAPI.models.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.models.auth.html">pyHaasAPI.models.auth module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.models.base.html">pyHaasAPI.models.base module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.models.common.html">pyHaasAPI.models.common module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modules/pyHaasAPI.models.scripts.html">pyHaasAPI.models.scripts module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/pyHaasAPI.lab.html">pyHaasAPI.lab module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/pyHaasAPI.market_manager.html">pyHaasAPI.market_manager module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/basic_usage.html">Basic Usage Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#getting-market-data">Getting Market Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#account-management">Account Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#lab-management">Lab Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#bot-management">Bot Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/basic_usage.html#complete-working-example">Complete Working Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/lab_management.html">Lab Management Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/bot_management.html">Bot Management Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/market_data.html">Market Data Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/backtesting.html">Backtesting Examples</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyHaasAPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced_usage.html">Advanced Usage</a></li>
+      <li class="breadcrumb-item active">Performance Tips</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced_usage/performance_tips.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="performance-tips">
+<h1>Performance Tips<a class="headerlink" href="#performance-tips" title="Link to this heading"></a></h1>
+<p>This page will cover performance tips for using pyHaasAPI efficiently.</p>
+<p><em>Content coming soon.</em></p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="parameter_optimization.html" class="btn btn-neutral float-left" title="Advanced Parameter Optimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="custom_integrations.html" class="btn btn-neutral float-right" title="Custom Integrations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyHaasAPI Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
