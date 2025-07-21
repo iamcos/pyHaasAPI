@@ -1,14 +1,17 @@
-Market Data Examples
-===================
+Trade Markets Data Examples
+==========================
 
-This page demonstrates how to fetch and use market data with pyHaasAPI, including getting market lists, prices, order books, and recent trades.
+This page demonstrates how to fetch and use **trade markets data** (exchange trade markets) with pyHaasAPI, including getting available markets, prices, order books, and recent trades. 
+
+.. note::
+   This page focuses on *trade market discovery* and live market info (prices, order books, trades). For fetching historical market data (OHLCV, chart data, etc.), see the backtesting or chart data examples.
 
 .. contents::
    :local:
    :depth: 2
 
-Listing All Markets
--------------------
+Listing All Trade Markets
+------------------------
 
 .. code-block:: python
 
@@ -28,12 +31,12 @@ Listing All Markets
     for market in markets[:5]:
         print(f"Market: {market.price_source} {market.primary}/{market.secondary}")
 
-Getting Market Price
---------------------
+Getting Latest Price (Ticker)
+-----------------------------
 
 .. code-block:: python
 
-    # Get the price for a specific market
+    # Get the price for a specific trade market
     market = markets[0]
     price = api.get_market_price(executor, market.format_market_tag(market.price_source))
     print(f"Price for {market.primary}/{market.secondary}: {price}")
@@ -54,4 +57,4 @@ Getting Recent Trades
     trades = api.get_last_trades(executor, market.format_market_tag(market.price_source))
     print(f"Recent Trades: {trades[:3]}")
 
-This workflow covers the basics of market data access. You can expand it to include chart data, market snapshots, and more. 
+This workflow covers the basics of trade market discovery and live data. For historical data, see the backtesting or chart data documentation. 
