@@ -1,5 +1,12 @@
 # Authentication
 
+## ⚠️ SECURITY WARNING ⚠️
+**DO NOT EXPOSE PRIVATE DATA IN SCRIPTS! USE .env FILE!!!**
+
+- **NEVER** hardcode API keys, passwords, emails, or any sensitive credentials in your scripts
+- **ALWAYS** use environment variables loaded from a `.env` file
+- **NEVER** commit credentials to version control
+
 ## Best Practices
 
 - Use `RequestsExecutor.authenticate()` for all scripts and workflows.

@@ -1,215 +1,252 @@
 # pyHaasAPI
 
-A comprehensive Python library for interacting with the HaasOnline Trading Bot API.
+A modern Python 3.11+ client for the HaasOnline Trading Bot API, featuring advanced futures trading support with PERPETUAL and QUARTERLY contracts, position modes, margin modes, and leverage settings.
+
+## 🚀 Features
+
+- **Modern Python 3.11+**: Uses the latest Python features including match statements, union types (`|`), and `Self` type hints
+- **Futures Trading Support**: Full support for PERPETUAL and QUARTERLY contracts
+- **Advanced Trading Modes**: Position modes (ONE-WAY vs HEDGE), margin modes (CROSS vs ISOLATED)
+- **Leverage Management**: Configurable leverage settings up to 125x (exchange dependent)
+- **Type Safety**: Comprehensive type hints with Pydantic models
+- **Async Support**: Both synchronous and asynchronous API clients
+- **Comprehensive Documentation**: Full API reference and examples
+
+## 📋 Requirements
+
+- **Python 3.11 or higher** (required for modern syntax features)
+- HaasOnline Trading Bot server running locally or remotely
+- Valid HaasOnline account with API access
+
+## 🛠️ Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/pyHaasAPI.git
+cd pyHaasAPI
+
+# Create a virtual environment with Python 3.11
+python3.11 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install the package
+pip install -e .
+```
+
+## ⚠️ SECURITY WARNING ⚠️
+
+**DO NOT EXPOSE PRIVATE DATA IN SCRIPTS! USE .env FILE!!!**
+
+- **NEVER** hardcode API keys, passwords, emails, or any sensitive credentials in your scripts
+- **ALWAYS** use environment variables loaded from a `.env` file
+- **NEVER** commit credentials to version control
+- **ALWAYS** use `config/settings.py` to load credentials from environment variables
+- **NEVER** share scripts containing hardcoded credentials
+
+Example of **CORRECT** usage:
+```python
+from config import settings
+executor = executor.authenticate(
+    email=settings.API_EMAIL,  # Loaded from .env
+    password=settings.API_PASSWORD  # Loaded from .env
+)
+```
+
+Example of **WRONG** usage:
+```python
+# ❌ NEVER DO THIS!
+executor = executor.authenticate(
+    email="admin@admin.com",  # Hardcoded credentials
+    password="adm2inadm4in!"  # Hardcoded credentials
+)
+```
+
+## 🔧 Configuration
+
+Create a `.env` file in the project root:
+
+```env
+API_HOST=127.0.0.1
+API_PORT=8090
+API_EMAIL=your_email@example.com
+API_PASSWORD=your_password
+```
 
 ## 🚀 Quick Start
 
+### Basic Authentication
+
 ```python
 from pyHaasAPI import api
-from pyHaasAPI.model import CreateLabRequest
+from config import settings
 
-# Authenticate
-executor = api.RequestsExecutor(host="127.0.0.1", port=8090, state=api.Guest())
-auth_executor = executor.authenticate(email="your_email", password="your_password")
+# Create and authenticate executor
+executor = api.RequestsExecutor(
+    host=settings.API_HOST,
+    port=settings.API_PORT,
+    state=api.Guest()
+).authenticate(
+    email=settings.API_EMAIL,
+    password=settings.API_PASSWORD
+)
+```
 
-# Create a lab with proper market and account assignment
-from pyHaasAPI.model import CloudMarket
-market = CloudMarket(category="SPOT", price_source="BINANCE", primary="BTC", secondary="USDT")
+### Futures Trading Example
 
-req = CreateLabRequest.with_generated_name(
-    script_id="your_script_id",
-    account_id="your_account_id", 
-    market=market,
-    exchange_code="BINANCE",
-    interval=1,
-    default_price_data_style="CandleStick"
+```python
+from pyHaasAPI import api
+from pyHaasAPI.model import CloudMarket, PositionMode, MarginMode
+
+# Create futures market
+btc_perpetual = CloudMarket(
+    category="FUTURES",
+    price_source="BINANCEQUARTERLY",
+    primary="BTC",
+    secondary="USD",
+    contract_type="PERPETUAL"
 )
 
-lab = api.create_lab(auth_executor, req)
-print(f"Lab created: {lab.lab_id}")
+# Format market tag
+market_tag = btc_perpetual.format_futures_market_tag("BINANCEQUARTERLY", "PERPETUAL")
+# Result: "BINANCEQUARTERLY_BTC_USD_PERPETUAL"
+
+# Set position mode to ONE-WAY
+api.set_position_mode(
+    executor,
+    account_id="your_account_id",
+    market=market_tag,
+    position_mode=PositionMode.ONE_WAY
+)
+
+# Set margin mode to CROSS
+api.set_margin_mode(
+    executor,
+    account_id="your_account_id",
+    market=market_tag,
+    margin_mode=MarginMode.CROSS
+)
+
+# Set leverage to 50x
+api.set_leverage(
+    executor,
+    account_id="your_account_id",
+    market=market_tag,
+    leverage=50.0
+)
+```
+
+### Creating Futures Labs
+
+```python
+from pyHaasAPI.model import CreateLabRequest, PriceDataStyle
+
+# Create lab for perpetual contract
+lab_request = CreateLabRequest.with_futures_market(
+    script_id="your_script_id",
+    account_id="your_account_id",
+    market=btc_perpetual,
+    exchange_code="BINANCEQUARTERLY",
+    interval=1,
+    default_price_data_style=PriceDataStyle.CandleStick,
+    contract_type="PERPETUAL"
+)
+
+# Add futures-specific settings
+lab_request.leverage = 50.0
+lab_request.position_mode = PositionMode.ONE_WAY
+lab_request.margin_mode = MarginMode.CROSS
+
+# Create the lab
+lab = api.create_lab(executor, lab_request)
 ```
 
 ## 📚 Documentation
 
-- [Lab Management](./docs/lab_management.md) - Complete guide to creating and managing labs
-- [Market and Account Assignment Fix](./docs/MARKET_ACCOUNT_ASSIGNMENT_FIX.md) - Detailed explanation of the fix for market/account assignment issues
-- [API Reference](./docs/api_reference.md) - Complete API documentation
-- [Examples](./examples/) - Working examples and tutorials
+- [Account Types Reference](docs/account_types_reference.md) - Complete reference for all supported exchange account types
+- [Futures Trading Guide](docs/futures_trading_guide.md) - Complete guide to futures trading features
+- [API Reference](docs/api_reference.md) - Full API documentation
+- [Examples](examples/) - Working examples for all features
 
-## 🔧 Recent Fixes
+## 🔍 Key Features Explained
 
-### Market and Account Assignment Fix ✅
+### Contract Types
 
-**Issue**: Labs were being created with incorrect or empty market tags and account IDs, causing them to be queued with wrong market information.
+- **PERPETUAL**: No expiration date, most common for crypto futures
+- **QUARTERLY**: Expires every 3 months, good for longer-term strategies
 
-**Solution**: Fixed HTTP method and data format issues in the API layer, ensuring proper market and account assignment.
+### Position Modes
 
-**Key Changes**:
-- Fixed POST request handling for lab updates
-- Added proper JSON encoding for complex objects
-- Fixed indentation and syntax errors
-- Enhanced parameter handling for both dict and object types
+- **ONE-WAY (0)**: Only one position at a time, simpler for beginners
+- **HEDGE (1)**: Can have both long and short positions simultaneously
 
-**Verification**: The `examples/lab_full_rundown.py` script now successfully creates labs with correct market tags and account IDs.
+### Margin Modes
 
-## 🎯 Key Features
+- **CROSS (0)**: All balance used as margin, more efficient
+- **ISOLATED (1)**: Each position has allocated margin, better risk management
 
-- **Lab Management**: Create, update, clone, and delete labs
-- **Market Operations**: Fetch markets, prices, and order books
-- **Account Management**: Manage trading accounts and balances
-- **Script Management**: Upload, edit, and manage trading scripts
-- **Backtesting**: Run comprehensive backtests with parameter optimization
-- **Bot Management**: Create and manage live trading bots
-- **Order Management**: Place and manage trading orders
+### Market Format
 
-## 📦 Installation
+- **Spot**: `BINANCE_BTC_USDT_`
+- **Perpetual**: `BINANCEQUARTERLY_BTC_USD_PERPETUAL`
+- **Quarterly**: `BINANCEQUARTERLY_BTC_USD_QUARTERLY`
+
+## 🧪 Testing
 
 ```bash
-pip install pyHaasAPI
+# Run all tests
+pytest
+
+# Run only unit tests
+pytest -m unit
+
+# Run only integration tests
+pytest -m integration
+
+# Run with coverage
+pytest --cov=pyHaasAPI
 ```
 
-## 🔑 Authentication
-
-```python
-from pyHaasAPI import api
-
-# Create executor
-executor = api.RequestsExecutor(
-    host="127.0.0.1",  # HaasOnline API host
-    port=8090,         # HaasOnline API port
-    state=api.Guest()
-)
-
-# Authenticate
-auth_executor = executor.authenticate(
-    email="your_email@example.com",
-    password="your_password"
-)
-```
-
-## 🧪 Examples
-
-### Basic Lab Creation
-
-```python
-from pyHaasAPI import api
-from pyHaasAPI.model import CreateLabRequest, CloudMarket
-
-# Setup market and account
-market = CloudMarket(category="SPOT", price_source="BINANCE", primary="BTC", secondary="USDT")
-account_id = "your_account_id"
-script_id = "your_script_id"
-
-# Create lab with proper market assignment
-req = CreateLabRequest.with_generated_name(
-    script_id=script_id,
-    account_id=account_id,
-    market=market,
-    exchange_code="BINANCE",
-    interval=1,
-    default_price_data_style="CandleStick"
-)
-
-lab = api.create_lab(auth_executor, req)
-print(f"Lab created with market: {lab.settings.market_tag}")
-```
-
-### Running a Backtest
-
-```python
-from pyHaasAPI import lab
-from pyHaasAPI.domain import BacktestPeriod
-
-# Run a 30-day backtest
-period = BacktestPeriod(period_type=BacktestPeriod.Type.DAY, count=30)
-results = lab.backtest(auth_executor, lab.lab_id, period)
-
-print(f"Backtest completed with {len(results.items)} configurations")
-```
-
-### Bulk Lab Creation
-
-```python
-from pyHaasAPI.market_manager import MarketManager
-
-# Create labs for multiple trading pairs
-market_manager = MarketManager(auth_executor)
-trading_pairs = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT']
-
-for pair in trading_pairs:
-    validation = market_manager.validate_market_setup("BINANCE", pair.split('/')[0], pair.split('/')[1])
-    if validation["ready"]:
-        # Create lab using the working pattern
-        req = CreateLabRequest.with_generated_name(
-            script_id=script_id,
-            account_id=validation["account"].account_id,
-            market=validation["market"],
-            exchange_code="BINANCE",
-            interval=1,
-            default_price_data_style="CandleStick"
-        )
-        lab = api.create_lab(auth_executor, req)
-        print(f"Created lab for {pair}: {lab.lab_id}")
-```
-
-## 🛠️ Development
-
-### Running Tests
+## 📦 Development
 
 ```bash
-# Run the working example
-python -m examples.lab_full_rundown
+# Install development dependencies
+pip install -e ".[dev]"
 
-# Run specific tests
-python -m pytest tests/
-```
+# Format code
+black pyHaasAPI/ tests/ examples/
 
-### Project Structure
+# Sort imports
+isort pyHaasAPI/ tests/ examples/
 
-```
-pyHaasAPI/
-├── pyHaasAPI/           # Core library
-│   ├── api.py          # API client and functions
-│   ├── lab.py          # Lab management functions
-│   ├── model.py        # Data models and types
-│   └── ...
-├── examples/           # Working examples
-│   ├── lab_full_rundown.py  # Complete workflow example
-│   ├── bulk_create_labs_for_pairs.py  # Bulk lab creation
-│   └── ...
-├── docs/              # Documentation
-│   ├── lab_management.md
-│   ├── MARKET_ACCOUNT_ASSIGNMENT_FIX.md
-│   └── ...
-└── tests/             # Test suite
+# Type checking
+mypy pyHaasAPI/
+
+# Linting
+flake8 pyHaasAPI/ tests/ examples/
 ```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## ⚠️ Disclaimer
+
+This library is for educational and research purposes. Trading cryptocurrencies involves substantial risk of loss. Use at your own risk.
+
 ## 🆘 Support
 
-- **Documentation**: Check the [docs](./docs/) directory
-- **Examples**: See the [examples](./examples/) directory
-- **Issues**: Report bugs and feature requests on GitHub
+- [Documentation](docs/)
+- [Issues](https://github.com/yourusername/pyHaasAPI/issues)
+- [Examples](examples/)
 
-## 🔄 Changelog
+---
 
-### Latest Changes
-- ✅ Fixed market and account assignment issues
-- ✅ Enhanced lab creation with proper market tag formatting
-- ✅ Improved parameter handling for both dict and object types
-- ✅ Added comprehensive documentation and examples
-- ✅ Fixed HTTP method and data format issues in API layer
-
-For detailed information about recent fixes, see [CHANGES_SUMMARY.md](CHANGES_SUMMARY.md).
+**Note**: This library requires Python 3.11+ for modern syntax features like match statements and union types. Make sure you're using the correct Python version!

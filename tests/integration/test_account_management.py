@@ -6,7 +6,7 @@ import os
 from config import settings
 from dotenv import load_dotenv
 load_dotenv()
-from .test_utils import TestLogger, test_authentication
+from .test_utils import TestLogger, authenticate_for_tests
 
 def test_advanced_account_management(logger: TestLogger):
     """Test advanced account management features"""

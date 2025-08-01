@@ -18,12 +18,12 @@ def main():
     
     # Authenticate
     executor = api.RequestsExecutor(
-        host="127.0.0.1",
-        port=8090,
+        host=os.getenv("HAAS_API_HOST"),
+        port=int(os.getenv("HAAS_API_PORT")),
         state=api.Guest()
     ).authenticate(
-        email="garrypotterr@gmail.com",
-        password="IQYTCQJIQYTCQJ"
+        email=os.getenv("HAAS_API_EMAIL"),
+        password=os.getenv("HAAS_API_PASSWORD")
     )
     print("✅ Authenticated!")
     

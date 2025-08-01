@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 from config import settings
+import pytest
 
 class TestLogger:
     def __init__(self):
@@ -71,7 +72,7 @@ def test_server_connectivity() -> bool:
         print(f"    Error: {e}")
         return False
 
-def test_authentication(logger: TestLogger) -> bool:
+def authenticate_for_tests(logger: TestLogger) -> bool:
     """Test authentication"""
     print("\n🔐 Testing authentication...")
     try:

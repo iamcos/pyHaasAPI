@@ -1,0 +1,5 @@
+All accounts:
+Simulated accounts: []
+Failed to create simulated account: Invalid drivercode
+Available driver codes/types may differ on your server. Please check the HaasOnline UI for supported simulated account types.
+To add a simulated account: Log in to the HaasOnline web UI, go to 'Accounts', and add a new simulated account.
