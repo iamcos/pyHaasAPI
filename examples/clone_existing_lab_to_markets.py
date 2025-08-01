@@ -86,7 +86,7 @@ class LabCloner:
         logger.info("🔍 Looking for existing Example lab...")
         
         # Get all labs
-        labs = api.get_labs(self.executor)
+        labs = api.get_all_labs(self.executor)
         
         # Find the Example lab
         example_labs = [lab for lab in labs if lab.name == "Example"]

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Test market fetching methods to see which one works better
+Integration test for market fetching methods using pyHaasAPI.
+
+This test authenticates using credentials from .env and checks:
+- Market fetching for multiple exchanges (BINANCE, COINBASE, KRAKEN)
+- That target pairs (BTC/USDT, ETH/USDT, SOL/USDT) are present in the results
+- Prints sample markets for each exchange
 """
 import os
 from config import settings
@@ -10,17 +15,23 @@ from pyHaasAPI import api
 from pyHaasAPI.price import PriceAPI
 
 def test_market_fetching():
+    """
+    Test fetching markets from multiple exchanges and verify target pairs exist.
+    - Authenticates using .env credentials
+    - Fetches markets for BINANCE, COINBASE, KRAKEN
+    - Checks for BTC/USDT, ETH/USDT, SOL/USDT pairs
+    """
     print("🧪 Testing Market Fetching Methods\n")
     
     # Authenticate
     print("🔐 Authenticating...")
     executor = api.RequestsExecutor(
-        host="127.0.0.1",
-        port=8090,
+        host=settings.API_HOST,
+        port=settings.API_PORT,
         state=api.Guest()
     ).authenticate(
-        email="your_email@example.com",
-        password="your_password"
+        email=settings.API_EMAIL,
+        password=settings.API_PASSWORD
     )
     print("✅ Authentication successful")
     

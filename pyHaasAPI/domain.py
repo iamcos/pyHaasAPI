@@ -26,13 +26,12 @@ class BacktestPeriod:
         Returns:
             int: Backtest period duration in seconds.
         """
-        match self.period_type:
-            case BacktestPeriod.Type.MONTH:
-                return 86400 * self.count
-            case BacktestPeriod.Type.DAY:
-                return int(86400 * (self.count * 30.5))
-
-        raise ValueError(f"Unknown period type: {self.period_type}")
+        if self.period_type == BacktestPeriod.Type.MONTH:
+            return 86400 * self.count
+        elif self.period_type == BacktestPeriod.Type.DAY:
+            return int(86400 * (self.count * 30.5))
+        else:
+            raise ValueError(f"Unknown period type: {self.period_type}")
 
     def as_days(self) -> int:
         """
@@ -41,13 +40,12 @@ class BacktestPeriod:
         Returns:
             int: Backtest period duration in days.
         """
-        match self.period_type:
-            case BacktestPeriod.Type.MONTH:
-                return self.count
-            case BacktestPeriod.Type.DAY:
-                return int(self.count * 30.5)
-
-        raise ValueError(f"Unknown period type: {self.period_type}")
+        if self.period_type == BacktestPeriod.Type.MONTH:
+            return self.count
+        elif self.period_type == BacktestPeriod.Type.DAY:
+            return int(self.count * 30.5)
+        else:
+            raise ValueError(f"Unknown period type: {self.period_type}")
 
     @property
     def start_unix(self) -> int:

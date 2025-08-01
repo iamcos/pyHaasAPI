@@ -12,14 +12,17 @@ This script demonstrates the core functionality:
 
 import time
 import os
+from dotenv import load_dotenv
+load_dotenv()
+# Credentials must be set in your .env file as HAAS_API_HOST, HAAS_API_PORT, HAAS_API_EMAIL, HAAS_API_PASSWORD
 from pyHaasAPI import api
 from pyHaasAPI.model import CreateLabRequest
 
 # Configuration
-HAAS_HOST = os.getenv("HAAS_API_HOST", "127.0.0.1")
-HAAS_PORT = int(os.getenv("HAAS_API_PORT", "8090"))
-HAAS_EMAIL = os.getenv("HAAS_API_EMAIL", "your_email@example.com")
-HAAS_PASSWORD = os.getenv("HAAS_API_PASSWORD", "your_password")
+HAAS_HOST = os.getenv("HAAS_API_HOST")
+HAAS_PORT = int(os.getenv("HAAS_API_PORT"))
+HAAS_EMAIL = os.getenv("HAAS_API_EMAIL")
+HAAS_PASSWORD = os.getenv("HAAS_API_PASSWORD")
 
 def main():
     print("🚀 Simple Lab Cloning Example")

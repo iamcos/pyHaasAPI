@@ -1,7 +1,6 @@
 from enum import Enum
 import dataclasses
-from typing import Any, Dict, List, Optional, Generic, Literal, TypeVar, Type, Union
-from typing_extensions import Self
+from typing import Any, Dict, List, Optional, Generic, Literal, TypeVar, Type, Union, TYPE_CHECKING
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from decimal import Decimal
 
@@ -18,6 +17,7 @@ from pyHaasAPI.parameters import (
     ParameterType
 )
 from pyHaasAPI.models.scripts import ScriptRecord
+
 
 T = TypeVar("T")
 
@@ -61,6 +61,36 @@ class AppLogin(BaseModel):
     details: UserDetails = Field(alias="D")
 
 
+class HaasScriptSettings(BaseModel):
+    """Script settings model"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    bot_id: Optional[str] = Field(alias="botId", default="")
+    bot_name: Optional[str] = Field(alias="botName", default="")
+    account_id: Optional[str] = Field(alias="accountId", default="")
+    market_tag: Optional[str] = Field(alias="marketTag", default="")
+    position_mode: int = Field(alias="positionMode", default=0)
+    margin_mode: int = Field(alias="marginMode", default=0)
+    leverage: float = Field(alias="leverage", default=0.0)
+    trade_amount: float = Field(alias="tradeAmount", default=100.0)
+    interval: int = Field(alias="interval", default=15)
+    chart_style: int = Field(alias="chartStyle", default=300)
+    order_template: int = Field(alias="orderTemplate", default=500)
+    script_parameters: Optional[Dict[str, Any]] = Field(alias="scriptParameters", default_factory=dict)
+    
+    @field_validator('bot_id', 'bot_name', 'account_id', 'market_tag', mode='before')
+    @classmethod
+    def handle_null_strings(cls, v):
+        """Convert null to empty string for string fields"""
+        return "" if v is None else v
+    
+    @field_validator('script_parameters', mode='before')
+    @classmethod
+    def handle_null_dict(cls, v):
+        """Convert null to empty dict for script_parameters"""
+        return {} if v is None else v
+
+
 class HaasBot(BaseModel):
     user_id: str = Field(alias="UI")
     bot_id: str = Field(alias="ID")
@@ -89,6 +119,7 @@ class HaasBot(BaseModel):
     is_white_label: bool = Field(alias="IWL")
     master_bot_id: str = Field(alias="MBID")
     followers: int = Field(alias="F")
+    settings: HaasScriptSettings = Field(alias="ST", default_factory=HaasScriptSettings)
 
 
 class HaasScriptItemWithDependencies(BaseModel):
@@ -126,14 +157,67 @@ PriceDataStyle = Literal[
     "Mountain",
 ]
 
+from enum import IntEnum
+from typing import Literal, Optional, List, Dict, Any, Type, Self
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+import dataclasses
+
+class PositionMode(IntEnum):
+    """Position mode enumeration"""
+    ONE_WAY = 0
+    HEDGE = 1
+
+class MarginMode(IntEnum):
+    """Margin mode enumeration"""
+    CROSS = 0
+    ISOLATED = 1
+
+class ContractType(IntEnum):
+    """Contract type enumeration"""
+    SPOT = 0
+    PERPETUAL = 1
+    QUARTERLY = 2
+    MONTHLY = 3
+
 class CloudMarket(BaseModel):
     category: str = Field(alias="C")
     price_source: str = Field(alias="PS")
     primary: str = Field(alias="P")
     secondary: str = Field(alias="S")
+    contract_type: Optional[str] = Field(alias="CT", default=None)  # PERPETUAL, QUARTERLY, etc.
 
-    def format_market_tag(self, exchange_code: str) -> str:
-        return f"{exchange_code}_{self.primary}_{self.secondary}_"
+    def format_market_tag(self, exchange_code: str, contract_type: Optional[str] = None) -> str:
+        """
+        Format market tag with optional contract type
+        
+        Args:
+            exchange_code: Exchange code (e.g., "BINANCE")
+            contract_type: Contract type (e.g., "PERPETUAL", "QUARTERLY")
+            
+        Returns:
+            Formatted market tag (e.g., "BINANCEQUARTERLY_BTC_USD_PERPETUAL")
+        """
+        base_tag = f"{exchange_code.upper()}_{self.primary.upper()}_{self.secondary.upper()}"
+        
+        if contract_type:
+            return f"{base_tag}_{contract_type.upper()}"
+        elif self.contract_type:
+            return f"{base_tag}_{self.contract_type.upper()}"
+        else:
+            return f"{base_tag}_"
+
+    def format_futures_market_tag(self, exchange_code: str, contract_type: str = "PERPETUAL") -> str:
+        """
+        Format futures market tag specifically for BINANCEQUARTERLY style exchanges
+        
+        Args:
+            exchange_code: Exchange code (e.g., "BINANCEQUARTERLY")
+            contract_type: Contract type (e.g., "PERPETUAL", "QUARTERLY")
+            
+        Returns:
+            Formatted futures market tag (e.g., "BINANCEQUARTERLY_BTC_USD_PERPETUAL")
+        """
+        return f"{exchange_code.upper()}_{self.primary.upper()}_{self.secondary.upper()}_{contract_type.upper()}"
 
 
 @dataclasses.dataclass
@@ -160,11 +244,49 @@ class CreateLabRequest:
         exchange_code: str,
         interval: int,
         default_price_data_style: PriceDataStyle,
+        contract_type: Optional[str] = None,
     ) -> Self:
         name = f"{interval}_{market.primary}_{market.secondary}_{script_id}_{account_id}"
         
-        # Format market tag string
-        market_tag = f"{exchange_code.upper()}_{market.primary.upper()}_{market.secondary.upper()}_"
+        # Format market tag string with contract type support
+        market_tag = market.format_market_tag(exchange_code, contract_type)
+        
+        return cls(
+            script_id=script_id,
+            account_id=account_id,
+            market=market_tag,
+            interval=interval,
+            default_price_data_style=default_price_data_style,
+            name=name,
+        )
+
+    @classmethod
+    def with_futures_market(
+        cls: Type[Self],
+        script_id: str,
+        account_id: str,
+        market: CloudMarket,
+        exchange_code: str,
+        interval: int,
+        default_price_data_style: PriceDataStyle,
+        contract_type: str = "PERPETUAL",
+    ) -> Self:
+        """
+        Create lab request specifically for futures markets (BINANCEQUARTERLY style)
+        
+        Args:
+            script_id: Script ID
+            account_id: Account ID
+            market: CloudMarket object
+            exchange_code: Exchange code (e.g., "BINANCEQUARTERLY")
+            interval: Chart interval
+            default_price_data_style: Price data style
+            contract_type: Contract type ("PERPETUAL" or "QUARTERLY")
+        """
+        name = f"{interval}_{market.primary}_{market.secondary}_{contract_type}_{script_id}_{account_id}"
+        
+        # Format futures market tag
+        market_tag = market.format_futures_market_tag(exchange_code, contract_type)
         
         return cls(
             script_id=script_id,
@@ -192,36 +314,6 @@ class UserAccount(BaseModel):
     version: int = Field(alias="V")
 
 
-class HaasScriptSettings(BaseModel):
-    """Script settings model"""
-    model_config = ConfigDict(populate_by_name=True)
-    
-    bot_id: Optional[str] = Field(alias="botId", default="")
-    bot_name: Optional[str] = Field(alias="botName", default="")
-    account_id: Optional[str] = Field(alias="accountId", default="")
-    market_tag: Optional[str] = Field(alias="marketTag", default="")
-    position_mode: int = Field(alias="positionMode", default=0)
-    margin_mode: int = Field(alias="marginMode", default=0)
-    leverage: float = Field(alias="leverage", default=0.0)
-    trade_amount: float = Field(alias="tradeAmount", default=100.0)
-    interval: int = Field(alias="interval", default=15)
-    chart_style: int = Field(alias="chartStyle", default=300)
-    order_template: int = Field(alias="orderTemplate", default=500)
-    script_parameters: Optional[Dict[str, Any]] = Field(alias="scriptParameters", default_factory=dict)
-    
-    @field_validator('bot_id', 'bot_name', 'account_id', 'market_tag', mode='before')
-    @classmethod
-    def handle_null_strings(cls, v):
-        """Convert null to empty string for string fields"""
-        return "" if v is None else v
-    
-    @field_validator('script_parameters', mode='before')
-    @classmethod
-    def handle_null_dict(cls, v):
-        """Convert null to empty dict for script_parameters"""
-        return {} if v is None else v
-
-
 class LabRecord(BaseModel):
     """Model representing a lab record"""
     user_id: str = Field(alias="UID")
@@ -246,7 +338,7 @@ class LabRecord(BaseModel):
     @property
     def is_running(self) -> bool:
         """Check if the lab is currently running"""
-        return self.running_since > 0
+        return self.status in [LabStatus.QUEUED, LabStatus.RUNNING]
 
 class StartLabExecutionRequest(BaseModel):
     """Request model for starting lab execution"""
@@ -459,7 +551,7 @@ class LabDetails(BaseModel):
     start_unix: int = Field(alias="SU")
     end_unix: int = Field(alias="EU")
     send_email: bool = Field(alias="SE")
-    cancel_message: Optional[str] = Field(alias="CM")
+    cancel_message: Optional[str] = Field(alias="CM", default=None)
 
     @property
     def is_running(self) -> bool:
@@ -518,4 +610,3 @@ class HaasScriptFolder(BaseModel):
     parent_id: int = Field(alias="PID")
     created_unix: int = Field(alias="CU")
     updated_unix: int = Field(alias="UU")
-

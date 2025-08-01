@@ -1,3 +1,11 @@
+"""
+⚠️ SECURITY WARNING ⚠️
+DO NOT EXPOSE PRIVATE DATA IN SCRIPTS! USE .env FILE!!!
+
+This script demonstrates synchronous executor functionality.
+NEVER hardcode credentials - always use environment variables!
+"""
+
 import os
 from config import settings
 from dotenv import load_dotenv
@@ -10,14 +18,15 @@ from pyHaasAPI.model import CreateLabRequest
 
 
 def main():
-    executor = api.RequestsExecutor(host="127.0.0.1", port=8090, state=api.Guest())
+    # ⚠️ SECURITY: Use environment variables, never hardcode credentials!
+    executor = api.RequestsExecutor(host=settings.API_HOST, port=settings.API_PORT, state=api.Guest())
 
     markets = api.get_all_markets(executor)
     market = random.choice(markets)
     print(f"Got {len(markets)} and choosed {market}")
 
     # Authenticate to get access for the all endpoints
-    executor = executor.authenticate(email="admin@admin.com", password="adm2inadm4in!")
+    executor = executor.authenticate(email=settings.API_EMAIL, password=settings.API_PASSWORD)
 
     accounts = api.get_accounts(executor)
     account = random.choice(accounts)

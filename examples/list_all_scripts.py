@@ -6,16 +6,17 @@ import os
 from config import settings
 from dotenv import load_dotenv
 load_dotenv()
+# Credentials must be set in your .env file as HAAS_API_HOST, HAAS_API_PORT, HAAS_API_EMAIL, HAAS_API_PASSWORD
 from pyHaasAPI import api
 
 def main():
     executor = api.RequestsExecutor(
-        host="127.0.0.1",
-        port=8090,
+        host=os.getenv("HAAS_API_HOST"),
+        port=int(os.getenv("HAAS_API_PORT")),
         state=api.Guest()
     ).authenticate(
-        email="your_email@example.com",
-        password="your_password"
+        email=os.getenv("HAAS_API_EMAIL"),
+        password=os.getenv("HAAS_API_PASSWORD")
     )
     scripts = api.get_all_scripts(executor)
     print(f"Found {len(scripts)} script items:")
