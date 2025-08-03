@@ -12,3 +12,4 @@ docs/cursor_rules_documentation.md
 /.venv
 /reference_files
 env.example
+/.venv311
