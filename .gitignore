@@ -13,3 +13,6 @@ docs/cursor_rules_documentation.md
 /reference_files
 env.example
 /.venv311
+*.pyc
+/interactive_lab_management/frontend/node_modules
+/tools/haasscript_mcp_local_server/node_modules
