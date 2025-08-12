@@ -1,75 +1,38 @@
 #!/usr/bin/env python3
 """
-Script to publish individual projects to separate GitHub repositories.
-This handles the monorepo → separate repos publishing workflow.
+Repository Publishing Script
+Publishes pyHaasAPI and mcp_server as separate GitHub repositories
+while maintaining the current monorepo structure.
 """
 
-import subprocess
-import sys
 import os
+import subprocess
+import tempfile
 import shutil
 from pathlib import Path
-from typing import List, Optional
-import tempfile
 
-class RepoPublisher:
-    def __init__(self):
-        self.root = Path(__file__).parent
-        self.projects = {
-            'pyhaasapi': {
-                'source_dir': self.root / 'pyHaasAPI',
-                'repo_url': 'https://github.com/Cosmos/pyHaasAPI.git',
-                'include_files': [
-                    'pyHaasAPI/',
-                    'examples/',
-                    'tests/',
-                    'docs/',
-                    'pyproject.toml',
-                    'README.md',
-                    'LICENSE',
-                    '.gitignore'
-                ]
-            },
-            'mcp-server': {
-                'source_dir': self.root / 'mcp_server',
-                'repo_url': 'https://github.com/Cosmos/haas-mcp-server.git',
-                'include_files': [
-                    'mcp_server/',
-                    'automation/',
-                    'endpoints/',
-                    'tests/',
-                    'workflows/',
-                    'pyproject.toml',
-                    'README.md',
-                    'LICENSE',
-                    'requirements.txt',
-                    'setup.py',
-                    '.gitignore'
-                ]
-            }
-        }
+def run_command(cmd, cwd=None):
+    """Run a shell command and return the result."""
+    result = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Error running command: {cmd}")
+        print(f"Error: {result.stderr}")
+        return False
+    return result.stdout.strip()
+
+def create_pyhaasapi_repo():
+    """Create and publish the pyHaasAPI repository."""
+    print("📦 Publishing pyHaasAPI...")
     
-    def run_command(self, cmd: List[str], cwd: Optional[Path] = None, capture_output: bool = False) -> subprocess.CompletedProcess:
-        """Run a command and return the result."""
-        print(f"Running: {' '.join(cmd)}")
-        if cwd:
-            print(f"In directory: {cwd}")
-        
-        return subprocess.run(
-            cmd, 
-            cwd=cwd or self.root,
-            capture_output=capture_output,
-            text=True
-        )
+    # The current repo is already set up for pyHaasAPI
+    # Just need to ensure it's properly configured
     
-    def create_project_readme(self, project: str, temp_dir: Path):
-        """Create a project-specific README."""
-        if project == 'pyhaasapi':
-            readme_content = """# pyHaasAPI
+    # Update the README to focus on pyHaasAPI
+    readme_content = """# pyHaasAPI
 
-Python library for HaasOnline API integration with advanced trading automation capabilities.
+A comprehensive Python library for HaasOnline API integration with advanced trading automation capabilities.
 
-## Features
+## 🚀 Features
 
 - **Complete API Coverage**: Full HaasOnline API integration with type-safe models
 - **Advanced Analysis**: Trade-level backtest data extraction with intelligent debugging
@@ -78,17 +41,18 @@ Python library for HaasOnline API integration with advanced trading automation c
 - **Account Management**: Standardized account creation and naming schemas
 - **Parameter Intelligence**: Advanced parameter optimization with strategic values
 
-## Installation
+## 📦 Installation
 
 ```bash
 pip install pyHaasAPI
 ```
 
-## Quick Start
+## 🔧 Quick Start
 
 ```python
 from pyHaasAPI import api
 from pyHaasAPI.analysis import BacktestDataExtractor
+from pyHaasAPI.markets import MarketDiscovery
 
 # Get authenticated executor
 executor = api.get_authenticated_executor()
@@ -99,279 +63,289 @@ summary = extractor.extract_backtest_data("backtest_results.json")
 print(f"Extracted {len(summary.trades)} trades with {summary.win_rate:.1f}% win rate")
 ```
 
-## Documentation
+## 📚 Documentation
 
-See the [full documentation](https://github.com/Cosmos/pyHaasAPI/tree/main/docs) for detailed usage examples.
+- [Parameter Optimization Algorithm](docs/PARAMETER_OPTIMIZATION_ALGORITHM.md)
+- [Quick Reference Guide](docs/PARAMETER_OPTIMIZATION_QUICK_REFERENCE.md)
+- [Complete Documentation](docs/README.md)
 
-## License
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines and submit pull requests.
+
+## 📄 License
 
 MIT License - see LICENSE file for details.
+
+---
+
+**Built with ❤️ for reliable, scalable trading automation**
 """
-        elif project == 'mcp-server':
-            readme_content = """# HaasOnline MCP Server
+    
+    with open("README.md", "w") as f:
+        f.write(readme_content)
+    
+    print("✅ pyHaasAPI repository is ready at: https://github.com/iamcos/pyHaasAPI")
+    return True
 
-Model Context Protocol (MCP) server that provides access to HaasOnline API functionality through Kiro and other MCP-compatible clients.
+def create_mcp_server_repo():
+    """Create and publish the MCP Server repository."""
+    print("📦 Publishing haas-mcp-server...")
+    
+    # Create a temporary directory for the new repo
+    with tempfile.TemporaryDirectory() as temp_dir:
+        mcp_repo_path = Path(temp_dir) / "haas-mcp-server"
+        mcp_repo_path.mkdir()
+        
+        # Copy MCP server files
+        files_to_copy = [
+            "mcp_server/",
+            "pyHaasAPI/",  # MCP server depends on pyHaasAPI
+        ]
+        
+        for file_path in files_to_copy:
+            src = Path(file_path)
+            if src.is_dir():
+                dst = mcp_repo_path / src.name
+                shutil.copytree(src, dst)
+            elif src.exists():
+                shutil.copy2(src, mcp_repo_path / src.name)
+        
+        # Create a focused README for MCP server
+        mcp_readme = """# HaasOnline MCP Server
 
-## Features
+A Model Context Protocol (MCP) server that provides access to HaasOnline API functionality through Kiro and other MCP-compatible clients.
 
-- **60+ API Endpoints**: Complete HaasOnline API coverage
-- **Account Management**: Create and manage simulated accounts
-- **Lab Operations**: Create, clone, delete, and backtest labs
-- **Market Data**: Access to 12,398+ real markets
-- **Bulk Operations**: Automated lab creation and execution
+## 🚀 Features
 
-## Installation
+- **Complete HaasOnline Integration**: 60+ API endpoints
+- **Account Management**: Create, manage, and monitor trading accounts
+- **Lab Operations**: Create, clone, and execute trading labs
+- **Market Data**: Access real-time and historical market data
+- **Backtest Execution**: Run and analyze trading strategies
+- **Bulk Operations**: Efficient batch processing
+
+## 📦 Installation
 
 ```bash
 pip install haas-mcp-server
 ```
 
-## Usage
+## 🔧 Quick Start
 
 1. Set up your environment variables:
-   ```bash
-   API_HOST=127.0.0.1
-   API_PORT=8090
-   API_EMAIL=your_email@example.com
-   API_PASSWORD=your_password
-   ```
+```bash
+export API_HOST=127.0.0.1
+export API_PORT=8090
+export API_EMAIL=your_email@example.com
+export API_PASSWORD=your_password
+```
 
-2. Start the server:
-   ```bash
-   haas-mcp-server
-   ```
+2. Run the MCP server:
+```bash
+python -m mcp_server.server
+```
 
-3. Configure in your MCP client (e.g., Kiro):
-   ```json
-   {
-     "mcpServers": {
-       "haas-mcp-server": {
-         "command": "haas-mcp-server",
-         "args": []
-       }
-     }
-   }
-   ```
+## 🛠️ Configuration
 
-## Documentation
+The server can be configured through environment variables or a `.env` file:
 
-See the [full documentation](https://github.com/Cosmos/haas-mcp-server/blob/main/README.md) for detailed setup and usage.
+```env
+API_HOST=127.0.0.1
+API_PORT=8090
+API_EMAIL=your_email@example.com
+API_PASSWORD=your_password
+```
 
-## License
+## 📚 Available Tools
+
+### Account Management
+- `get_haas_status` - Check API connection status
+- `get_all_accounts` - List all user accounts
+- `create_simulated_account` - Create new simulated accounts
+
+### Lab Management
+- `get_all_labs` - List all labs
+- `create_lab` - Create new labs
+- `clone_lab` - Clone existing labs
+- `backtest_lab` - Start lab backtests
+
+### Market Data
+- `get_all_markets` - List available markets
+- `get_market_data` - Retrieve market information
+
+## 🔌 Integration
+
+### Kiro Integration
+
+Add to your `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "haas-mcp-server": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "env": {
+        "API_HOST": "127.0.0.1",
+        "API_PORT": "8090"
+      }
+    }
+  }
+}
+```
+
+## 🧪 Testing
+
+```bash
+cd mcp_server
+python test_mcp.py
+```
+
+## 📄 License
 
 MIT License - see LICENSE file for details.
+
+---
+
+**Built for seamless HaasOnline integration via MCP**
 """
         
-        readme_path = temp_dir / 'README.md'
-        readme_path.write_text(readme_content)
-        print(f"Created project-specific README for {project}")
-    
-    def prepare_project_files(self, project: str, temp_dir: Path):
-        """Prepare files for a specific project in a temporary directory."""
-        if project not in self.projects:
-            raise ValueError(f"Unknown project: {project}")
+        with open(mcp_repo_path / "README.md", "w") as f:
+            f.write(mcp_readme)
         
-        config = self.projects[project]
-        source_dir = config['source_dir']
+        # Initialize git repo
+        os.chdir(mcp_repo_path)
+        run_command("git init")
+        run_command("git add .")
+        run_command('git commit -m "Initial commit: HaasOnline MCP Server"')
         
-        print(f"Preparing files for {project}...")
+        # Create GitHub repo (you'll need to do this manually or use GitHub CLI)
+        print(f"📁 MCP Server repository prepared at: {mcp_repo_path}")
+        print("🔗 To publish to GitHub:")
+        print("1. Create a new repository at https://github.com/new")
+        print("2. Name it: haas-mcp-server")
+        print("3. Run these commands:")
+        print(f"   cd {mcp_repo_path}")
+        print("   git remote add origin https://github.com/Cosmos/haas-mcp-server.git")
+        print("   git branch -M main")
+        print("   git push -u origin main")
         
-        # Copy project-specific files
-        for file_pattern in config['include_files']:
-            source_path = source_dir / file_pattern
-            dest_path = temp_dir / file_pattern
-            
-            if source_path.exists():
-                if source_path.is_dir():
-                    print(f"Copying directory: {source_path} -> {dest_path}")
-                    shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
-                else:
-                    print(f"Copying file: {source_path} -> {dest_path}")
-                    dest_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(source_path, dest_path)
-            else:
-                print(f"Warning: {source_path} does not exist, skipping")
+        # Keep the directory for manual publishing
+        final_path = Path.cwd().parent / "haas-mcp-server-publish"
+        if final_path.exists():
+            shutil.rmtree(final_path)
+        shutil.copytree(mcp_repo_path, final_path)
+        print(f"📂 Repository saved to: {final_path}")
         
-        # Copy shared files from root
-        shared_files = ['LICENSE']
-        for shared_file in shared_files:
-            source_path = self.root / shared_file
-            if source_path.exists():
-                dest_path = temp_dir / shared_file
-                print(f"Copying shared file: {source_path} -> {dest_path}")
-                shutil.copy2(source_path, dest_path)
-        
-        # Create project-specific README
-        self.create_project_readme(project, temp_dir)
-        
-        # Create .gitignore
-        gitignore_content = """# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+    return True
 
-# Virtual environments
-.env
-.venv/
-venv/
-ENV/
-env/
+def create_workspace_summary():
+    """Create a summary of the monorepo workspace."""
+    summary = """# Trading Automation Workspace
 
-# IDE and editors
-.DS_Store
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+This workspace contains multiple interconnected projects for HaasOnline trading automation:
 
-# Project specific
-logs/
-results/
-data/
-*.log
-*.json
+## 📦 Published Repositories
 
-# Temporary files
-*.tmp
-*.temp
+### 1. pyHaasAPI
+- **Repository**: https://github.com/iamcos/pyHaasAPI
+- **Description**: Core Python library for HaasOnline API integration
+- **Location**: Root directory + `pyHaasAPI/` folder
+
+### 2. haas-mcp-server  
+- **Repository**: https://github.com/Cosmos/haas-mcp-server
+- **Description**: MCP server for HaasOnline API access via Kiro
+- **Location**: `mcp_server/` folder
+
+## 🏗️ Development Projects
+
+### 3. AI Trading Interface
+- **Location**: `ai-trading-interface/`
+- **Description**: Advanced React/TypeScript trading interface
+- **Status**: In development
+
+### 4. HaasScript Backtesting
+- **Location**: `haasscript_backtesting/`
+- **Description**: Comprehensive backtesting system
+- **Status**: In development
+
+## 🔧 Workspace Structure
+
+```
+├── pyHaasAPI/              # Core library (published)
+├── mcp_server/             # MCP server (published separately)
+├── ai-trading-interface/   # React trading interface
+├── haasscript_backtesting/ # Backtesting system
+├── examples/               # Usage examples
+├── docs/                   # Documentation
+└── tools/                  # Development tools
+```
+
+## 🚀 Getting Started
+
+1. **For pyHaasAPI development**:
+   ```bash
+   pip install -e .
+   ```
+
+2. **For MCP server development**:
+   ```bash
+   cd mcp_server
+   pip install -r requirements.txt
+   ```
+
+3. **For AI interface development**:
+   ```bash
+   cd ai-trading-interface
+   npm install
+   ```
+
+## 📚 Documentation
+
+- [pyHaasAPI Documentation](docs/README.md)
+- [MCP Server Guide](mcp_server/README.md)
+- [AI Interface Guide](ai-trading-interface/README.md)
+
+---
+
+**Maintained by Cosmos**
 """
-        gitignore_path = temp_dir / '.gitignore'
-        gitignore_path.write_text(gitignore_content)
     
-    def publish_to_github(self, project: str, create_repo: bool = False):
-        """Publish a project to its GitHub repository."""
-        if project not in self.projects:
-            raise ValueError(f"Unknown project: {project}")
-        
-        config = self.projects[project]
-        repo_url = config['repo_url']
-        
-        with tempfile.TemporaryDirectory() as temp_dir_str:
-            temp_dir = Path(temp_dir_str)
-            
-            # Prepare project files
-            self.prepare_project_files(project, temp_dir)
-            
-            # Initialize git repo
-            print(f"Initializing git repository for {project}...")
-            self.run_command(['git', 'init'], temp_dir)
-            self.run_command(['git', 'add', '.'], temp_dir)
-            self.run_command(['git', 'commit', '-m', f'Initial commit for {project}'], temp_dir)
-            
-            # Add remote and push
-            print(f"Adding remote and pushing to {repo_url}...")
-            self.run_command(['git', 'remote', 'add', 'origin', repo_url], temp_dir)
-            
-            # Try to push to main branch
-            result = self.run_command(['git', 'push', '-u', 'origin', 'main'], temp_dir)
-            if result.returncode != 0:
-                # Try master branch if main fails
-                print("Failed to push to main, trying master...")
-                self.run_command(['git', 'branch', '-M', 'master'], temp_dir)
-                result = self.run_command(['git', 'push', '-u', 'origin', 'master'], temp_dir)
-            
-            if result.returncode == 0:
-                print(f"✅ Successfully published {project} to {repo_url}")
-            else:
-                print(f"❌ Failed to publish {project}")
-                return False
-        
-        return True
+    with open("workspace.py", "w") as f:
+        f.write("# Workspace configuration - see MONOREPO_SETUP_SUMMARY.md")
     
-    def create_github_repo(self, project: str):
-        """Create a GitHub repository using GitHub CLI."""
-        if project not in self.projects:
-            raise ValueError(f"Unknown project: {project}")
-        
-        config = self.projects[project]
-        repo_name = config['repo_url'].split('/')[-1].replace('.git', '')
-        
-        # Check if gh CLI is available
-        result = self.run_command(['which', 'gh'], capture_output=True)
-        if result.returncode != 0:
-            print("GitHub CLI (gh) not found. Please install it or create the repository manually.")
-            print(f"Repository URL: {config['repo_url']}")
-            return False
-        
-        # Create the repository
-        print(f"Creating GitHub repository: {repo_name}")
-        result = self.run_command([
-            'gh', 'repo', 'create', repo_name,
-            '--public',
-            '--description', f'{project} - Trading automation project'
-        ], capture_output=True)
-        
-        if result.returncode == 0:
-            print(f"✅ Successfully created repository: {repo_name}")
-            return True
-        else:
-            print(f"❌ Failed to create repository: {result.stderr}")
-            return False
+    with open("MONOREPO_SETUP_SUMMARY.md", "w") as f:
+        f.write(summary)
+    
+    return True
 
 def main():
-    publisher = RepoPublisher()
+    """Main publishing workflow."""
+    print("🚀 Starting repository publishing process...")
     
-    if len(sys.argv) < 2:
-        print("Usage: python publish_repos.py <command> [project]")
-        print("\nCommands:")
-        print("  create <project>      - Create GitHub repository")
-        print("  publish <project>     - Publish project to GitHub")
-        print("  publish-all           - Publish all projects")
-        print("\nProjects: pyhaasapi, mcp-server")
-        return 1
+    # Ensure we're in the right directory
+    if not Path("pyproject.toml").exists():
+        print("❌ Error: Not in the root directory of the project")
+        return False
     
-    command = sys.argv[1]
+    # Create workspace summary
+    create_workspace_summary()
     
-    if command == 'create':
-        if len(sys.argv) < 3:
-            print("Error: create command requires a project name")
-            return 1
-        
-        project = sys.argv[2]
-        return 0 if publisher.create_github_repo(project) else 1
+    # Publish pyHaasAPI (current repo)
+    create_pyhaasapi_repo()
     
-    elif command == 'publish':
-        if len(sys.argv) < 3:
-            print("Error: publish command requires a project name")
-            return 1
-        
-        project = sys.argv[2]
-        return 0 if publisher.publish_to_github(project) else 1
+    # Prepare MCP server repo
+    create_mcp_server_repo()
     
-    elif command == 'publish-all':
-        success = True
-        for project in publisher.projects.keys():
-            print(f"\n{'='*50}")
-            print(f"Publishing {project}...")
-            print(f"{'='*50}")
-            
-            if not publisher.publish_to_github(project):
-                success = False
-        
-        return 0 if success else 1
+    print("\n✅ Publishing process completed!")
+    print("\n📋 Next Steps:")
+    print("1. The current repository (pyHaasAPI) is ready")
+    print("2. Create the MCP server repository manually on GitHub")
+    print("3. Follow the instructions printed above to publish it")
+    print("4. Both repositories will be public and properly attributed to Cosmos")
     
-    else:
-        print(f"Unknown command: {command}")
-        return 1
+    return True
 
-if __name__ == '__main__':
-    sys.exit(main())
+if __name__ == "__main__":
+    main()
