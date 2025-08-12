@@ -1,0 +1,47 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "haas-mcp-server"
+version = "1.0.0"
+description = "MCP Server for HaasOnline API Integration"
+authors = ["Cosmos <cosmos@example.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/Cosmos/haas-mcp-server"
+repository = "https://github.com/Cosmos/haas-mcp-server"
+keywords = ["mcp", "haasonline", "trading", "api", "server"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+packages = [{include = "mcp_server"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mcp = "^1.0.0"
+python-dotenv = "^1.0.0"
+# Include pyHaasAPI as a dependency
+pyHaasAPI = {path = "../pyHaasAPI", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.14.0"
+
+[tool.poetry.scripts]
+haas-mcp-server = "mcp_server.server:main"
+
+[tool.poetry.urls]
+Homepage = "https://github.com/Cosmos/haas-mcp-server"
+Repository = "https://github.com/Cosmos/haas-mcp-server"
+Documentation = "https://github.com/Cosmos/haas-mcp-server#readme"
+Issues = "https://github.com/Cosmos/haas-mcp-server/issues"
