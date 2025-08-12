@@ -40,8 +40,10 @@ python update_repositories.py
 ## 🔍 Before Any Update
 1. Check: `git status` (no uncommitted changes)
 2. Verify: You're in root directory (pyproject.toml exists)
-3. Test: Changes work locally
-4. Read: Full documentation if unsure
+3. Read: `rules.cursor` for project guidelines
+4. Follow: `RUNNING_TESTS.cursor` for testing patterns
+5. Test: Changes work locally
+6. Read: Full documentation if unsure
 
 ## 📝 Commit Message Format
 ```
@@ -65,6 +67,9 @@ Types: Update, Fix, Add, Remove, Refactor, Docs, Config
 - **MCP Staging**: `haas-mcp-server-repo/` folder
 - **Update Script**: `update_repositories.py`
 - **Full Docs**: `INTERNAL_REPOSITORY_MANAGEMENT.md`
+- **Project Rules**: `rules.cursor` (READ FIRST!)
+- **Testing Guide**: `RUNNING_TESTS.cursor`
+- **AI Config**: Gemini integration in `tests/integration/` and `haasscript_rag/`
 
 ---
 **⚠️ When in doubt, ask the user rather than guessing!**
