@@ -1,8 +1,29 @@
-# 🚀 Trading Bot Testing Automation System
+# 🚀 Trading Automation Workspace
 
 ## Overview
 
-A comprehensive distributed trading bot testing automation system that integrates with HaasOnline via MCP server to provide intelligent backtesting, analysis, and optimization capabilities.
+A comprehensive monorepo containing multiple trading automation projects that integrate with HaasOnline to provide intelligent backtesting, analysis, and optimization capabilities.
+
+## Projects
+
+### 📦 **pyHaasAPI** - Core Trading Library
+- **Complete API Coverage**: Full HaasOnline API integration with type-safe models
+- **Advanced Analysis**: Trade-level backtest data extraction with intelligent debugging
+- **Market Intelligence**: Multi-exchange market discovery and classification
+- **Lab Management**: Bulk lab cloning and automated configuration
+- **Account Management**: Standardized account creation and naming schemas
+- **Parameter Intelligence**: Advanced parameter optimization with strategic values
+
+### 🔧 **MCP Server** - Model Context Protocol Integration
+- **Real-time API Access**: 60+ HaasOnline API endpoints via MCP
+- **Account Management**: Create and manage simulated accounts
+- **Lab Operations**: Create, clone, delete, and backtest labs
+- **Market Data**: Access to 12,398+ real markets
+- **Bulk Operations**: Automated lab creation and execution
+
+## Monorepo Structure
+
+This workspace uses Poetry for dependency management and supports both shared and project-specific dependencies.
 
 ## 🎯 Key Features
 
@@ -58,7 +79,44 @@ pyHaasAPI/
 
 ## 🚀 Quick Start
 
-### 1. **Core pyHaasAPI Usage**
+### **Workspace Setup**
+
+1. **Install all dependencies:**
+   ```bash
+   # Install workspace dependencies
+   python workspace.py install
+   
+   # Or install for specific project
+   python workspace.py install pyhaasapi
+   python workspace.py install mcp-server
+   ```
+
+2. **Check workspace status:**
+   ```bash
+   python workspace.py status
+   ```
+
+3. **Run tests:**
+   ```bash
+   # Test all projects
+   python workspace.py test
+   
+   # Test specific project
+   python workspace.py test pyhaasapi
+   ```
+
+4. **Build and publish:**
+   ```bash
+   # Build a project
+   python workspace.py build pyhaasapi
+   
+   # Publish to PyPI
+   python workspace.py publish pyhaasapi
+   ```
+
+### **Individual Project Usage**
+
+#### 1. **Core pyHaasAPI Usage**
 ```python
 from pyHaasAPI import api
 from pyHaasAPI.analysis import BacktestDataExtractor
@@ -84,7 +142,17 @@ results = cloner.clone_lab_for_assets(
 )
 ```
 
-### 2. **Miguel Optimization Workflow**
+#### 2. **MCP Server Usage**
+```bash
+# Start the MCP server
+cd mcp_server
+poetry run python server.py
+
+# Or use the workspace script
+python workspace.py run mcp-server
+```
+
+#### 3. **Miguel Optimization Workflow**
 ```python
 from miguel_workflow_final.complete_workflow import CompleteWorkflow
 
@@ -97,10 +165,58 @@ results = await workflow.execute_complete_workflow(
 )
 ```
 
-### 3. **MCP Server Integration**
+## 📁 **Workspace Structure**
+
+```
+trading-automation-workspace/
+├── pyproject.toml              # Root workspace configuration
+├── workspace.py                # Workspace management script
+├── README.md                   # This file
+├── .venv/                      # Shared virtual environment
+├── pyHaasAPI/                  # Core trading library
+│   ├── pyproject.toml          # Project-specific config
+│   ├── pyHaasAPI/              # Source code
+│   └── tests/                  # Tests
+├── mcp_server/                 # MCP server project
+│   ├── pyproject.toml          # Project-specific config
+│   ├── server.py               # Main server
+│   └── tests/                  # Tests
+└── ai-trading-interface/       # Frontend interface (separate)
+```
+
+## 🔧 **Workspace Commands**
+
 ```bash
-# Start the MCP server with HaasOnline API integration
-python3 -m uvicorn mcp_server.main:app --host 0.0.0.0 --port 8000 --reload
+# Workspace Management
+python workspace.py status                    # Show all project status
+python workspace.py install                  # Install all dependencies
+python workspace.py install <project>        # Install specific project deps
+python workspace.py clean                    # Clean all build artifacts
+
+# Development
+python workspace.py test                     # Run all tests
+python workspace.py test <project>          # Run specific project tests
+
+# Building & Publishing
+python workspace.py build <project>         # Build specific project
+python workspace.py publish <project>       # Publish to PyPI
+python workspace.py publish <project> testpypi  # Publish to test PyPI
+```
+
+## 🎯 **Publishing Strategy**
+
+### **pyHaasAPI** → GitHub: `https://github.com/Cosmos/pyHaasAPI`
+```bash
+# Prepare and publish pyHaasAPI
+python workspace.py build pyhaasapi
+python workspace.py publish pyhaasapi
+```
+
+### **MCP Server** → GitHub: `https://github.com/Cosmos/haas-mcp-server`
+```bash
+# Prepare and publish MCP server
+python workspace.py build mcp-server
+python workspace.py publish mcp-server
 ```
 
 ## 📊 **System Performance**
