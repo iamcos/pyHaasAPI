@@ -1,0 +1,29 @@
+-- ==========================================================================================================
+--    Firetron's FormatRoundedQuoteCurrency
+--
+--    Formats a number to be rounded and have the quote currency symbol.
+--
+--    Discord:  @FiretronP75
+--    BTC Tips: 14WLDZsrhshcP6qvBarKW8ABACv3iUXEro
+--    ETH Tips: 0xfaaac99fbf11f8f4abc4b3bf079cb2c7a43b5f87
+--  ==========================================================================================================
+ 
+--  ==============
+--    Definition
+--  ==============
+ 
+DefineCommand('FormatRoundedQuoteCurrency', 'Formats a number to be rounded and have the quote currency symbol.')
+ 
+--  ==============
+--    Parameters
+--  ==============
+ 
+local input  = DefineParameter(NumberType, 'Input',  'The number to format',   true,  0)
+local digits = DefineParameter(NumberType, 'Digits', 'The digits to round to', false, 2)
+local symbol = DefineParameter(StringType, 'Symbol', 'The symbol to append',   false, ' '..QuoteCurrency())
+ 
+--  ==========
+--    Output
+--  ==========
+ 
+DefineOutput(StringType, Round(input, digits)..symbol, 'Formatted Value')

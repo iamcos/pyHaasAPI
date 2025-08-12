@@ -1,0 +1,27 @@
+DefineCommand("ContinuousSignal", "Keeps the signal continuous for a number of minutes. Only switches when the signal changes from long to short.")
+
+local signal = DefineParameter(EnumType, "signal", "The signal", true, SignalNone, 'Signal Helpers, Easy Indicators')
+local minutes = DefineParameter(NumberType, 'minutes', "Number of minutes to keep the signal continious", true, 1, 'Number,Input')
+
+
+local lastSignal = Load('lastSignal', signal)
+local lastTime = Load('lastTime', Time())
+
+if signal == SignalNone then
+    -- The current signal is none. What was the last?
+
+    if lastSignal != SignalNone then
+        -- Last one isnt SignalNone. Is it still valid?
+
+        if lastTime + minutes * 60 > Time() then
+            -- Overwrite signal
+            signal = lastSignal
+        end
+    end
+else
+    -- Current signal isnt long. Overwrite saved values
+    Save('lastSignal', signal)
+    Save('lastTime', Time())
+end
+
+DefineOutput(EnumType, signal, 'The continuous signal', 'IndicatorContainer,TradeBotContainer, Signal Helpers')

@@ -1,0 +1,94 @@
+options = {
+    'Stop Loss',
+    'Take Profit',
+    'Trailing Stop Loss',
+    'Trailing Arm Stop Loss',
+    'Growing Trailing Stop Loss',
+    'Shrinking Trailing Stop Loss',
+}
+
+InputGroupHeader('Open Position Settings')
+enterPrice = Input('Enter Price', 0, 'If set on 0, the current price will be used')
+isLong = Input('Long Position', true, 'Set on false for a short position')
+
+InputGroupHeader('Advanced Order Settings')
+type = InputOptions('Type', 'Stop Loss', options)
+percentage = Input('Percentage (%)', 5)
+extraValue = Input('Arm (%) / Multiplier (x)', 3, 'Not required for Stop Loss, Take Profit & Trailing Stop. Percentage for Trailing Arm and multiplier for Growing/Shrinking.')
+orderType = InputOrderType('Exit Order Type', LimitOrderType)
+timer = Input('Timer (hours)', 0, 'If set, the bot will deactivate when the timer has expired.')
+
+-- Make sure we get as much updates as possible.
+EnableHighSpeedUpdates()
+
+-- Load values
+positionId = IfNull(positionId, '')
+orderId = IfNull(orderId, '')
+startTime = IfNull(startTime, Time())
+
+-- Do we have a timeout
+if timer > 0 then
+    durationInSeconds = timer * 60 * 60
+    if startTime + durationInSeconds < Time() then
+        LogWarning('Time flies when you are having fun. Good luck!')
+        DeactivateBot('Duration ended.')
+    end
+end
+
+-- Did we create a bot position?
+if positionId == '' then
+    Log('Starting')
+    if enterPrice == 0 then
+        enterPrice = CurrentPrice()[4];
+    end
+
+    -- Create a bot position without an actual order
+    direction = IfElse(isLong, PositionLong, PositionShort)
+    positionId = CreatePosition(direction, enterPrice, TradeAmount())
+end
+
+-- Stop if there are open orders
+if IsAnyOrderOpen() then
+    return
+end
+
+-- Check the open order
+if orderId != '' then
+    if IsOrderFilled(orderId) then
+        LogWarning('We are out! Sorry for your loss.')
+        DeactivateBot('Stop loss triggered')
+        return
+    elseif not IsOrderOpen then
+        orderId = PlaceCancelledOrder(orderId)
+    end
+end
+
+-- No open orders. Lets check what we have selected and possible exit the position
+if orderId == '' then
+
+    executeExit = false
+    if type == 'Stop Loss' then
+        executeExit = StopLoss(percentage)
+
+    elseif type == 'Take Profit' then
+        executeExit = TakeProfit(percentage)
+
+    elseif type == 'Trailing Stop Loss' then
+        executeExit = TrailingStopLoss(percentage)
+
+    elseif type == 'Trailing Arm Stop Loss' then
+        executeExit = TrailingArmStopLoss(percentage, extraValue)
+
+    elseif type == 'Growing Trailing Stop Loss' then
+        executeExit = GrowingTrailingStopLoss(percentage, extraValue)
+
+    elseif type == 'Shrinking Trailing Stop Loss' then
+        executeExit = ShrinkingTrailingStopLoss(percentage, extraValue)
+
+    end
+
+    if executeExit then
+        Log('We are getting out!')
+        orderId = PlaceExitPositionOrder(positionId, CurrentPrice()[4], orderType, 'SL')
+    end
+end

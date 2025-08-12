@@ -1,18 +1,77 @@
 
-/venv
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
 .env
+.venv/
+.venv311/
+venv/
+ENV/
+env/
+.python-version
+
+# IDE and editors
 .DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 cursor.rules
-/pyHaasAPI.egg-info
-/pyHaasAPI/__pycache__
-# /reference files
-/reference files
-docs/cursor_rules_documentation.md
-/dist
-/.venv
-/reference_files
+
+# Project specific
+data/
+logs/
+notes/
+results/
+backups/
+temp/
+.cache/
+.pytest_cache/
+
+# Documentation and reference
+reference/
+reference_files/
+experiments/
+
+# Configuration files with sensitive data
+.env
 env.example
-/.venv311
-*.pyc
-/interactive_lab_management/frontend/node_modules
-/tools/haasscript_mcp_local_server/node_modules
+
+# Build and distribution
+*.log
+*.txt
+*.bak
+*.cursor
+
+# Kiro and AI tools
+.gemini/
+.kiro/
+
+# Node modules (for any JS components)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp

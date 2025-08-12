@@ -1,0 +1,41 @@
+-- Safeties
+InputGroupHeader('Settings')
+stopLoss = Input('Stop Loss (%)', 5)
+takeProfit = Input('Take Profit (%)', 5)
+safeties = SafetyContainer(StopLoss(stopLoss), TakeProfit(takeProfit))
+consensus = Input('Indicator Consensus', true)
+
+-- Indicators
+InputGroupHeader('Settings')
+
+bbandResult = CC_MadHatterBBands(0, '')
+
+macdResult = CC_MadHatterMACD(1, '')
+
+rsiResult = CC_MadHatterRSI(2, '')
+
+indicatorContainer = IndicatorContainer( 
+    bbandResult,
+    macdResult,
+    rsiResult
+)
+
+indicatorSignal = indicatorContainer[1]
+if consensus then
+    indicatorSignal = indicatorContainer[2]
+end
+
+-- Insurances
+insurances = InsuranceContainer(OvercomeFeeCosts())
+
+-- Trade Bot
+TradeBotContainer(safeties, indicatorSignal, insurances)
+
+-- Reports
+Finalize(function()
+
+   CustomReport('BBands Signal', bbandResult)
+   CustomReport('MACD Signal', macdResult)
+   CustomReport('RSI Signal', rsiResult)
+
+end)

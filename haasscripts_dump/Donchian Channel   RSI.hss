@@ -1,0 +1,51 @@
+-- Donchian Channel + RSI by pshai
+
+-- == Inputs ==
+local rsiLength = Input('RSI Period', 14)
+local dcLength = Input('DC Period', 20)
+
+-- == Data and indicators ==
+local c = ClosePrices()
+local rsi = RSI(c, rsiLength)
+local dc = DONCHIAN(rsi, rsi, dcLength)
+
+-- == Variables ==
+local rsiv = rsi[1]
+local dcup = dc[1][1] -- Current DC Upper
+local dcupp = dc[1][2] -- Previous DC Upper
+local dcdn = dc[3][1] -- Current DC Lower
+local dcdnp = dc[3][2] -- Previous DC Lower
+local dcmid = dc[2][1] -- Current DC Middle
+
+-- == Charts ==
+PlotHorizontalLine(1, '', DarkGray, 100) -- Horizontal lines
+PlotHorizontalLine(1, '', DarkGray, 50)
+PlotHorizontalLine(1, '', DarkGray, 0)
+
+-- DC lines and band
+local line1 = Plot(1, 'DCUP', dcup, SkyBlue) -- Donchian channel (upper)
+local line2 = Plot(1, 'DCDN', dcdn, SkyBlue) -- Donchian channel (lower)
+PlotBands(line1, line2, SkyBlue(2)) -- Channel band
+
+-- RSI and DC Middle
+Plot(1, 'RSI', rsiv, Red)
+Plot(1, 'DCMID', dcmid, Orange)
+
+ChartSetAxisOptions(1, RightAxis, 0, 100)
+
+-- == Trading Logic
+if GetPositionDirection() == NoPosition then
+    if dcup > dcupp then -- Enter Long when DC Upper moves up (new high)
+        DoLong('Enter long', 3)
+    elseif dcdn < dcdnp then -- Enter Short when DC Lower moves down (new low)
+        DoShort('Enter long', 3)
+    end
+elseif GetPositionDirection() == PositionLong then
+    if rsiv < dcmid then -- Exit Long when RSI crosses below DC Middle
+        DoExitPosition('Exit Long', 3)
+    end
+elseif GetPositionDirection() == PositionShort then
+    if rsiv > dcmid then -- Exit Short when RSI crosses above DC Middle
+        DoExitPosition('Exit Short', 3)
+    end
+end

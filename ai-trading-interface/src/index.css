@@ -1,0 +1,142 @@
+/* Tailwind CSS directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+        @apply bg-neutral-50 text-neutral-900;
+    }
+
+    * {
+        @apply border-neutral-200;
+    }
+}
+
+@layer components {
+
+    /* Trading-specific component styles */
+    .profit-text {
+        @apply text-profit-600 font-medium;
+    }
+
+    .loss-text {
+        @apply text-loss-600 font-medium;
+    }
+
+    .neutral-text {
+        @apply text-neutral-600;
+    }
+
+    .card {
+        @apply bg-white rounded-lg shadow-sm border border-neutral-200 p-4;
+    }
+
+    .btn-primary {
+        @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200;
+    }
+
+    .btn-secondary {
+        @apply bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-2 px-4 rounded-md transition-colors duration-200;
+    }
+
+    .input-field {
+        @apply border border-neutral-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    }
+
+    /* Chain of thought visualization */
+    .chain-step {
+        @apply border-l-4 border-primary-200 pl-4 py-2 mb-3 bg-primary-50 rounded-r-md;
+    }
+
+    .chain-step.high-confidence {
+        @apply border-profit-500 bg-profit-50;
+    }
+
+    .chain-step.low-confidence {
+        @apply border-loss-500 bg-loss-50;
+    }
+
+    /* Insight cards */
+    .insight-card {
+        @apply card border-l-4;
+    }
+
+    .insight-card.opportunity {
+        @apply border-l-profit-500 bg-profit-50;
+    }
+
+    .insight-card.risk {
+        @apply border-l-loss-500 bg-loss-50;
+    }
+
+    .insight-card.performance {
+        @apply border-l-primary-500 bg-primary-50;
+    }
+
+    .insight-card.market-analysis {
+        @apply border-l-neutral-500 bg-neutral-50;
+    }
+
+    /* Animations for real-time updates */
+    .pulse-profit {
+        @apply animate-pulse bg-profit-100;
+    }
+
+    .pulse-loss {
+        @apply animate-pulse bg-loss-100;
+    }
+
+    /* Accessibility improvements */
+    .sr-only {
+        @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    }
+
+    /* Focus styles for keyboard navigation */
+    .focus-visible {
+        @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    }
+}
+
+@layer utilities {
+
+    /* Custom utilities for trading interface */
+    .text-profit {
+        color: theme('colors.profit.600');
+    }
+
+    .text-loss {
+        color: theme('colors.loss.600');
+    }
+
+    .bg-profit-gradient {
+        background: linear-gradient(135deg, theme('colors.profit.500'), theme('colors.profit.600'));
+    }
+
+    .bg-loss-gradient {
+        background: linear-gradient(135deg, theme('colors.loss.500'), theme('colors.loss.600'));
+    }
+
+    /* Scrollbar styling */
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: theme('colors.neutral.400') theme('colors.neutral.100');
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: theme('colors.neutral.100');
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: theme('colors.neutral.400');
+        border-radius: 3px;
+    }
+}

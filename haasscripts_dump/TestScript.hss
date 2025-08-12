@@ -1,0 +1,4 @@
+// HaasScript
+function main() {
+  Print("Hello from TestScript!");
+}

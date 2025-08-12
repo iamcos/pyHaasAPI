@@ -1,0 +1,890 @@
+-- Modified version of Phsai's amazing Simple Market Maker that intended 
+-- ONLY FOR BINANCE FUTURES USDT/COIN HEDGE MODE ENABLED
+--
+----------------------------------------------------------------------------
+--Log('Update 7') 
+EnableHighSpeedUpdates(true)
+HideOrderSettings()
+HideTradeAmountSettings()
+ 
+-- inputs
+    InputGroupHeader('Bot Settings')
+    local okLong = Input('01. Allow Long', false, 'Allow bot to open Long')
+    local okShort = Input('02. Allow Short', false, 'Allow bot to open Short')
+    local wtfStop = Input('03. Stop at no position', false, 'Deactivate bot when there is no open position')
+    local FStop = Input('04. Force Close Position', false, 'Closes open positions')
+    local fprices = InputInterval('05. Fast Price Interval', 1, 'Set required interval') 
+    local showInfo = Input('06. Details in Log', true, 'Show detail information in logs about the bot condition')
+        
+    InputGroupHeader('Backtest Settings')
+    local wtfBal = Input('01. Deactivate on Over Budget', false, 'Deactivate when Working Balance > Budget Balance')
+    local wtfRatio = Input('02. Deactivate on specific Bal Ratio', false, 'Deactivate when Bal Ratio hit trigger below')
+    local wtfRatioV = Input('02A. Bal Ratio Trigger', 0.5)
+    local wtfAmount = Input('03. Deactivate on Over Size', false, 'Deactivate when one of position size > Max Open')
+    local wtfWallet = Input('04. Deactivate on Wallet = 0', false, 'Why bother continuing the backtest?')
+    local testWallet = Input('05. Use Custom Wallet', false, 'ONLY FOR BACKTEST. DO NOT USE WHEN ON RUNNING BOT')
+    local testWalletAmount = Input('05A. Custom Wallet Balance', 0, 'ONLY FOR BACKTEST. DO NOT USE WHEN ON RUNNING BOT')
+ 
+    InputGroupHeader('LONG and SHORT Ratio')
+    local enableRatio = Input('01. Enable ratios', false)
+    local longRatio = Input('01A. Long ratio', 4, 'Long ratio, compared to short, default is 1, must be greater than 0')
+    local shortRatio = Input('01B. Short ratio', 1, 'Short ratio, compared to long, default is 1, must be greater than 0')
+    
+    InputGroupHeader('Budget & Safety')
+    local maxSizeM = Input('01. Max. Open ', 100, 'Maximum open contracts at any given time also as minimum for Dynamic Max Open. After exceeding this value, the bot will dump a portion of position at a loss.')
+    local autoMax = Input('01A. Dynamic Max Open', false, 'Dynamically change max open contracts based on available balanca')
+    local leverage = GetLeverage() --Input('01B. Leverage', 50, 'MUST be filled even if using Cross Margin. Important for trading budget.')
+    local contVal = ContractValue() --Input('01C. COIN-M Value', 10, 'ONLY if bot trading on INVERSE Futures then enter the Contract Value. Ignore if trade on USDT') 
+    local budgetTypes = {'Fix', 'Percentage'}
+    local budgetType = InputOptions('01C.Budget Calculation', 'Fix', budgetTypes, 'Fix = Static budget balance. Profit not compounding. Percentage = Dynamic following wallet balance. Profit compounding')
+    local budgetIsolation = Input('01D. Budget Isolation', false, 'If activated reduction is when working balance >= budget balance. Else if position size > max size')
+    local maxBudget = Input('01E. Balance Budget', 0, 'How much from wallet balance allocated for this bot. If % then 0.5 is 50% of wallet balance. If Fix then the fiat/coin amount.')
+    local maxOpen = Input('01F. Position Budget', 0.1, 'How much from the Balance Budget allocated for opening positions. 0.1 is 10% of Balance Budget')
+    local reduceSize = Input('02. Size Reduction %', 21, 'How big of a portion the bot will dump once reduction condition triggered')
+    local reduceOrderType = InputOrderType('03. Reduction Order Type', MarketOrderType, 'The order type for size reduction dump')
+    local noReduce = Input('04. Disable Size Reduction', true, 'Are you sure?')
+ 
+    InputGroupHeader('Grid Settings')
+    local slotCount = Input('01. Slot Count', 1, 'How many orders are constantly kept open on both long and short side')
+    local slotSizeM = Input('02. Slot Size', 0.001, 'Minimum trade amount per slot if Dynamic Slot Size activated or fix value if bot dynamic')
+    local slotRefillCount = Input('01. Slot Refill Count', 3, 'How many times can the slot orders be refilled')
+    local slotMultiplier = Input('02A. Slot Size Multiplier', 2, 'Trade amount multipler per slot')
+    local autoSlot = Input('03A. Dynamic Slot Size', false, 'DSSize - Dynamically change slot size based on budget')
+    local slotBudget = Input('03B. Max. Open Divider', 377, 'DSSize feature - Divide max open position with this value to get new Slot Size. Example Max Open is 1000 and devider is 200 then slot size is 5') 
+    local slotSpreadL = Input('04A. Slot Spread Long %', 0.7, 'Percentage for longs based spread value between each slot')
+    local slotSpreadS = Input('04B. Slot Spread Short %', 0.7, 'Percentage for shorts based spread value between each slot')
+    local slotSpreadM = Input('04C. Slot Spread Multiplier', 1, 'Order Spread Multipler per slot')
+    local incLVLOneShort = Input('04C. LVL 1 inc Short size at %', 10, 'Level 1 increase for shorts in Percentage')
+    local slotCancel = Input('05. Cancel Distance %', 0.636, 'How much price can move to the opposite direction before orders are cancelled and replaced')
+    local minSpread = Input('06. Minimum Spread %', 0.636, 'Minimum spread percentage between the first long and short entries. This setting only works when bot has no position.')
+    local dynamicSpreadInterval = InputInterval("07. Dynamic Spread Interval", 15)
+    local dynamicSpreadLookback = Input("07A. Dynamic Spread Lookback", 3)
+    
+    InputGroupHeader('Profit Settings')
+    local takeProfitL = Input('01. LONG Take-Profit %', 0.436, 'Fixed take-profit value, based on price change')
+    local takeProfitS = Input('02. SHORT Take-Profit %', 0.246, 'Fixed take-profit value, based on price change')
+    local takeminProfitL = Input('03. LONG MIN Take-Profit %', 0.236, 'MIN take-profit value, based on price change used by STP')
+    local takeminProfitS = Input('04. SHORT MIN Take-Profit %', 0.236, 'MIN take-profit value, based on price change used by STP')
+    local tpOrderType = InputOrderType('05. TP Order Type', MakerOrCancelOrderType, 'The order type for take-profit')
+    local preplacedTP = Input('06. Pre-Place TP (disabled if Smart Take Profit if is Active)', false, 'Place Exit Position as soon as has open position uses Max %')
+ 
+-- price and data
+        local getMarket = PriceMarket()
+        local isBinance = StringContains(getMarket, 'BINANCE')
+        local SRCounter = Load('SRCounter', 0)
+        local c = ClosePrices()
+        local h = HighPrices()
+        local l = LowPrices()
+        local o = OpenPrices()
+        local cp = CurrentPrice()
+        local vol = GetVolume()
+        local currentPrice = CurrentPrice().close
+        local lbid = GetOrderbookBid()
+        local sask = GetOrderbookAsk()
+        local h1 = HighPrices(1)
+        local l1 = LowPrices(1)
+        local o1 = OpenPrices(1)
+        local cp1 = CurrentPrice(1)
+
+--Trend 
+    local cci = CCI(h, l, c, 14)
+    local adosc = ADOSC(h,l,c,vol,5,34)
+    local sar = SAR(h,l,0.04,0.4)
+    local ema = EMA(c,7)
+
+--Plot(5,'ADOSC', adosc, White)
+
+
+local ematrendup = IsRisingSince(ema,24) == 1
+local ematrenddn = IsFallingSince(ema,24) == 1
+
+
+local trenddir = Load("trenddir", trenddir)
+
+--State Toggle
+function updateMyVariable()
+    if ematrenddn == false and IsRising(ema, 5) then
+        trenddir = 1
+    elseif ematrendup == false and IsFalling(ema, 5) then
+        trenddir = 2
+    else trenddir = 0
+    end
+    Save("trenddir", trenddir)
+    return trenddir
+end
+
+updateMyVariable()
+
+
+local trendl = trenddir == 1 and IsFallingSince(adosc,10) < 2 and adosc < 28000 and adosc > -500 and sar < c 
+local trends = trenddir == 2 and IsFallingSince(adosc,10) < 2 and adosc < 8750 and adosc > -24000 and sar > c
+ 
+if trendl == true then
+    PlotSignalBar(-5, Olive)
+end     
+
+if trends == true then
+    PlotSignalBar(-5, Maroon)
+end
+
+        
+        -- positions
+            local hedge_longPosId = Load('hedge_longPosId', NewGuid())
+            local hedge_shortPosId = Load('hedge_shortPosId', NewGuid())
+ 
+            local dir_l = GetPositionDirection(hedge_longPosId)
+            local aep_l = GetPositionEnterPrice(hedge_longPosId)
+            local pamt_l = GetPositionAmount(hedge_longPosId)
+            local delta_l = pamt_l > 0 and (cp.close - aep_l) / aep_l * 100 or 0
+            local proi_l = delta_l * leverage 
+ 
+            local dir_s = GetPositionDirection(hedge_shortPosId)
+            local aep_s = GetPositionEnterPrice(hedge_shortPosId)
+            local pamt_s = GetPositionAmount(hedge_shortPosId)
+            local delta_s = pamt_s > 0 and (aep_s - cp.close) / aep_s * 100 or 0
+            local proi_s = delta_s * leverage
+ 
+            if showInfo then
+                Log('LONG position ROI: '..Round(proi_l, 2)..'%')
+                Log('SHORT position ROI: '..Round(proi_s, 2)..'%')
+            end
+ 
+        -- not using spread if we have a position
+        --    if pamt_l > 0 or pamt_s > 0 then
+        --        minSpread = 0
+        --    end
+ 
+        -- manage position ids
+            if pamt_l == 0 and IsPositionClosed(hedge_longPosId) then
+                if IsAnyOrderOpen(hedge_longPosId) then
+                    CancelAllOrders(hedge_longPosId)
+                else
+                    hedge_longPosId = NewGuid()
+                    dir_l = GetPositionDirection(hedge_longPosId)
+                    aep_l = GetPositionEnterPrice(hedge_longPosId)
+                    pamt_l = GetPositionAmount(hedge_longPosId)
+                    proi_l = GetPositionROI(hedge_longPosId)
+                end
+            end
+            
+            if pamt_s == 0 and IsPositionClosed(hedge_shortPosId) then
+                if IsAnyOrderOpen(hedge_shortPosId) then
+                    CancelAllOrders(hedge_shortPosId)
+                else
+                    hedge_shortPosId = NewGuid()
+                    dir_s = GetPositionDirection(hedge_shortPosId)
+                    aep_s = GetPositionEnterPrice(hedge_shortPosId)
+                    pamt_s = GetPositionAmount(hedge_shortPosId)
+                    proi_s = GetPositionROI(hedge_shortPosId)
+                end
+            end
+        
+        -- get pos id
+            local getPositionId = function(isLong)
+                return isLong and hedge_longPosId or hedge_shortPosId
+            end
+ 
+ 
+--Dynamic Spread 
+    local candleSpread = HighPrices(dynamicSpreadInterval) - LowPrices(dynamicSpreadInterval)
+    local candleSpreadWithLookback = Range(candleSpread, 0, dynamicSpreadLookback)
+    local averageSpread = Round(Average(candleSpreadWithLookback), 8)
+    local averageSpreadPercentage = Round(averageSpread / CurrentPrice().close * 100, 4)
+    if showInfo then
+        Log("Dynamic Average Spread: "..averageSpread.." "..QuoteCurrency())
+        Log("Dynamic Average Spread: "..averageSpreadPercentage.."%")
+    end
+    local minSpread = minSpread / 2.0
+ 
+ 
+-- wallet check
+    local profitLabel = ProfitLabel()
+    if profitLabel == nil then profitLabel = QuoteCurrency() end
+    local availBal = WalletAmount(getMarket, profitLabel)
+    local getProfitL = GetCurrentProfit(PositionLong)
+    local getProfitS = GetCurrentProfit(PositionShort)
+    local getProfit = getProfitL + getProfitS
+    local usedLong = UsedMargin(getMarket, aep_l, pamt_l, leverage)
+    local usedShort = UsedMargin(getMarket, aep_s, pamt_s, leverage)
+    --Log('usedLong '..usedLong..' usedShort '..usedShort)
+    local botProfit = GetBotProfit()
+    
+    -- balance warning
+        local walletBal = testWallet and (testWalletAmount + botProfit) or availBal
+        local workBal = usedLong + usedShort - getProfit
+        if budgetType == 'Fix' then 
+            budgetBal = IfElse(walletBal > maxBudget, maxBudget, walletBal)
+        else 
+            budgetBal = maxBudget * walletBal
+        end
+        --Log('walletBal '..walletBal)
+        local budRatio = budgetBal > 0 and workBal / budgetBal or 0
+        local walRatio = budgetBal > 0 and workBal / walletBal or 0
+        local balRatio = budgetIsolation and budRatio or walRatio
+ 
+        if balRatio > 0.5 and balRatio < 0.8 and budgetIsolation then Log('Working balance is > 50% of Budget!!!', Yellow) end
+        if balRatio > 0.8 and budgetIsolation then Log('Working balance is > 80% of Budget!!!', Yellow) end
+        if walRatio > 0.8 then LogWarning('WALLET IN DANGER. Working balance is > 80% of WALLET Balance!!!') end
+        if showInfo then
+            Log('Balance Monitor -> Wallet: '..Round(walletBal, 5)..' '..profitLabel..' | Budget: '..Round(budgetBal, 5)..' '..profitLabel..' | Working Balance: '..Round(workBal, 5)..' '..profitLabel..' | Ratio: '..Round(balRatio, 3))
+        end
+ 
+        if budgetType == 'Percentage' then 
+            if maxBudget > 1 then 
+                DeactivateBot('Percentage Budget calculation. Balance budget can not > 1', true)
+            end
+        else 
+            if walletBal < budgetBal then  
+                Log('Wallet Balance is lower than Budget Balance', Yellow)
+            end
+        end
+ 
+        local BRCounter = Load('BRCounter', 0)
+        if balRatio > BRCounter then Save('BRCounter', balRatio) end
+        
+-- dynamics
+    --max position
+        if profitLabel == 'USD' or profitLabel == 'USDT' or profitLabel == 'BUSD' or profitLabel == 'USDC' or profitLabel == 'TUSD' then
+            maxMax = budgetBal * maxOpen / cp.close 
+        else
+            maxMax = budgetBal * maxOpen * cp.close / contVal 
+        end
+ 
+        local maxCheck = autoMax and (maxMax * leverage)
+        local maxValue = autoMax and (maxCheck > maxSizeM) and maxCheck or maxSizeM
+        local maxSize = autoMax and maxValue or maxSizeM
+ 
+        -- check max open  
+            if autoMax then
+                if maxCheck > maxSizeM then
+                    if showInfo then
+                        Log('Dynamic Max Open: '..Round(maxCheck, 5))
+                    end
+                else
+                    if showInfo then        
+                        Log('Dynamic Max Open: '..Round(maxCheck, 5)..' but using default value: '..Round(maxSizeM, 5))
+                    end
+                end            
+            end 
+    
+     -- auto slot size
+        local slotCheck = autoSlot and (maxSize / slotBudget)
+        local slotValue = autoSlot and (slotCheck > slotSizeM) and slotCheck or slotSizeM
+        local slotSize = autoSlot and slotValue or slotSizeM
+        
+        local getSlotRatio = function (size)
+            local baseRatio
+            if longRatio >= shortRatio then
+            baseRatio = longRatio
+            else 
+            baseRatio = shortRatio
+            end
+            return baseRatio
+        end
+       
+ 
+        local calcRatioSlotSize = function (size, ratio, long)
+            if long == true then
+             if ratio == longRatio then
+                        local round = Round(size, 2)
+                        return ArrayGet(round, 1)
+             elseif ratio == shortRatio then
+                        local round = Round(((longRatio / shortRatio) * size), 2)
+                        return ArrayGet(round, 1)
+             end
+            end
+            if long == false then
+                if ratio == shortRatio then
+                        local round = Round(size, 2)
+                        return ArrayGet(round, 1)
+                elseif ratio == longRatio then
+                        local round = Round(((shortRatio / longRatio) * size), 2)
+                        return ArrayGet(round, 1)
+                end
+            end
+ 
+        end
+ 
+  
+        if autoSlot then
+            if slotCheck > slotSizeM then
+                slotSizeL = slotSize
+                slotSizeS = slotSize
+                if enableRatio == true and longRatio > 0 and shortRatio > 0 then
+                local base = getSlotRatio(slotSize)   
+                slotSizeL = calcRatioSlotSize(slotSize, base, true)
+                slotSizeS = calcRatioSlotSize(slotSize, base, false)
+                        if pamt_s > (maxSize / incLVLOneShort) then
+                        LogWarning("It's bigger than 10 %")
+                        slotSizeS = slotSizeS * (longRatio / shortRatio)
+                        end
+                end
+                if showInfo then
+                    Log('Dynamic Slot Size for long: '..Round(slotSizeL, 5))
+                    Log('Dynamic Slot Size for short: '..Round(slotSizeS, 5))
+                end
+            else
+                slotSizeL = slotSize
+                slotSizeS = slotSize                 
+                if enableRatio == true and longRatio > 0 and shortRatio > 0 then
+                local base = getSlotRatio(slotSize)   
+                slotSizeL = calcRatioSlotSize(slotSize, base, true)
+                slotSizeS = calcRatioSlotSize(slotSize, base, false)
+                        if pamt_s > (maxSize / incLVLOneShort) then
+                                LogWarning("It's bigger than 10 %")
+                                slotSizeS = slotSizeS * (longRatio / shortRatio)
+                        end
+                end
+                if showInfo then
+                    Log('DSSize: '..Round(slotCheck, 5)..' But using default value: '..Round(slotSizeM, 5))
+                end            
+            end
+            
+        else
+            slotSizeL = slotSizeM
+            slotSizeS = slotSizeM
+              if enableRatio == true and longRatio > 0 and shortRatio > 0 then
+                local base = getSlotRatio(slotSize)   
+                slotSizeL = calcRatioSlotSize(slotSize, base, true)
+                slotSizeS = calcRatioSlotSize(slotSize, base, false)
+                        if pamt_s > (maxSize / incLVLOneShort) then
+                                LogWarning("It's bigger than 10 %")
+                                slotSizeS = slotSizeS * (longRatio / shortRatio)
+                        end
+                end
+            if showInfo then
+                Log('Slot Size Value for long: '..Round(slotSizeL, 5))
+                Log('Slot Size Value for short: '..Round(slotSizeS, 5))
+            end
+        end
+ 
+
+ --Smart Params
+local fcp = ClosePrices({interval = fprices})
+local cint = CurrentInterval()
+local isLongPosOpen = not IsPositionClosed(hedge_longPosId) and LongAmount() > 0 
+local isShortPosOpen = not IsPositionClosed(hedge_shortPosId) and ShortAmount() > 0
+
+
+--Smart TTP EXIT
+--Smart TTP Params
+
+InputGroupHeader('Smart Take Profit')
+local okSmartTP = Input('01. Smart Take Profit ', false, 'Allow Smart Take Profit')
+--local hardTakeProfitPercentage = Input(' 03. Hard Take Profit', 0.35, 'Hard Take Profit Percentage linked to Price Movement.')
+--local stttp = Input('Trigger Trailing Take Profit(TTP)', 0.15, 'Start TTP after Price Movement Trigger % is breached')
+
+
+local ltpt = Load("LTPT")
+local lhtpt = Load("LHTPT")
+local stpt = Load("STPT")
+local shtpt = Load("SHTPT")
+
+--TTP
+local laep = GetPositionEnterPrice(hedge_longPosId)
+local saep = GetPositionEnterPrice(hedge_shortPosId)
+local LstartPoint = AddPercentage(laep, takeminProfitL)
+local SstartPoint = SubPercentage(saep, takeminProfitS)
+
+--Log("LstartPoint: "..LstartPoint.."-")
+--Log("SstartPoint: "..SstartPoint.."-")
+
+function LSmartTTPExit()
+    
+    local lhasTriggered = false
+
+    if isLongPosOpen and lhtpt == 0 then
+          lhtpt = AddPercentage(laep, takeProfitL)
+    elseif isLongPosOpen and currentPrice >= LstartPoint and o[1] > o[2] and o[2] > o[3] and currentPrice < c[2] then
+             ltpt = o[3]       
+    end            
+
+    lhasTriggered = (isLongPosOpen and currentPrice >= lhtpt) or (isLongPosOpen and currentPrice >= LstartPoint and ltpt > LstartPoint)
+
+    if lhasTriggered then
+        PlotSignalBar(-4, Olive)
+    end
+    Save("LTPT", ltpt)
+    Save("LHTPT", lhtpt)
+    return lhasTriggered
+end
+
+Log("Long TTP: "..tostring(ltpt))
+Log("Long TP: "..tostring(lhtpt))
+
+function SSmartTTPExit()
+    
+    local shasTriggered = false
+
+    if isShortPosOpen and shtpt == 0 then
+          shtpt = SubPercentage(saep, takeProfitS)
+    elseif isShortPosOpen and currentPrice <= SstartPoint and o[1] < o[2] and o[2] < o[3] and currentPrice > c[2] then
+             stpt = o[3]       
+    end            
+
+    shasTriggered = (isShortPosOpen and currentPrice >= shtpt) or (isShortPosOpen and currentPrice <= SstartPoint and stpt < SstartPoint)
+
+    if shasTriggered then
+        PlotSignalBar(-4, Maroon )
+    end
+    Save("STPT", stpt)
+    Save("SHTPT", shtpt)
+    return shasTriggered
+end
+
+Log("Short TTP: ".. tostring(stpt))
+Log("Short TP: ".. tostring(shtpt))
+--Log("o[2]: ".. tostring(o[2]))
+
+--Long Smart TP Exit
+if isLongPosOpen and okSmartTP and LSmartTTPExit() and OrderOncePerBar(cint,hedge_longPosId) then                                      
+    if fcp <= ltpt and ltpt > 0 and fcp > LstartPoint then 
+        ltpoid = PlaceExitPositionOrder(hedge_longPosId, cp, MarketOrderType, 'Long TTP Exit', (cint * 2))
+    elseif fcp <= lhtpt and lhtpt > 0 then 
+         ltpoid = PlaceExitPositionOrder(hedge_longPosId, lhtpt, MarketOrderType, 'Long TP Exit', (cint * 2))
+        if IsOrderFilled(ltpoid) then
+            PlotSignalBar(-4, '#a1d99b')
+            ltpoid = ''
+        end
+        if not IsOrderOpen(ltpoid) then
+            ltpoid = ''
+        end    
+        Save("LTPOID", ltpoid)
+    end
+end
+
+--Short Smart TP Exit
+if isShortPosOpen and okSmartTP and SSmartTTPExit() and OrderOncePerBar(cint,hedge_shortPosId) then 
+    if fcp >= stpt and stpt > 0 and fcp < SstartPoint then 
+        stpoid = PlaceExitPositionOrder(hedge_shortPosId, cp, MarketOrderType, 'Short TTP Exit', (cint * 2))
+    elseif fcp <= shtpt and shtpt > 0 then
+             stpoid = PlaceExitPositionOrder(hedge_shortPosId, shtpt, MarketOrderType, 'Short TP Exit', (cint * 2))
+        if IsOrderFilled(stpoid) then
+            PlotSignalBar(-4, '#ef6548')
+            stpoid = ''
+        end
+        if not IsOrderOpen(stpoid) then
+            stpoid = ''
+        end     
+        Save("STPOID", stpoid)
+    end
+end
+
+--End Smart TTP
+
+-- Smart SL Exit
+-- Smart Stop Loss
+InputGroupHeader('Smart Stop Loss')
+local okSmartSL = Input('01. Smart Stop Loss ', true, 'Allow Smart Stop Loss')
+local hardStopLossPercentage = Input(' 03. Hard StopLoss', 0.35, 'Hard StopLoss Percentage linked to Price Movement.')
+local stslt = Input('Trigger Adjust HardStop Loss to prevent Loss ', 0.15, 'Start Trigger for Ave Entry Price Adj % linked to Price Movement')
+
+local lhsl = Load("LHSLT")
+local ltsl = Load("LTSL")
+local shsl = Load("SHSLT")
+local stsl = Load("STSL")
+
+-- SL
+local laep = GetPositionEnterPrice(hedge_longPosId)
+local saep = GetPositionEnterPrice(hedge_shortPosId)
+local LstartPoint = AddPercentage(laep, stslt)
+local SstartPoint = SubPercentage(saep, stslt)
+
+function LSmartSLExit()
+    
+    local lhasTriggered = false
+
+    if isLongPosOpen and lhsl == 0 then
+          lhsl = SubPercentage(laep, hardStopLossPercentage)
+    elseif isLongPosOpen and currentPrice >= LstartPoint and not c[2] < c[1] then
+          lhsl = AddPercentage(laep, 0.2)      
+    end            
+
+    lhasTriggered = isLongPosOpen and currentPrice <= lhsl
+
+    if lhasTriggered then
+        PlotSignalBar(-3, Olive)
+    end
+    Save("LHSLT", lhsl)
+    return lhasTriggered
+
+end
+
+function SSmartSLExit()
+    
+    local shasTriggered = false
+    
+    if isShortPosOpen and shsl == 0 then
+        shsl = AddPercentage(saep, hardStopLossPercentage)
+    elseif isShortPosOpen and currentPrice <= SstartPoint and not c[2] > c[1] then
+        shsl = SubPercentage(saep, 0.2) 
+    end
+
+    shasTriggered = isShortPosOpen and currentPrice >= shsl
+
+    if shasTriggered then
+        PlotSignalBar(-3, Maroon)
+    end
+    Save("SHSLT", shsl)
+    return shasTriggered
+end
+
+--Long Smart SL Exit
+if isLongPosOpen and okSmartSL and LSmartSLExit() and OrderOncePerBar(cint,hedge_longPosId) then  --and IsFalling(apo,1) and IsFalling(trendemaf,1) then                                             
+    if fcp <= lhsl  then 
+        CancelAllOrders()
+        lhsloid = PlaceExitPositionOrder(hedge_longPosId, lhsl, MarketOrderType, 'Long SL Exit', (cint * 2))
+        if IsOrderFilled(lhsloid) then
+            PlotSignalBar(-3, '#a1d99b')
+            lhsloid = ''
+        end
+        if not IsOrderOpen(lhsloid) then
+            lhsloid = ''
+        end    
+        Save("LHSLOID", lhsloid)
+    end
+end
+
+--Short Smart SL Exit
+if isShortPosOpen and okSmartSL and SSmartSLExit() and OrderOncePerBar(cint,hedge_shortPosId) then --and IsRising(apo,1) and IsRising(trendemaf,1) then
+    if fcp >= shsl then
+        CancelAllOrders() 
+        shsloid = PlaceExitPositionOrder(hedge_shortPosId, shsl, MarketOrderType, 'Short SL Exit', (cint * 2))
+        if IsOrderFilled(shsloid) then
+            PlotSignalBar(-3, '#ef6548')
+            shsloid = ''
+        end
+        if not IsOrderOpen(shsloid) then
+            shsloid = ''
+        end    
+        Save("SHSLOID", shsloid)
+    end
+end
+
+ --End Smart SL Exit
+
+
+
+--Reset Smart values
+if not isLongPosOpen then
+    lhsl = 0
+    ltsl = 0
+    ltpt = 0
+    lhtpt = 0
+    Save("LTSL", ltsl)
+    Save("LHSLT", lhsl)
+    Save("LTPT", ltpt)
+    Save("LHTPT", lhtpt)
+end
+
+if not isShortPosOpen then
+    shsl = 0
+    stsl = 0
+    stpt = 0 
+    shtpt = 0
+    Save("STSL", stsl)
+    Save("SHSLT", shsl)
+    Save("STPT", stpt)
+    Save("SHTPT", shtpt)
+end
+
+ 
+ 
+-- SMM CORE LOGIC HEDGE MODE 
+        -- slot function
+            local slot = function(isLong, index, amount, spread, cancelDist, canPlace, trend)
+                local prefix = isLong and 'L' or 'S'
+                local name = prefix .. index
+                local cmd = isLong and PlaceGoLongOrder or PlaceGoShortOrder
+                local priceBase = isLong
+                        and cp.bid
+                        or cp.ask
+                local spr = Min(averageSpreadPercentage, minSpread) + spread * index
+                local posId = getPositionId(isLong)
+                local aep = isLong and aep_l or aep_s
+ 
+                -- if we have average entry price
+                if aep > 0 then
+                    priceBase = isLong
+                            and Min(aep, priceBase)
+                            or Max(aep, priceBase)
+                end
+ 
+                -- get price
+                local price = isLong
+                        and SubPerc(priceBase, spr)
+                        or AddPerc(priceBase, spr)
+ 
+                -- Binance notional value mod
+                if isBinance then 
+                    notionalSize = 5.1 / price
+                    if amount < notionalSize then 
+                        amount = notionalSize 
+                    end
+                end                                                                 
+ 
+                local oid = Load(name..'oid', '') -- order id
+ 
+                if oid != '' then
+                    local order = OrderContainer(oid)
+ 
+                    if order.isOpen then
+                        local delta = isLong
+                                and Delta(AddPerc(order.price, spr), priceBase)
+                                or Delta(priceBase, SubPerc(order.price, spr))
+                        
+                        if delta >= cancelDist then
+                            CancelOrder(oid)
+                            LogWarning('Delta cancelled '..name)
+                        elseif not canPlace then
+                            CancelOrder(oid)
+                            LogWarning('Not allowed right now '..name)
+                        end
+                    else
+                        oid = ''
+                    end
+                else
+                    if canPlace and trend then
+                        oid = cmd(price, amount, {type = MakerOrCancelOrderType, note = name, timeout = 3600, positionId = posId})
+                    end
+                end
+ 
+                Save(name..'oid', oid)
+            end
+ 
+        -- update take-profit
+            local updateTakeProfit = function(isLong, entryPrice, targetRoi, cancelDist)        
+                local prefix = isLong and 'Long' or 'Short'
+                local name = prefix .. ' TP'
+                local oid = Load(prefix .. 'tp_oid', '')
+                local timer = Load(prefix .. 'tp_timer', 0)
+                local posId = getPositionId(isLong)
+                local tp_delta = isLong and Delta(entryPrice, cp.bid) or Delta(cp.ask, entryPrice)
+ 
+                if oid != '' then
+                    local order = OrderContainer(oid)
+ 
+                    if order.isOpen then
+                        local delta = isLong
+                                and Delta(order.price, cp.close)
+                                or Delta(cp.close, order.price)
+                        
+                        if delta >= cancelDist then
+                            CancelOrder(oid)
+                            LogWarning('Delta cancelled '..name)
+                        end
+                    else
+                        if order.isCancelled then
+                            timer = 0
+                        end
+                        
+                        oid = ''
+                    end
+                else
+                    if preplacedTP then 
+                        if isLong and pamt_l > 0 and not okSmartTP then
+                            local exitL = AddPerc(aep_l, takeProfitL)
+                            oid = PlaceExitPositionOrder({price= exitL, type = tpOrderType, note = 'Pre-Placed '..name, timeout = 200, positionId = hedge_longPosId})
+                        end
+ 
+                        if not isLong and pamt_s > 0 and not okSmartTP then
+                            local exitS = SubPerc(aep_s, takeProfitS)
+                            oid = PlaceExitPositionOrder({price= exitS, type = tpOrderType, note = 'Pre-Placed '..name, timeout = 200, positionId = hedge_shortPosId})
+                        end
+ 
+                    elseif not preplacedTP and tp_delta >= targetRoi and Time() >= timer and not okSmartTP then
+                            oid = PlaceExitPositionOrder({type = tpOrderType, note = name, timeout = 200, positionId = posId})
+                            timer = Time() + 60 -- 1min
+                    end
+                end
+ 
+                Save(prefix .. 'tp_oid', oid)
+                Save(prefix .. 'tp_timer', timer)
+            end
+ 
+        -- update position size
+            
+            local updatePositionManagement = function(isLong, currentSize, sizeLimit, cancelDist)
+                local prefix = isLong and 'Long' or 'Short'
+                local name = prefix .. ' Size Reduction'
+                local oid = Load(prefix .. 'pos_oid', '')
+                local posId = getPositionId(isLong)
+                local amount = SubPerc(currentSize, 100 - reduceSize) -- take X% of position
+                local price = isLong
+                        and cp.ask
+                        or cp.bid
+                local cmd = isLong
+                        and PlaceExitLongOrder
+                        or PlaceExitShortOrder
+                local timer = Load(prefix .. 'pos_timer', Time())
+                local okReduce = IfElse(budgetIsolation, balRatio >= 1, currentSize > sizeLimit)
+ 
+                if oid != '' then
+                    local order = OrderContainer(oid)
+ 
+                    if order.isOpen then
+                        local delta = isLong
+                                and Delta(order.price, cp.close)
+                                or Delta(cp.close, order.price)
+                        
+                        if delta >= cancelDist then
+                            CancelOrder(oid)
+                            LogWarning('Delta cancelled '..name)
+                        end
+                    elseif order.isFilled then 
+                        sizeRed = 1
+                        Save('SRCounter', SRCounter + sizeRed)
+                        Save('slotRefillCount', slotRefillCount + sizeRed) 
+                        oid = ''
+                    else
+                        oid = ''
+                    end
+                else
+                    if okReduce and not noReduce and Time() >= timer then
+                        oid = cmd(price, amount, {type = reduceOrderType, note = name, timeout = 6000, positionId = posId})
+                        timer = Time() + 60 -- 1min
+                    end
+                end
+ 
+                Save(prefix .. 'pos_oid', oid)
+                Save(prefix .. 'pos_timer', timer)
+            end
+ 
+        -- da logica
+ 
+            -- take profit
+            updateTakeProfit(true, aep_l, takeProfitL, slotCancel)
+            updateTakeProfit(false, aep_s, takeProfitS, slotCancel)
+ 
+            -- risk management
+            updatePositionManagement(true, pamt_l, maxSize, slotCancel)
+            updatePositionManagement(false, pamt_s, maxSize, slotCancel)
+ 
+ 
+            -- update slots
+            for r = 1, slotRefillCount do
+                if r <= slotRefillCount then 
+                    for i = 1, slotCount do
+                        slot(true, i, slotSizeL, slotSpreadL, slotCancel, okLong, trendl) -- long slot
+                        slotSizeL = slotSizeL * slotMultiplier
+                        slotSpreadL = slotSpreadL * slotSpreadM
+                    end
+                end    
+            end    
+ 
+            for r = 1, slotRefillCount do
+                if r <= slotRefillCount then
+                    for i = 1, slotCount do
+                        slot(false, i, slotSizeS, slotSpreadS, slotCancel, okShort, trends) -- short slot
+                        slotSizeS = slotSizeS * slotMultiplier
+                        slotSpreadS = slotSpreadS * slotSpreadM
+                    end
+                end    
+            end    
+  
+-- WTF
+    if wtfStop then
+        local longNull = pamt_l == 0
+        local shortNull = pamt_s == 0
+        if longNull and shortNull then
+            DeactivateBot('Deactivate on No Position is active', true)
+ 
+        else
+            LogWarning('Will deactivate on No Position, waiting...maybe next second, maybe never :)')
+ 
+        end
+    end
+ 
+    if wtfBal then
+        if workBal >= budgetBal then
+            DeactivateBot('Over Budget', true)
+        end
+    end
+ 
+    if wtfAmount then
+        if pamt_l > maxSize or pamt_s > maxSize then
+            DeactivateBot('Over Size', true)
+        end
+    end
+ 
+    if wtfRatio then 
+        if balRatio > wtfRatioV then 
+            DeactivateBot('Bal Ratio is over '..wtfRatioV, true)
+        end
+    end
+ 
+    if wtfWallet then 
+        if walletBal <= 0 then 
+            DeactivateBot('Wallet is 0', true)
+        end 
+    end
+ 
+ 
+-- Force Exit Positions
+     if FStop then
+        local name = 'Force Exit'    
+        oid = PlaceExitPositionOrder({type = reduceOrderType, note = name, timeout = 3600})
+        timer = Time() + 60 -- 1min
+     end    
+    
+-- PLOT
+    -- AEP Plot
+        if aep_l > 0 then
+            local posId = getPositionId(true)
+            Plot(0, 'AvgEP Long', aep_l, {c=Teal, id=posId, w=2})
+        end
+ 
+        if aep_s > 0 then
+            local posId = getPositionId(false)
+            Plot(0, 'AvgEP Short', aep_s, {c=Purple, id=posId, w=2})
+        end
+ 
+    -- EXPOSURE    
+        local lineLong = IfElse(pamt_l > 0, pamt_l, 0)
+        local lineShort = IfElse(pamt_s > 0, -pamt_s, 0)
+        Plot(1, 'Longs', lineLong, {c=Green, s=Step})
+        Plot(1, 'Max Longs', maxSize, {c=White, s=Step})
+        Plot(1, 'Shorts', lineShort, {c=Red, s=Step})
+        Plot(1, 'Max Shorts', -maxSize, {c=White, s=Step})
+        ChartSetOptions(1, 'Exposure')
+    
+    --BALANCE MONITOR
+        Plot(2, 'Budget Balance', budgetBal, {c=White, s=Step})
+        Plot(2, 'WorkBal', workBal, {c=Red, s=Step})
+        Plot(2, 'Wallet Balance', walletBal, {c=DarkGreen, s=Step})
+        ChartSetOptions(2, 'Balance Monitor')
+ 
+-- Misc Logs
+    if showInfo then 
+        Log('Size Reduction: '..SRCounter..' times')
+    end
+    if not okLong then
+        LogWarning('Bot is not allowed to open LONG')
+    end
+    
+    if not okShort then
+        LogWarning('Bot is not allowed to open SHORT')
+    end
+ 
+-- custom reports
+    Finalize(function()  
+        CustomReport('Final Wallet Balance', Round(walletBal, 5)..' '..profitLabel)
+        CustomReport('Size Reduction', SRCounter..' times')
+        CustomReport('Highest Balance Ratio', Round(100 * BRCounter, 2)..'%')
+        if testWallet then
+            if budgetType == 'Fix' then
+                profitPercent = Round(botProfit / maxBudget * 100, 2)
+            else 
+                local startBal = testWalletAmount * maxBudget
+                profitPercent = Round(botProfit / startBal * 100, 2)
+            end 
+            CustomReport('Profit %: ', profitPercent..'%')
+            CustomReport('Profit to Highest Bal. Ratio', Round(profitPercent / (100 * BRCounter), 2))
+        end
+    end)
+ 
+Save('hedge_longPosId', hedge_longPosId)
+Save('hedge_shortPosId', hedge_shortPosId)
+if showInfo then 
+    Log(' ')
+end

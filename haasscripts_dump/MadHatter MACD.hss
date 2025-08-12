@@ -1,0 +1,39 @@
+-- Define command
+DefineCommand("MadHatterMACD", "Custom MACD signal implementation for MadHatter")
+
+-- Define command parameters.
+local chartIndex = DefineParameter(NumberType, 'chartIndex', 'The index on which to chart', true, 1, 'Number')
+local name = DefineParameter(StringType, 'name', 'Unique name of the indicator.', false, '', 'Text')
+local interval = DefineParameter(NumberType, 'interval', 'Used interval for price data. Default is 0 and the main interval will be used.', false, 0, 'Number,InputInterval')
+
+DefineIntervalOptimization(interval)
+
+-- Input fields for the indicator. Add the name in front.
+InputGroupHeader('MadHatter MACD '..name)
+local fastLength = Input(name..' MACD Fast', 12)
+local slowLength = Input(name..' MACD Slow', 26) 
+local signalLength = Input(name..' MACD Signal', 7)
+
+-- Calculate the indicator
+local prices = ClosePrices(interval)
+local macdData =  MACD(prices, fastLength, slowLength, signalLength)
+local macd = macdData[1]
+local signal = macdData[2]
+local hist = macdData[3]
+
+local signal = SignalNone
+if macdData.macd < macdData.signal and IsRising(macdData.hist, 1) then
+    signal = SignalLong
+elseif macdData.macd > macdData.signal and macdData.hist[1] >= macdData.hist[2] then
+    signal = SignalLong
+elseif macdData.macd > macdData.signal and IsFalling(macdData.hist, 1)  then
+    signal = SignalShort
+elseif macdData.macd < macdData.signal and macdData.hist[1] <= macdData.hist[2] then
+    signal = SignalLong
+end
+
+-- Plot the indicator Use the chartIndex parameter.
+PlotHistogramSignals(chartIndex, 'MHB', macdData.hist, macdData.macd, macdData.signal)
+
+--Return the custom signal.
+DefineOutput(EnumType, signal, 'Signal result', 'TradeBotContainer, IndicatorContainer, Signal Helpers')

@@ -1,0 +1,28 @@
+-- [MVO] Market Volume Oscillator, https://www.marketvolume.com/technicalanalysis/mvo.asp
+-- Created by pshai
+
+DefineCommand('MVO', 'Market Volume Oscillator')
+
+-- Inputs
+local high = DefineParameter(ListNumberType, 'high', '', false, HighPrices(), 'HighPrices')
+local low = DefineParameter(ListNumberType, 'low', '', false, LowPrices(), 'LowPrices')
+local close = DefineParameter(ListNumberType, 'close', '', false, ClosePrices(), 'ClosePrices, HLPrices, HLCPrices, OHLCPrices')
+local volume = DefineParameter(ListNumberType, 'volume', '', false, GetVolume(), 'GetVolume')
+
+local fastPeriod = DefineParameter(NumberType, 'fastPeriod', 'Fast Period', false, 10, 'Input, Number')
+local fastMaType = DefineParameter(NumberType, 'fastMaType', 'Fast MA Type', false, SmaType, 'InputMaTypes, Text')
+local slowPeriod = DefineParameter(NumberType, 'slowPeriod', 'Slow Period', false, 50, 'Input, Number')
+local slowMaType = DefineParameter(NumberType, 'slowMaType', 'Slow MA Type', false, SmaType, 'InputMaTypes, Text')
+local stochFastK = DefineParameter(NumberType, 'stochFastK', 'Fast %K Period', false, 21, 'Input, Number')
+local stochSlowK = DefineParameter(NumberType, 'stochSlowK', 'Slow %K Period', false, 9, 'Input, Number')
+local stochSlowD = DefineParameter(NumberType, 'stochSlowD', 'Slow %D Period', false, 9, 'Input, Number')
+
+-- Magic
+local fastVMA = MA(volume, fastPeriod, fastMaType)
+local slowVMA = MA(volume, slowPeriod, slowMaType)
+local pvo = FilterBelow((fastVMA - slowVMA) / slowVMA * 100, 0)
+local stoch = STOCH(high, low, close, stochFastK, stochSlowK, stochSlowD).slowK
+stoch = (stoch - 50) / 50 -- Move to oscillate between [-1, 1]
+local mvo = pvo * stoch
+
+DefineOutput(ListNumberType, mvo, 'MVO values', 'GetCrossOverUnderSignal, GetBuySellLevelSignal, GetThresholdSignal, IsBiggerThan, IsSmallerThan')

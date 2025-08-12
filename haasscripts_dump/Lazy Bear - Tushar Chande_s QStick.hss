@@ -1,0 +1,33 @@
+-- Tushar Chande's QStick by LazyBear, https://www.tradingview.com/v/ssL68jQu/
+-- Converted by pshai
+
+-- Inputs
+local length = Input('Length', 8)
+
+-- Data
+local open = OpenPrices()
+local close = ClosePrices()
+local s2 = SMA(close - open, length)
+
+-- Plots
+PlotHorizontalLine(2, "", DarkGray, 0)
+local l1 = Plot(2, "S2", s2, Green)
+PlotDoubleColor(l1, 0, Red, SkyBlue(15))
+
+if s2[1] < 0 then
+    if s2[1] < s2[2] then
+        PlotSignalBar(3, Red)
+
+        DoSell() -- Do a sell
+    else
+        PlotSignalBar(3, Red(25))
+    end
+elseif s2[1] > 0 then
+    if s2[1] > s2[2] then
+        PlotSignalBar(1, Green)
+
+        DoBuy() -- Do a buy
+    else
+        PlotSignalBar(1, Green(25))
+    end
+end

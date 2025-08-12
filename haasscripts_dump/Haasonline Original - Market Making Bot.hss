@@ -1,0 +1,18 @@
+EnableHighSpeedUpdates()
+HideTradeAmountSettings()
+
+startLong = Input('Start long', true, 'If checked, the script will only have long positions.')
+
+table = InputTable(
+    InputTableOptions('Slots'),
+    InputTableColumn('Offset (%)', 0.6, 1.2, 2.4),
+    InputTableColumn('Amount', 200, 400, 600),
+    InputTableColumn('Enter Timeout (Min)', 15, 15, 15),
+    InputTableColumn('Exit Timeout (Min)', 120, 180, 240),
+    InputTableColumn('Stop loss (%)', 2, 4, 6),
+    InputTableColumn('Cooldown (Min)', 60, 120, 180)
+    )
+
+for i=1, #table do
+    CC_MarketMakingSlot(startLong, table[i][1], table[i][2], table[i][3], table[i][4], table[i][5], table[i][6])
+end

@@ -1,0 +1,17 @@
+-- This is a example script to show how remote signals can be
+-- read inside HaasScript and how to handle it for managed 
+-- spot trading.
+
+-- High speed update are recommended for a quick responce, but its not essential
+EnableHighSpeedUpdates();
+
+-- Use your own signal identifier for this field
+signal = GetRemoteSignal('d8f3e51a01454d07a31343c63a426e9f')
+
+-- Progress the incoming data like this
+if (signal == SignalBuy) then
+  DoBuy()
+end
+if (signal == SignalSell)  then
+  DoSell()
+end

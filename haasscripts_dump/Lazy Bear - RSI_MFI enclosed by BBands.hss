@@ -1,0 +1,56 @@
+-- [LazyBear] RSI/MFI enclosed by BBands
+-- Converted by pshai
+
+-- Data
+local high = HighPrices()
+local low = LowPrices()
+local volume = GetVolume()
+local source = HLCPrices() -- Also try ClosePrices / HLPrices / OHLCPrices
+
+-- Inputs
+local length = Input('Length of RSI/MFI', 14)
+local mult = Input('Multiplier', 2.0)
+local drawRSI_f = Input('Draw RSI?', false)
+local drawMFI_f = Input('Draw MFI?', true)
+local hlightBreach = Input('Highlight OS/OB?', true)
+
+-- RSI or MFI?
+local drawMFI = IfElse((not drawMFI_f) and (not drawRSI_f), true, drawMFI_f)
+local drawRSI = IfElse(drawMFI_f and drawRSI_f, false, drawRSI_f)
+
+-- Variables for MFI/RSI and its color
+local indicator, color
+
+if drawRSI then
+    indicator = RSI(source, length)
+    color = Maroon
+elseif drawMFI then
+    indicator = MFI(high, low, source, volume, length)
+    color = Green
+end
+
+-- BBands
+local bb = BBANDS(indicator, length, mult, mult, SmaType)
+local upper = bb[1]
+local lower = bb[3]
+
+-- Plot bbands
+Plot(2, 'Middle', bb[2], Red)
+local l1 = Plot(2, 'Overbought', upper)
+local l2 = Plot(2, 'Oversold', lower)
+PlotBands(l1, l2, SkyBlue(15))
+
+-- Plot MFI/RSI
+Plot(2, IfElse(drawMFI, 'MFI', 'RSI'), indicator, color)
+
+-- Trade logic and breach highlights
+if indicator > upper then
+    if hlightBreach then PlotSignalBar(1, Red) end
+
+    DoSell()
+
+elseif indicator < lower then
+    if hlightBreach then PlotSignalBar(3, Green) end
+
+    DoBuy()
+end

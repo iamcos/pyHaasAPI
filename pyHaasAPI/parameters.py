@@ -130,6 +130,180 @@ class ParameterRange:
         all_values = self.generate_range()
         return random.sample(all_values, min(len(all_values), 10))  # Return up to 10 random values
 
+class ParameterClassifier:
+    """Intelligent parameter classification for trading optimization"""
+    
+    def __init__(self):
+        # Keywords for parameter classification
+        self.timeframe_keywords = ["low tf", "high tf", "timeframe", "interval", "period tf"]
+        self.structural_keywords = ["ma type", "indicator type", "signal type", "mode", "method"]
+        self.numerical_indicators = ["ADX", "Stoch", "DEMA", "RSI", "BB", "ATR", "SL", "TP", "EMA", "SMA"]
+        
+        # Parameter range templates for common indicators
+        self.default_ranges = {
+            "adx_trigger": {"min": 15, "max": 35, "step": 2},
+            "stoch_oversold": {"min": 10, "max": 30, "step": 5},
+            "stoch_overbought": {"min": 70, "max": 90, "step": 5},
+            "dema_fast": {"min": 5, "max": 20, "step": 2},
+            "dema_slow": {"min": 20, "max": 50, "step": 5},
+            "rsi_oversold": {"min": 20, "max": 35, "step": 5},
+            "rsi_overbought": {"min": 65, "max": 80, "step": 5},
+            "bb_period": {"min": 10, "max": 30, "step": 2},
+            "bb_deviation": {"min": 1.5, "max": 3.0, "step": 0.25}
+        }
+    
+    def classify_parameter(self, param_key: str, param_value: Any) -> str:
+        """
+        Classify parameter as timeframe, structural, or numerical.
+        
+        Args:
+            param_key: Parameter key/name
+            param_value: Parameter value
+            
+        Returns:
+            Classification: 'timeframe', 'structural', or 'numerical'
+        """
+        param_key_lower = param_key.lower()
+        
+        # Check for timeframe parameters
+        if any(keyword in param_key_lower for keyword in self.timeframe_keywords):
+            return "timeframe"
+        
+        # Check for structural parameters
+        if any(keyword in param_key_lower for keyword in self.structural_keywords):
+            return "structural"
+        
+        # Check if it's a numerical parameter
+        try:
+            float(param_value)
+            # If it's numeric, check if it matches numerical parameter patterns
+            if any(indicator.lower() in param_key_lower for indicator in self.numerical_indicators):
+                return "numerical"
+            
+            # If numeric but doesn't match patterns, still consider it numerical
+            return "numerical"
+        except (ValueError, TypeError):
+            # If not numeric, it's likely structural
+            return "structural"
+    
+    def suggest_parameter_range(self, param_key: str, current_value: Any) -> Dict[str, Any]:
+        """
+        Suggest optimization range for a parameter based on its key and current value.
+        
+        Args:
+            param_key: Parameter key/name
+            current_value: Current parameter value
+            
+        Returns:
+            Dictionary with suggested range information
+        """
+        try:
+            current_val = float(current_value)
+        except (ValueError, TypeError):
+            return {"min": 0, "max": 100, "step": 1, "type": "unknown"}
+        
+        param_key_lower = param_key.lower()
+        
+        # ADX parameters
+        if "adx" in param_key_lower and "trigger" in param_key_lower:
+            return {**self.default_ranges["adx_trigger"], "type": "adx_trigger"}
+        
+        # Stochastic parameters
+        elif "stoch" in param_key_lower and "low" in param_key_lower:
+            return {**self.default_ranges["stoch_oversold"], "type": "stoch_oversold"}
+        elif "stoch" in param_key_lower and "high" in param_key_lower:
+            return {**self.default_ranges["stoch_overbought"], "type": "stoch_overbought"}
+        
+        # DEMA parameters
+        elif "dema" in param_key_lower and "fast" in param_key_lower:
+            return {**self.default_ranges["dema_fast"], "type": "fast_period"}
+        elif "dema" in param_key_lower and "slow" in param_key_lower:
+            return {**self.default_ranges["dema_slow"], "type": "slow_period"}
+        
+        # RSI parameters
+        elif "rsi" in param_key_lower and ("low" in param_key_lower or "oversold" in param_key_lower):
+            return {**self.default_ranges["rsi_oversold"], "type": "rsi_oversold"}
+        elif "rsi" in param_key_lower and ("high" in param_key_lower or "overbought" in param_key_lower):
+            return {**self.default_ranges["rsi_overbought"], "type": "rsi_overbought"}
+        
+        # Bollinger Bands parameters
+        elif "bb" in param_key_lower and "period" in param_key_lower:
+            return {**self.default_ranges["bb_period"], "type": "bb_period"}
+        elif "bb" in param_key_lower and ("deviation" in param_key_lower or "std" in param_key_lower):
+            return {**self.default_ranges["bb_deviation"], "type": "bb_deviation"}
+        
+        # Risk management percentages
+        elif any(keyword in param_key_lower for keyword in ["sl", "tp"]) and "%" in param_key_lower:
+            if current_val <= 10:  # Small percentages
+                return {"min": max(1, current_val * 0.5), "max": current_val * 2, "step": 1, "type": "small_percentage"}
+            else:  # Larger percentages
+                return {"min": max(10, current_val * 0.7), "max": current_val * 1.5, "step": 5, "type": "large_percentage"}
+        
+        # Cooldown periods
+        elif "cooldown" in param_key_lower or "reset" in param_key_lower:
+            return {"min": max(10, current_val * 0.5), "max": current_val * 2, "step": 10, "type": "cooldown_period"}
+        
+        # General numerical parameters
+        else:
+            if current_val <= 1:  # Very small values
+                return {"min": 0.1, "max": 2.0, "step": 0.1, "type": "small_decimal"}
+            elif current_val <= 10:  # Small integers
+                return {"min": 1, "max": 20, "step": 1, "type": "small_integer"}
+            elif current_val <= 100:  # Medium values
+                return {"min": max(5, current_val * 0.5), "max": current_val * 2, "step": 5, "type": "medium_value"}
+            else:  # Large values
+                return {"min": max(10, current_val * 0.7), "max": current_val * 1.5, "step": 10, "type": "large_value"}
+    
+    def classify_parameters_batch(self, parameters: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """
+        Classify a batch of parameters.
+        
+        Args:
+            parameters: Dictionary of parameter key-value pairs
+            
+        Returns:
+            Dictionary with classified parameters
+        """
+        classified = {
+            "timeframe_parameters": {},
+            "structural_parameters": {},
+            "numerical_parameters": {}
+        }
+        
+        for param_key, param_value in parameters.items():
+            classification = self.classify_parameter(param_key, param_value)
+            
+            if classification == "timeframe":
+                classified["timeframe_parameters"][param_key] = param_value
+            elif classification == "structural":
+                classified["structural_parameters"][param_key] = param_value
+            elif classification == "numerical":
+                classified["numerical_parameters"][param_key] = {
+                    "current_value": param_value,
+                    "suggested_range": self.suggest_parameter_range(param_key, param_value),
+                    "parameter_type": self._determine_numerical_type(param_key)
+                }
+        
+        return classified
+    
+    def _determine_numerical_type(self, param_key: str) -> str:
+        """Determine the type of numerical parameter"""
+        param_key_lower = param_key.lower()
+        
+        if any(keyword in param_key_lower for keyword in ["period", "length", "window"]):
+            return "period"
+        elif any(keyword in param_key_lower for keyword in ["trigger", "line", "level"]):
+            return "threshold"
+        elif any(keyword in param_key_lower for keyword in ["pct", "%"]):
+            return "percentage"
+        elif any(keyword in param_key_lower for keyword in ["sl", "tp"]):
+            return "risk_management"
+        else:
+            return "general_numerical"
+
+# Global classifier instance
+parameter_classifier = ParameterClassifier()
+
 class LabParameter(BaseModel):
     """Lab parameter model"""
     model_config = ConfigDict(

@@ -1,0 +1,15 @@
+-- [LazyBear] Elliot Wave Oscillator
+-- Converted by pshai
+
+local length1 = Input("Fast Period Length", 5)
+local length2 = Input("Slow Period Length", 120)
+local close = ClosePrices()
+local s2 = SMA(close, length1) - SMA(close, length2)
+local l1 = Plot(1, "EWO", s2, Green)
+PlotHistogram(l1, Red, true)
+
+if IsRising(s2, 3) then
+    DoBuy()
+elseif IsFalling(s2, 3) then
+    DoSell()
+end

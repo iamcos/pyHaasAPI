@@ -1,0 +1,5 @@
+rsi1 = EasyRSI(1, 'First')
+interval2 = InputInterval('Interval', 5)
+rsi2 = EasyRSI(1, 'Second', interval2)
+
+DoSignal(GetUnanimousSignal(rsi1, rsi2))

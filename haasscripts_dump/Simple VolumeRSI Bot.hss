@@ -1,0 +1,13 @@
+-- Safeties
+safeties = SafetyContainer(
+    TrailingStopLoss(Input('TralingStop', 5))
+)
+
+-- Indicators
+indicatorSignal = CC_EasyVolumeRSI(1, '')
+
+-- Insurances
+insurances = InsuranceContainer()
+
+-- Trade Bot
+TradeBotContainer(safeties, indicatorSignal, insurances)

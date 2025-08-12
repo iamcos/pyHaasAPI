@@ -8,8 +8,11 @@ from typing import Dict, Any
 # API Configuration
 API_HOST = os.getenv("API_HOST", "127.0.0.1")
 API_PORT = int(os.getenv("API_PORT", 8090))
-API_EMAIL = os.getenv("API_EMAIL", "your_email@example.com")
-API_PASSWORD = os.getenv("API_PASSWORD", "your_password")
+API_EMAIL = os.getenv("API_EMAIL")
+API_PASSWORD = os.getenv("API_PASSWORD")
+
+if not API_EMAIL or not API_PASSWORD:
+    raise ValueError("API_EMAIL and API_PASSWORD must be set in your .env file")
 
 # Authentication settings
 AUTH_RETRY_ATTEMPTS = 3

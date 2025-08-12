@@ -1,0 +1,157 @@
+ Author  Strooth  Find me on discord  strooth#4739
+ Feel free to donate to support my work or if my script helped you in any way <3
+ BTC Adress: 33MsEAbA8tg7SpohgnCpSrmPTBih2UkhxQ
+
+InputGroupHeader('Main')
+local allowshort = Input('Enable Short', true, 'Enable short positions')
+local allowlong = Input('Enable Long', true, 'Enable long positions')
+local allowshortx = Input('Enable Short Reduce', true, 'Enable short positions reduction/exits')
+local allowlongx = Input('Enable Long Reduce', true, 'Enable long positions reduction/exits')
+InputGroupHeader('Settings')
+local positionlimit = Input('Position Limit', 1, 'The number of positions to use per side')
+local spread = Input('Spread',  1, 'The percentage spread each position order should be aawy from each other')
+local xdivs = Input('Exit Divider Short',  1.5, 'The amount to divide the trade amount on reduce orders')
+local xdivl = Input('Exit Divider Long',  2, 'The amount to divide the trade amount on reduce orders')
+local takeprofit = Input('Take Profit',  100, 'The take profit in ROI to use')
+local mintakeprofit = Input('Min Take Profit',  20, 'The minimum take profit to use if signal exit position is triggered')
+local usestop = Input('Enable Stop Loss', false, 'Enable using stop loss')
+local stoploss = Input('Stop Loss',  20, 'The stop loss percent of the positions')
+ 
+-- Get a signal from somewhere
+--local signal = GetRemoteSignal(NewGuid())
+local signal = EasyDynamicLongShortLevels(0)
+local longsignal = IfElseIf(signal==SignalLong, signal==SignalShort, signal, SignalExitLong, signal)
+local shortsignal = IfElseIf(signal==SignalShort, signal==SignalLong, signal, SignalExitShort, signal)
+ 
+--- Get Price
+local cp = CurrentPrice()
+---
+ 
+-- Cancel all orders function
+local cancel = function(pid)
+    if IsAnyOrderOpen(pid) then
+        CancelAllOrders(pid)
+    end 
+end
+ 
+--- Get order price function
+local getprice = function(isLong, isExit, index)
+    local out = cp.close
+    if isLong == true then 
+        if isExit == true then 
+            out = LastExitLongPrice() == 0 and cp.high or AddPerc(Max(LastExitLongPrice(), cp.high), spread*index)
+        else
+            out = LastLongPrice() == 0 and cp.low or SubPerc(Min(LastLongPrice(), cp.low), spread*index)
+        end
+    elseif isLong == false then 
+        if isExit == true then 
+            out = LastExitShortPrice() == 0 and cp.low or SubPerc(Min(LastExitShortPrice(), cp.low), spread*index)
+        else
+            out = LastShortPrice() == 0 and cp.high or AddPerc(Max(LastShortPrice(), cp.high), spread*index)
+        end
+    end
+    return out 
+end
+ 
+--- Check percentage change function
+local checkdelta = function(isLong, price, distance)
+    if price == 0 then 
+        return true 
+    else 
+        local cp = Switch(isLong==true, cp.ask, cp.bid)
+        local _price = Switch(isLong==true, SubPerc(price, distance), AddPerc(price, distance))
+        local out = Switch(isLong==true, IsSmallerThan(cp, _price), IsBiggerThan(cp, _price)) 
+        return out
+    end 
+end
+ 
+--- exit position function
+local ExitPos = function(PosId, side, index, orderparams)
+    -- cancel any existing open orders for this position befor placing a new one
+    cancel(PosId)
+    -- update params
+    orderparams.positionId = PosId
+    -- save new order id
+    CC_getOID(side, index, PlaceExitPositionOrder(orderparams))
+end
+ 
+-- bot logic
+for k=1, positionlimit do 
+    ---- Load PositionId's Per Side and Per Index (If Position Limit == 10 then loops through 10 times for each side which means it will check 10 short positions and 10 long positions per interval)
+    ---- If you just want to keep it simple to 1 position per side i.e. 1 long and 1 short open then set position limit to 1 
+    local params = {positionId = '', market = PriceMarket(), type = GetOrderType(), note = ''}
+ 
+    local ShortPosId = CC_getPID(false, k)
+    local ShortOID = CC_getOID(false, k)
+    local LongPosId = CC_getPID(true, k)
+    local LongOID = CC_getOID(true, k)
+ 
+    ---- Enter/Reduce
+    if allowshort then 
+        if And(ShortOID == '', shortsignal == SignalShort, checkdelta(false, Max(LastShortPrice(), GetPositionEnterPrice(ShortPosId)), spread*k)) then 
+            params.positionId = ShortPosId; params.note = 'Go Short - '..ShortPosId; params.reduceOnly = false
+            CC_getOID(false, k, PlaceGoShortOrder(getprice(false, false, k), TradeAmount(), params))
+        elseif And(allowshortx, ShortOID == '', shortsignal == SignalExitShort, checkdelta(true, Min(LastExitShortPrice(), GetPositionEnterPrice(ShortPosId)), spread*k)) then 
+            params.positionId = ShortPosId; params.note = 'Exit Short - '..ShortPosId; params.reduceOnly = true
+            CC_getOID(false, k, PlaceExitShortOrder(getprice(false, true, k), TradeAmount()/xdivs, params))
+        end
+    end
+    if allowlong then 
+        if And(LongOID == '', longsignal == SignalLong, checkdelta(true, Min(LastLongPrice(), GetPositionEnterPrice(LongPosId)), spread*k)) then 
+            params.positionId = LongPosId; params.note = 'Go Long - '..LongPosId; params.reduceOnly = false
+            CC_getOID(true, k, PlaceGoLongOrder(getprice(true, false, k), TradeAmount(), params))
+        elseif And(allowlongx, LongOID == '', longsignal == SignalExitLong, checkdelta(false, Max(LastExitLongPrice(), GetPositionEnterPrice(LongPosId)), spread*k)) then 
+            params.positionId = LongPosId; params.note = 'Exit Long - '..LongPosId; params.reduceOnly = true
+            CC_getOID(true, k, PlaceExitLongOrder(getprice(true, true, k), TradeAmount()/xdivl, params))
+        end 
+    end 
+    -- Signal Exit
+    if signal == SignalExitPosition then 
+        if GetPositionROI(ShortPosId) > mintakeprofit then 
+            params.price = getprice(false, true, k); params.note = 'Close Short Position - '..ShortPosId
+            ExitPos(ShortPosId, false, k, params)
+        end
+        if GetPositionROI(LongPosId) > mintakeprofit then 
+            params.price = getprice(true, true, k); params.note = 'Close Long Position - '..LongPosId
+            ExitPos(LongPosId, true, k, params)
+        end
+    else 
+        -- Check for Take Profit and Stop Loss
+        local shortprofit, shortstop, longprofit, longstop = Load('shortprofit'..ShortPosId, false), Load('shortstop'..ShortPosId, false), Load('longprofit'..LongPosId, false), Load('longstop'..LongPosId, false)
+        -- Long Exits
+        if TakeProfitROI(takeprofit, LongPosId) then 
+            longprofit = true 
+            params.note = 'Take Profit on Long Position - '..LongPosId
+        elseif usestop and StopLoss(stoploss, LongPosId) then 
+            longstop = true 
+            params.note = 'Stop Loss on Long Position - '..LongPosId
+        end
+        if longstop then
+            ExitPos(LongPosId, true, k, params)
+        elseif longprofit then 
+            if CC_ProfitTrailer(takeprofit, takeprofit, {positionId = LongPosId}) then 
+                ExitPos(LongPosId, true, k, params)
+            end
+        end 
+        -- Short Exits
+        if TakeProfitROI(takeprofit, ShortPosId) then 
+            shortprofit = true 
+            params.note = 'Take Profit on Short Position - '..ShortPosId
+        elseif usestop and StopLoss(stoploss, ShortPosId) then 
+            shortstop = true 
+            params.note = 'Stop Loss on Short Position - '..ShortPosId
+        end
+        if shortstop then
+            ExitPos(ShortPosId, false, k, params)
+        elseif shortprofit then 
+            if CC_ProfitTrailer(takeprofit, takeprofit, {positionId = ShortPosId}) then 
+                ExitPos(ShortPosId, false, k, params)
+            end
+        end 
+        Save('shortprofit'..ShortPosId, shortprofit)
+        Save('shortstop'..ShortPosId, shortstop)
+        Save('longprofit'..LongPosId, longprofit)
+        Save('longstop'..LongPosId, longstop)
+    end
+end 
+--- profitz

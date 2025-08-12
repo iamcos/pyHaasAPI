@@ -1,6 +1,6 @@
 from enum import Enum
 import dataclasses
-from typing import Any, Dict, List, Optional, Generic, Literal, TypeVar, Type, Union, TYPE_CHECKING
+from typing import (Any, Dict, List, Optional, Generic, Literal, TypeVar, Type, Union, TYPE_CHECKING)
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from decimal import Decimal
 
@@ -610,3 +610,172 @@ class HaasScriptFolder(BaseModel):
     parent_id: int = Field(alias="PID")
     created_unix: int = Field(alias="CU")
     updated_unix: int = Field(alias="UU")
+
+
+class AddSimulatedAccountRequest(BaseModel):
+    name: str = Field(alias="name")
+    driver_code: str = Field(alias="drivercode")
+    driver_type: int = Field(alias="drivertype", default=2) # 2 for simulated
+
+
+# --- NEW MODELS FOR RUNTIME DATA --- #
+
+class InputFieldDetail(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    T: int = Field(description="Parameter Type (matches ParameterType enum)")
+    ST: int = Field(description="Sub-Type")
+    G: str = Field(description="Group name for the parameter")
+    K: str = Field(description="Full parameter key")
+    EK: str = Field(description="Extended Key - numerical prefix of the key")
+    N: str = Field(description="Human-readable Name of the parameter")
+    TT: str = Field(description="Tooltip or description for the parameter")
+    V: Any = Field(description="The actual value used for this parameter")
+    D: Any = Field(description="Default value for the parameter")
+    O: Optional[Dict[str, str]] = Field(None, description="Options for SELECTION types")
+    MIN: float = Field(description="Minimum value for numerical parameters")
+    MAX: float = Field(description="Maximum value for numerical parameters")
+
+class OrderInPosition(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    id: str
+    eid: str
+    ot: int # Open Time
+    ct: int # Close Time
+    to: int # Trade Order
+    d: int  # Direction
+    t: int  # Type
+    p: float # Price
+    tp: float # Take Profit
+    ep: float # Entry Price
+    a: float # Amount
+    af: float # Amount Filled
+    fe: float # Fee
+    fc: str # Fee Currency
+    m: float # Margin
+    pr: float # Profit/Loss
+    r: float # Rate
+    cr: int # Custom Report
+    n: str # Note
+
+class PositionDetail(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    pg: str # Position Group ID
+    g: str  # Group ID
+    ac: str # Account ID
+    ma: str # Market Tag
+    le: float # Leverage
+    d: int # Direction
+    mt: int # Market Type
+    pl: str # Profit/Loss Currency
+    al: str # Asset Label
+    pd: int # Price Decimals
+    ad: int # Amount Decimals
+    ot: int # Open Time
+    ct: int # Close Time
+    ic: bool # Is Closed
+    ap: float # Average Price
+    t: float # Trade Amount
+    av: float # Average Volume
+    io: float # Initial Order
+    eno: List[OrderInPosition] = Field(default_factory=list) # Entry Orders
+    exo: List[OrderInPosition] = Field(default_factory=list) # Exit Orders
+    cp: float # Current Profit
+    fe: float # Fee
+    rp: float # Realized Profit
+    up: float # Unrealized Profit
+    roi: float # ROI
+    hpip: float # Highest Price in Position
+    lpip: float # Lowest Price in Position
+
+class ReportDetails(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    AID: str
+    M: str
+    AL: str
+    ML: str
+    PL: str
+    F: Dict[str, Any] # Fee details
+    PR: Dict[str, Any] # Profit/Return details
+    O: Dict[str, Any] # Order details
+    P: Dict[str, Any] # Position details
+    T: Dict[str, Any] # Trade statistics
+
+class ChartDetails(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    Guid: str
+    Interval: int
+    Charts: Dict[str, Any]
+    Colors: Dict[str, str]
+    IsLastPartition: bool
+    Status: int
+
+class BacktestRuntimeData(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    Chart: ChartDetails
+    CompilerErrors: List[Any]
+    Reports: Dict[str, ReportDetails]
+    CustomReport: Dict[str, Any]
+    ScriptNote: str
+    TrackedOrderLimit: int
+    OpenOrders: List[Any]
+    FailedOrders: List[Any]
+    ManagedLongPosition: PositionDetail
+    ManagedShortPosition: PositionDetail
+    UnmanagedPositions: List[PositionDetail]
+    FinishedPositions: List[PositionDetail]
+    InputFields: Dict[str, InputFieldDetail]
+    ScriptMemory: Dict[str, Any]
+    LocalMemory: Dict[str, Any]
+    RedisKeys: List[Any]
+    Files: Dict[str, Any]
+    LogId: str
+    LogCount: int
+    ExecutionLog: List[str]
+    UserId: str
+    BotId: str
+    BotName: str
+    ScriptId: str
+    ScriptName: str
+    Activated: bool
+    Paused: bool
+    IsWhiteLabel: bool
+    ActivatedSince: int
+    DeactivatedSince: int
+    DeactivatedReason: str
+    AccountId: str
+    PriceMarket: str
+    Leverage: float
+    MarginMode: int
+    PositionMode: int
+    TradeAmount: float
+    OrderTemplate: int
+    DefaultInterval: int
+    DefaultChartType: int
+    HideTradeAmountSettings: bool
+    HideOrderSettings: bool
+    OrderPersistenceEnabled: bool
+    OrderPersistenceLimit: int
+    EnableHighSpeedUpdates: bool
+    UpdateAfterCompletedOrder: bool
+    IndicatorContainerLogs: bool
+    IsScriptOk: bool
+    TradeAmountError: bool
+    ScriptTradeAmountError: bool
+    UpdateCounter: int
+    IsSpotSupported: bool
+    IsMarginSupported: bool
+    IsLeverageSupported: bool
+    IsManagedTrading: bool
+    IsOneDirection: bool
+    IsMultiMarket: bool
+    IsRemoteSignalBased: bool
+    IsWebHookBased: bool
+    WebHookSignalId: str
+    IsTAUsed: bool
+    Timestamp: int
+    MinuteTimestamp: int
+    LastUpdateTimestamp: int
+
+class BotRuntimeData(BacktestRuntimeData):
+    """Bot runtime data has a very similar structure to backtest runtime data"""
+    pass

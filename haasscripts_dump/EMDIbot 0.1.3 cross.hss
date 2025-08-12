@@ -1,0 +1,49 @@
+-- [huluvublue]
+-- EMDIbot0.1.3
+-- bc1pmygwepesljqk87ccvnvglv07ak5t80xw9ffxaq9ah20vjtvt5vcq9kpa5z
+
+-- Define inputs
+local length1 = Input('Length 1', 32)
+local length2 = Input('Length 2', 5)
+local length3 = Input('Length 3', 5)
+local signalLength = Input('Signal Length', 5)
+local allowLongs = Input('Allow Long Positions', true, 'bool')
+local allowShorts = Input('Allow Short Positions', true, 'bool')
+
+-- Get source data
+local source = ClosePrices()
+
+-- Calculate EMAs
+local ma = EMA(source, length1)
+local diff = source - ma
+local diffMa = EMA(diff, length2)
+local emdi = EMA(diffMa, length3)
+local emdiMa = EMA(emdi, signalLength)
+
+-- Trading Logic
+local currentPosition = GetPositionDirection()
+
+if CrossOver(emdi, emdiMa) and currentPosition ~= PositionLong and allowLongs then
+    -- EMDI crosses above the signal line, Going Long
+    Log('EMDI crossed above the signal line - Going Long')
+    DoLong('Go long')
+elseif CrossUnder(emdi, emdiMa) and currentPosition ~= PositionShort and allowShorts then
+    -- EMDI crosses below the signal line, Going Short
+    Log('EMDI crossed below the signal line - Going Short')
+    DoShort('Go short')
+end
+
+-- Plotting
+Plot(1, 'EMDI', emdi, SkyBlue)
+Plot(1, 'Signal', emdiMa, Purple)
+
+-- Plot the histogram
+local histogram = emdi - emdiMa
+local histoPlot = Plot(1, "Histogram", histogram, Gray)
+PlotHistogram(histoPlot, Maroon, true)
+
+-- Plot profit
+local profit = GetBotProfit()
+Plot(2, "PnL", profit, Green(40))
+Plot(2, "", 0, White)
+

@@ -1,0 +1,215 @@
+-- [pshaiBot] Triangle-Arbitrage, PROOF-OF-CONCEPT
+-- Author: pshai
+ 
+--[[
+    -- WARNING, PLEASE READ --
+    This bot executes trades based on estimations and on the
+    assumption that prices do not change when orders are sent out!
+ 
+    Please do not use this bot for actual trading, unless you want to
+    prove to yourself that this type of trading IS NOT profitable!
+]]
+ 
+EnableHighSpeedUpdates()
+HideOrderSettings()
+HideTradeAmountSettings()
+ 
+local market1 = PriceMarket()
+local market2 = InputMarket('Second market')
+local market3 = InputMarket('Third market')
+local starting_amt = Input('Starting Quote Amount', 1, 'If the main market is for example ETH/BTC, this amount is read as BTC.')
+ 
+ 
+if not init then
+    Log('market 3: ' .. market3)
+    Log('market 2: ' .. market2)
+    Log('market 1: ' .. market1)
+ 
+    __update_cycle = false
+    __total_profit = 0
+    __orderIds = {}
+ 
+    __pids = {
+        NewGuid(),
+        NewGuid(),
+        NewGuid()
+    }
+ 
+    init = true
+end
+ 
+ 
+PlotPrice(1, market2)
+PlotPrice(2, market3)
+ChartSetOptions(0, market1, 0.33)
+ChartSetOptions(1, market2, 0.33)
+ChartSetOptions(2, market3, 0.33)
+ 
+--[[
+    consider the following markets:
+    1: ETH/BTC
+    2: XRP/ETH
+    3: XRP/BTC
+ 
+    cycle 1 would go:
+        BTC -> ETH
+        ETH -> XRP
+        XRP -> BTC
+    cycle 2 would go:
+        BTC -> XRP
+        XRP -> ETH
+        ETH -> BTC
+]]
+ 
+function runCycles(mkt1, mkt2, mkt3)
+    local cp1 = CurrentPrice(mkt1)
+    local cp2 = CurrentPrice(mkt2)
+    local cp3 = CurrentPrice(mkt3)
+ 
+    -- run cycle 1
+    local p1 = cp1.ask
+    local p2 = cp2.ask
+    local p3 = cp3.bid
+    local a1 = starting_amt / p1
+    local a2 = SubPerc(a1, TakersFee(mkt1)) / p2
+    local a3 = SubPerc(a2, TakersFee(mkt2))
+    local final_amt = SubPerc(a3, TakersFee(mkt3)) * p3
+ 
+    Log('------------------------------', DarkGray)
+    Log('Est. Difference: '..Round(final_amt - starting_amt, 8)..' '..QuoteCurrency(mkt1), DarkGray)
+    Log('Est. After cycle: '..Round(final_amt, 8)..' '..QuoteCurrency(mkt1), DarkGray)
+    Log('Starting amount: '..starting_amt..' '..QuoteCurrency(mkt1), DarkGray)
+ 
+    -- if profitable, run cycle
+    if final_amt > starting_amt then
+        __orderIds[1] = PlaceBuyOrder(
+            p1,
+            a1,
+            mkt1,
+            MarketOrderType,
+            'Buy #1',
+            __pids[1],
+            600
+        )
+        __orderIds[2] = PlaceBuyOrder(
+            p2,
+            a2,
+            mkt2,
+            MarketOrderType,
+            'Buy #2',
+            __pids[2],
+            600
+        )
+        __orderIds[3] = PlaceSellOrder(
+            p3,
+            a3,
+            mkt3,
+            MarketOrderType,
+            'Sell #3',
+            __pids[3],
+            600
+        )
+ 
+        Log('Potentially profitable cycle.', Green)
+ 
+        __update_cycle = true
+    end
+ 
+    Log('Cycle #1', White)
+    
+    -- run cycle 2
+    local p1 = cp3.ask
+    local p2 = cp2.bid
+    local p3 = cp1.bid
+    local a1 = starting_amt / p1
+    local a2 = SubPerc(a1, TakersFee(mkt3))
+    local a3 = SubPerc(a2, TakersFee(mkt2)) * p2
+    local final_amt = SubPerc(a3, TakersFee(mkt1)) * p3
+ 
+    Log('------------------------------', DarkGray)
+    Log('Est. Difference: '..Round(final_amt - starting_amt, 8)..' '..QuoteCurrency(mkt1), DarkGray)
+    Log('Est. After cycle: '..Round(final_amt, 8)..' '..QuoteCurrency(mkt1), DarkGray)
+    Log('Starting amount: '..starting_amt..' '..QuoteCurrency(mkt1), DarkGray)
+ 
+    if final_amt > starting_amt then
+        __orderIds[1] = PlaceBuyOrder(
+            p1,
+            a1,
+            mkt3,
+            MarketOrderType,
+            'Buy #1',
+            __pids[1],
+            600
+        )
+        __orderIds[2] = PlaceSellOrder(
+            p2,
+            a2,
+            mkt2,
+            MarketOrderType,
+            'Sell #2',
+            __pids[2],
+            600
+        )
+        __orderIds[3] = PlaceSellOrder(
+            p3,
+            a3,
+            mkt1,
+            MarketOrderType,
+            'Sell #3',
+            __pids[3],
+            600
+        )
+ 
+        Log('Potentially profitable cycle.', Green)
+ 
+        __update_cycle = true
+    end
+ 
+    Log('Cycle #2', White)
+end
+ 
+function updateCycle()
+    -- check orders and calculate final profit
+    local oids = __orderIds
+ 
+    if Count(oids) > 0 then
+        local oid1 = oids[1]
+        local oid2 = oids[2]
+        local oid3 = oids[3]
+ 
+        local order1 = OrderContainer(oid1)
+        local order2 = OrderContainer(oid2)
+        local order3 = OrderContainer(oid3)
+ 
+        if not (order1.isOpen and order2.isOpen and order3.isOpen) then
+            local final_profit = (order3.filledAmount * order3.price) - (order1.filledAmount * order1.price)
+ 
+            __total_profit = __total_profit + final_profit
+ 
+            Log('Final realized profit: ' .. final_profit .. ' ' .. QuoteCurrency(market1), final_profit > 0 and Green or Red)
+ 
+            __orderIds = {}
+            __update_cycle = false
+ 
+            CloseVPosition(order1.price, __pids[1])
+            CloseVPosition(order2.price, __pids[2])
+            CloseVPosition(order3.price, __pids[3])
+ 
+            __pids = {
+                NewGuid(),
+                NewGuid(),
+                NewGuid()
+            }
+        else
+            __update_cycle = true -- keep updating
+        end
+    end
+end
+ 
+ 
+-- main logic
+if __update_cycle then
+    updateCycle()
+else
+    runCycles(market1, market2, market3)
+end
