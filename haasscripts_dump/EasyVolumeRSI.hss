@@ -1,0 +1,39 @@
+-- Source: https://www.tradingview.com/script/1kL7Hr9u-VRSI-new/
+
+-- Define command
+DefineCommand('EasyVolumeRSI', 'RSI Calculated over volume and smoothed.')
+
+-- Define command parameters.
+local chartIndex = DefineParameter(NumberType, 'chartIndex', 'The index on which to chart', true, 1, 'Number')
+local name = DefineParameter(StringType, 'name', 'Unique name of the indicator.', false, '', 'Text')
+local interval = DefineParameter(NumberType, 'interval', 'Used interval for price data. Default is 0 and the main interval will be used.', false, 0, 'Number,InputInterval')
+
+DefineIntervalOptimization(interval)
+
+-- Input fields for the indicator. Add the name in front.
+InputGroupHeader('Easy Volume '..name..' Settings')
+local buyLevel = Input(name..' vRSI Buy Level', 45)
+local sellLevel = Input(name..' vRSI Sell Level', 55)
+local length = Input(name..' vRSI Length', 9)
+local smoothing = Input(name..' vRSI Smoothing', 5)
+
+-- Calculate the indicator
+local prices = ClosePrices(interval)
+local volumes = GetVolume(interval)
+
+-- Calculations
+local change = Change(prices)
+local changeMul = Mul(change, volumes)
+
+local rsi = RSI(changeMul, length)
+local smoothRSI = SMA(rsi, length)
+
+-- Determine the signal.
+local signal = GetBuySellLevelSignal(smoothRSI, buyLevel, sellLevel)
+
+-- Plot the indicator Use the chartIndex parameter.
+PlotLineBuySellZone(chartIndex, 'vRSI', smoothRSI, buyLevel, sellLevel)
+
+
+--Return the custom signal.
+DefineOutput(EnumType, signal, 'Signal result', 'TradeBotContainer, IndicatorContainer, Signal Helpers')

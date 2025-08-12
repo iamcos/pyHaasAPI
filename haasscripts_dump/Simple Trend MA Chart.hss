@@ -1,0 +1,12 @@
+-- Trend MA
+-- Ported by pshai (https://www.tradingview.com/script/OtmmsJW2-Trend-MA-20/)
+
+local ma_period = Input('MA Period', 50)
+local selected_type = InputMaTypes('MA Type', SmaType)
+local close = ClosePrices()
+local ma_values = MA(close, ma_period, selected_type)
+
+local price_line = Plot(0, 'Price', close, Green)
+local ma_line = Plot(0, selected_type..'('..ma_period..')', ma_values, Red)
+
+PlotCloud(price_line, ma_line, 2)

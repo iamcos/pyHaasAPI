@@ -1,0 +1,174 @@
+---------------------------------------------------------------------------------------------------
+-- ADX+KC+STOCH Scalper
+-- by pshai 2019
+---------------------------------------------------------------------------------------------------
+-- Indicator setup:
+--   - ADX to distinguish trending/ranging areas
+--   - KC+STOCH to determine entries
+--
+-- Buy entry when...
+--   - ADX is falling or below 20
+--   - Price is below KC lower band
+--   - Stochastics going down and below 55
+--
+-- Sell entry when...
+--   - ADX is falling or below 20
+--   - Price is above KC upper band
+--   - Stochastics going up and above 45
+--
+-- Default settings found using HaasLabs Intelligent tuner.
+-- Auto-tune backtest period 4 weeks, test run was 16th December 2019
+---------------------------------------------------------------------------------------------------
+ 
+EnableHighSpeedUpdates()
+ 
+---------------------------------------------------------------------------------------------------
+-- INPUTS
+ 
+    local input_adxLen = Input('1. ADX', 4, '', 'ADX')
+    local input_adxInt = InputInterval('2. Timeframe', 240, '', 'ADX')
+ 
+    local input_kcLen = Input('1. Length', 49, '', 'CHANNEL')
+    local input_kcType = InputMaTypes('2. MA Type', EmaType, '', 'CHANNEL')
+    local input_atrLen = Input('3. ATR Length', 11, '', 'CHANNEL')
+    local input_atrMul = Input('4. ATR Mult', 1, '', 'CHANNEL')
+    local input_kcInt = InputInterval('5. Timeframe', 10, '', 'CHANNEL')
+ 
+    local input_stochFastK = Input('1. Fast K', 21, '', 'STOCH')
+    local input_stochSlowK = Input('2. Slow K', 10, '', 'STOCH')
+    local input_stochSlowD = Input('3. Slow D', 8, '', 'STOCH')
+    local input_stochUpper = Input('4. Overbought', 79, '', 'STOCH')
+    local input_stochLower = Input('5. Oversold', 20, '', 'STOCH')
+    local input_stochInt = InputInterval('6. Timeframe', 60, '', 'STOCH')
+    
+    local input_slprc = Input('1. SL Percentage (ROI)', 100, '', 'SAFETIES')
+    local input_slcd = Input('2. SL Cooldown', 80, '', 'SAFETIES')
+    local input_tpprc = Input('3. TP Percentage (ROI)', 200, '', 'SAFETIES')
+ 
+ 
+---------------------------------------------------------------------------------------------------
+-- HELPERS & FUNCTIONS
+ 
+    function indicator_ADX(chartIdx, timeframe, data)
+        local h = data.h(timeframe)
+        local l = data.l(timeframe)
+        local c = data.c(timeframe)
+        local adx = ADX(h, l, c, input_adxLen)
+ 
+        -- Plots for ADX
+        Plot(chartIdx, 'ADX', adx, Gray)
+        PlotHorizontalLine(chartIdx, '', Yellow(50), 20, Dashed)
+        PlotHorizontalLine(chartIdx, '', Yellow(50), 15, Dashed)
+        PlotHorizontalZone(chartIdx, '', Yellow(10), 15, 20)
+ 
+        return adx
+    end
+ 
+    function indicator_STOCH(chartIdx, timeframe, data)
+        local h = data.h(timeframe)
+        local l = data.l(timeframe)
+        local c = data.c(timeframe)
+        local stoch = STOCH(h, l, c, input_stochFastK, input_stochSlowK, input_stochSlowD)
+ 
+        -- Plots for STOCH
+        Plot(chartIdx, '%K', stoch.slowK, Gray)
+        Plot(chartIdx, '%D', stoch.slowD, Red)
+        PlotHorizontalLine(chartIdx, '', DarkGray, input_stochLower, Dashed)
+        PlotHorizontalLine(chartIdx, '', DarkGray, 50, Dashed)
+        PlotHorizontalLine(chartIdx, '', DarkGray, input_stochUpper, Dashed)
+        PlotHorizontalZone(chartIdx, '', Yellow(10), input_stochLower, input_stochUpper)
+ 
+        return stoch
+    end
+ 
+    function indicator_KC(chartIdx, timeframe, data)
+        local h = data.h(timeframe)
+        local l = data.l(timeframe)
+        local c = data.c(timeframe)
+        local atr = ATR(h, l, c, input_atrLen)
+        local middle = MA(c, input_kcLen, input_kcType)
+        local upper = middle + atr * input_atrMul
+        local lower = middle - atr * input_atrMul
+        local width = upper - lower -- channel width
+ 
+        -- Plots for KC
+        PlotBBandsChart(chartIdx, 'KC', upper, middle, lower)
+ 
+        return {
+            middle = middle,
+            upper = upper,
+            lower = lower,
+            width = width
+        }
+    end
+ 
+---------------------------------------------------------------------------------------------------
+-- DATA
+    local data_market = {
+        o = OpenPrices,
+        h = HighPrices,
+        l = LowPrices,
+        c = ClosePrices,
+        v = GetVolume,
+        b = BidPrices,
+        a = AskPrices
+    }
+ 
+ 
+---------------------------------------------------------------------------------------------------
+-- INDICATORS
+    local kc = OptimizedForInterval(input_kcInt, function() return indicator_KC(0, input_kcInt, data_market) end)
+    local adx = OptimizedForInterval(input_adxInt, function() return indicator_ADX(1, input_adxInt, data_market) end)
+    local stoch = OptimizedForInterval(input_stochInt, function() return indicator_STOCH(2, input_stochInt, data_market) end)
+ 
+ 
+---------------------------------------------------------------------------------------------------
+-- LOGIC
+ 
+    local cp = CurrentPrice()
+    local roi = GetPositionROI()
+    local dir = GetPositionDirection()
+    local postfix = '['..Round(roi, 2)..']'
+ 
+    local adxFalling = (adx[1] - adx[2]) < 0 or adx < 20
+    local ch_am = data_market.c(1) > kc.middle[2]
+    local ch_bm = data_market.c(1) < kc.middle[2]
+    local ch_upper = data_market.c(1) > kc.upper
+    local ch_lower = data_market.c(1) < kc.lower
+    local stoch_dn = stoch.slowK < stoch.slowD and stoch.slowK < 55
+    local stoch_up = stoch.slowK > stoch.slowD and stoch.slowK > 45
+ 
+ 
+    if StopLossCooldown(30) and adxFalling then
+        if IsAnyOrderOpen() then
+            local v = 0
+        else
+            if stoch_dn and ch_lower then
+                if dir == PositionShort then
+                    DoExitPosition('SX '..postfix)
+                end
+ 
+                DoLong('L')
+            elseif stoch_up and ch_upper then
+                if dir == PositionLong then
+                    DoExitPosition('LX '..postfix)
+                end
+ 
+                DoShort('S')
+            end
+        end
+    end
+ 
+    if GetPositionDirection() != NoPosition then
+        if GetPositionDirection() == PositionLong and stoch.slowK > input_stochUpper and ch_am then
+            DoExitPosition('LX '..postfix)
+        elseif GetPositionDirection() == PositionShort and stoch.slowK < input_stochLower and ch_bm then
+            DoExitPosition('SX '..postfix)
+        elseif TakeProfitROI(input_tpprc) then
+            CancelAllOrders()
+            DoExitPosition('TP '..postfix)
+        elseif StopLossROI(input_slprc) then
+            CancelAllOrders()
+            DoExitPosition('SL '..postfix)
+        end
+    end

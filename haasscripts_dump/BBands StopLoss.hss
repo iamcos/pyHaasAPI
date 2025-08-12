@@ -1,0 +1,49 @@
+-- Define command
+DefineCommand('BBandsStopLoss', 'Stoploss based on the BBands.')
+
+-- Define command parameters.Define the positionId at the end
+local source = DefineParameter(ListNumberType, 'source', 'Source data for BBands.', true, ClosePrices(), 'ClosePrices, HLPrices, HLCPrices, OHLCPrices')
+local maPeriod = DefineParameter(NumberType, 'maPeriod', 'BBands MA Period Length.', false, 20, 'Input')
+local devMult = DefineParameter(NumberType, 'devMult', 'Deviation Multiplier.', false, 1.2, 'Input')
+local maType = DefineParameter(EnumType, 'maType', 'BBands MA Type.', false, SmaType, 'InputMaTypes')
+local positionId = DefineParameter(StringType, 'positionId', 'Optional position identifier', false, '', 'Load')
+
+    -- Get the position data
+local position = PositionContainer(positionId)
+
+positionId = position[1]
+
+local bbands = BBANDS(source, maPeriod, devMult, devMult, maType)
+local bbLower = bbands.lower
+local bbUpper = bbands.upper
+
+
+-- Our default result is false. That means the safety isn't active.
+-- If we return true, we are signaling we want to exit the position asap.
+local safetyResult = false
+
+if position.isLong then
+    local stopPrice = bbLower -- Latest lower band price value
+    Plot(0, 'Stop Position', stopPrice, {color=Red, id=positionId})
+    local bid = CurrentPrice().bid
+
+    if (bid < stopPrice) then
+        safetyResult = true
+    end
+
+elseif position.isShort then
+    local stopPrice = bbUpper -- Latest upper band price value
+    Plot(0, 'Stop Position', stopPrice, {color=Green, id=positionId})
+    local ask = CurrentPrice().ask
+
+    if (ask > stopPrice) then
+        safetyResult = true
+    end
+
+else
+    --Position isn't open or unknown
+
+end
+
+-- Return the result
+DefineOutput(BooleanType, safetyResult, 'Safety result', 'SafetyContainer,IsTrue,IsFalse,TradeBotContainer')

@@ -1,0 +1,144 @@
+DefineCommand('CryptoIndexSlot', 'The Crypto Index Slot maintains the wallet for a certain index.')
+
+local coin = DefineParameter(StringType, 'coin', 'The index coin', true, 'XRP')
+local baseCoin = DefineParameter(StringType, 'baseCoin', 'The base coin of the whole index. Usually BTC or USD(T)', true, 'BTC')
+local amountPercentage = DefineParameter(NumberType, 'allocatedAmount', 'Total allocated amount', true, 1)
+local buyLevel = DefineParameter(NumberType, 'buyLevel', 'The percentage the price needs to drop before more is bought.', true, 0.8)
+local sellLevel = DefineParameter(NumberType, 'sellLevel', 'The percentage the price needs to raise before more is sold.', true, 0.8)
+local stopLoss = DefineParameter(NumberType, 'stopLoss', 'Stop loss percentage. Once the stop loss has been reached the position will be solded fully.', false, 0)
+local trailingStop = DefineParameter(NumberType, 'trailingStop', 'Trailing stop loss percentage. Once the stop loss has been reached the position will be solded fully.', false, 0)
+local takeOverWallet = DefineParameter(BooleanType, 'takeOverWallet', 'If set on true, excessive balance will be sold.', false, false)
+
+local market = CreateMarket('', coin, baseCoin)
+local inWallet = WalletAmount('', coin)
+local price = CurrentPrice(market)[4]
+local targetAmount = TradeAmount() / price / 100 * amountPercentage
+
+local orderId = Load('orderId', '')
+local positionId = Load('positionId', '')
+local lastRebalancePrice = Load('lastRebalancePrice', price)
+local stopLossHit = Load('stopLossHit', false)
+local rebalanceIndex = false
+
+-- Do we have an open position for the index.
+if positionId == '' then
+
+    -- How much does the wallet have?
+    -- If the wallet contains more we only use the target amount.
+    local positionAmount = IfElse(
+            takeOverWallet,
+            inWallet,
+            Min(inWallet, targetAmount)
+        )
+
+    if positionAmount == 0 then
+        -- We dont have anything in the wallet. Create a new positionId
+        positionId = NewGuid()
+    else
+        -- Create an open position in the bot with the position amount.
+        positionId = CreatePosition(PositionLong, price, positionAmount, market)
+    end
+
+    -- Save the current price as last rebalance price.
+    lastRebalancePrice = price
+    
+    -- Rebalance index. If the wallet is to low it will buy more.
+    -- if takeOverWallet is set it will sell the excessive balance.
+    rebalanceIndex = true
+end
+
+-- Do we have an open order.
+if orderId != '' then
+
+    -- Get order details.
+    local orderDetails = OrderContainer(orderId)
+    local orderPrice = orderDetails[1]
+    local executedAmount = orderDetails[2]
+    local filledAmount = orderDetails[3]
+    local isOpen = orderDetails[4]
+
+    if isOpen then
+        -- Order is still open. Lets wait.
+
+    else 
+        -- Order is filled or cancelled. Set price.
+        lastRebalancePrice = orderPrice
+
+        -- If the order isnt filled completly. Rebalance the index again.
+        rebalanceIndex = not IsOrderFilled(orderId)
+
+        -- Reset order id.
+        orderId = ''
+    end
+
+end
+
+-- Is there no order open?
+if orderId == '' then
+
+    -- Check if the price has rissing above the sell level.
+    if price > AddPerc(lastRebalancePrice, sellLevel) then
+        rebalanceIndex = true
+
+    -- Check if the price has dropped below the buy level.
+    elseif price < SubPerc(lastRebalancePrice, buyLevel) then
+        rebalanceIndex = true
+    end
+end
+
+-- Check stop loss
+if stopLossHit == false then
+   stopLossHit = StopLoss(stopLoss, positionId)
+
+    if stopLossHit then
+        LogWarning('Stop loss has been hit. Closing position.')
+        if orderId != '' then CancelOrder(orderId) end
+    end
+
+end
+
+-- Check trailing stop
+if stopLossHit == false then
+   stopLossHit = TrailingStopLoss(trailingStop, positionId)
+
+    if stopLossHit then
+        LogWarning('Trailing stop loss has been hit. Closing position.')
+        if orderId != '' then CancelOrder(orderId) end
+    end
+
+end
+
+
+if stopLossHit and orderId == '' then
+
+    local positionAmount = GetPositionAmount(positionId)
+    if IsTradeAmountEnough(market, price, positionAmount, false) then
+        orderId = PlaceExitPositionOrder(positionId)
+    end
+
+end
+
+if rebalanceIndex and not stopLossHit then
+
+    -- Calculate difference.
+    local rebalanceAmount = targetAmount - GetPositionAmount(positionId)
+    local tradeAmount = Abs(rebalanceAmount)
+    if IsTradeAmountEnough(market, price, tradeAmount, false) then
+        -- Execute buy order if rebalanceAmount is positive
+        -- and a sell order if rebalanceAmount is negative.
+        if rebalanceAmount > 0 then
+            orderId = PlaceBuyOrder(price, tradeAmount, market, LimitOrderType, '', positionId)
+        else
+            orderId = PlaceSellOrder(price, tradeAmount, market, LimitOrderType, '', positionId)
+        end
+    end
+
+end
+
+
+Save('orderId', orderId)
+Save('positionId', positionId)
+Save('stopLossHit', stopLossHit)
+Save('lastRebalancePrice', lastRebalancePrice)
+
+DefineOutput(StringType, positionId, 'Returns a position id related to the index. Can be used to do profit calculations', 'Position Handling')

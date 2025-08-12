@@ -30,8 +30,8 @@ def main():
     )
     
     # Use the same lab and backtest from our previous tests
-    lab_id = "5a21c24f-5150-4dcd-b61c-595aef146d02"
-    backtest_id = "aa03ddd4-3cac-4a8d-8305-a8c192ddf255"
+    lab_id = "9539af71-48db-4b13-a583-3169e57d107c"
+    backtest_id = "62c413e5-00bf-4dba-8fbb-7ac3faa9aff6"
     
     print(f"📋 Lab ID: {lab_id}")
     print(f"📋 Backtest ID: {backtest_id}")

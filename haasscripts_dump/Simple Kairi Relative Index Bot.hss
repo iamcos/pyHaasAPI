@@ -1,0 +1,18 @@
+ -- Inputfields
+length = Input('Length', 6)
+
+-- Get the prices
+prices = ClosePrices()
+
+-- Calculation
+kri = KRI(prices, length)
+
+-- Lets plot some lines
+line = Plot(1, 'KRI', kri, Green)
+PlotDoubleColor(line, 0, Red, DarkGray(20))
+
+if (kri > 0) then
+  DoLong()
+elseif (kri < 0) then
+  DoShort()
+end

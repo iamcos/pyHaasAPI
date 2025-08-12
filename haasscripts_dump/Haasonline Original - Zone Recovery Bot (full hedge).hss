@@ -1,0 +1,156 @@
+-- Please note, this script has bene created for demonstrations goals only. It will work, but the non-hedge version 
+-- has some optimalisations inside.
+
+EnableHighSpeedUpdates()
+HideTradeAmountSettings()
+
+-- Inputfields
+minimumTradeAmount = Input('Minimum exposure', 10)
+maximumTradeAmount = Input('Maximum exposure', 10000000)
+amountFactor = Input('Trade amount factor', 2)
+takeProfit = Input('Percentage profits', 0.2)
+zoneFactor = Input('Zone factor', 1)
+
+currentPrice = ClosePrices()
+
+-- Load saved or default info.
+reset = Load('reset', true)
+basePrice = Load('basePrice', currentPrice)
+targetSide = Load('targetSide', SignalExitPosition)
+targetAmount = Load('targetAmount', minimumTradeAmount)
+
+longAmount = LongAmount()
+shortAmount = ShortAmount()
+
+if IsAnyOrderOpen() == false and targetSide == SignalExitPosition then
+  -- We dont have open orders.
+
+  -- Reset base price if we dont have a position and are resetting.
+  if longAmount + shortAmount == 0 and reset then
+    basePrice = currentPrice
+    reset = false
+  end
+
+end
+
+-- Lets calculate the go long and short price
+zoneSize = (basePrice / 100) * takeProfit / zoneFactor
+goLongPrice = basePrice + zoneSize
+goShortPrice = basePrice - zoneSize
+
+function SwitchToShort(amount) 
+    targetSide = SignalShort
+    targetAmount = amount
+    PlaceGoShortOrder(currentPrice, amount)
+end
+
+function SwitchToLong(amount) 
+    targetSide = SignalLong
+    targetAmount = amount
+    PlaceGoLongOrder(currentPrice, amount)
+end
+
+if IsAnyOrderOpen() == false then
+
+  if targetSide == SignalExitPosition then
+
+    -- Do we want to go long?
+    if currentPrice > goLongPrice then
+      targetSide = SignalLong
+      targetAmount = minimumTradeAmount
+      PlaceGoLongOrder(currentPrice, minimumTradeAmount)
+
+    -- Or do we want to go short?
+    elseif currentPrice < goShortPrice then
+      targetSide = SignalShort
+      targetAmount = minimumTradeAmount
+      PlaceGoShortOrder(currentPrice, minimumTradeAmount)
+
+    end
+
+  elseif targetSide == SignalLong then 
+
+    -- Are we fully in the long and out the short?
+    if longAmount < targetAmount or shortAmount > 0 then
+
+      if longAmount < targetAmount then
+        PlaceGoLongOrder(currentPrice, targetAmount - longAmount)
+      end
+
+    -- Take profit price reached?
+    elseif TakeProfit(takeProfit) then
+      PlaceExitShortOrder(currentPrice, shortAmount, {note = 'TP'})
+      PlaceExitLongOrder(currentPrice, longAmount, {note = 'TP'})
+      targetSide = SignalExitPosition
+      reset = true
+
+    -- Go short price reached?
+    elseif currentPrice < goShortPrice then
+      targetSide = SignalExitPosition
+
+      -- Maximum amount check
+      amount = Round(longAmount * amountFactor, 0)
+      if amount <= maximumTradeAmount then
+        -- Open short with a higher amount
+        targetSide = SignalShort
+        targetAmount = amount
+        PlaceGoShortOrder(goShortPrice, amount)
+      else 
+        LogWarning('Maximum position size reached. Restarting')
+        reset = true
+      end
+    end
+
+  elseif targetSide == SignalShort then
+
+    -- Are we in the short and out the long?
+    if shortAmount < targetAmount or longAmount > 0 then
+
+      if shortAmount < targetAmount then
+        PlaceGoShortOrder(currentPrice, targetAmount - shortAmount)
+      end
+
+    -- Take profit price reached?
+    elseif TakeProfit(takeProfit) then
+      PlaceExitLongOrder(currentPrice, longAmount, {note = 'TP'})
+      PlaceExitShortOrder(currentPrice, shortAmount, {note = 'TP'})
+      targetSide = SignalExitPosition
+      reset = true
+
+    -- Go long price reached?
+    elseif currentPrice > goLongPrice then
+      targetSide = SignalExitPosition
+
+      -- Maximum amount check
+      amount = Round(shortAmount * amountFactor, 0)
+      if amount <= maximumTradeAmount then
+        -- Open long with a higher amount
+        targetSide = SignalLong
+        targetAmount = amount
+        PlaceGoLongOrder(goLongPrice, amount)
+      else 
+        LogWarning('Maximum position size reached. Restarting')
+        reset = true
+      end
+    end
+  end
+end
+
+-- Lets draw the target prices
+Plot(0, 'Go long', goLongPrice, DarkGreen)
+Plot(0, 'Go Short', goShortPrice, Red)
+
+-- Add a chart that shows the exposure
+lineValue = IfElse(longAmount > 0, longAmount, -shortAmount)
+line = Plot(2, 'Exposure', lineValue, {c=Green, s=Step})
+PlotDoubleColor(line, 0, Red, ChangeColorOpacity(Gray, 20))
+ChartSetOptions(2, 'Exposure')
+
+Save('reset', reset)
+Save('basePrice', basePrice)
+Save('targetSide', targetSide)
+Save('targetAmount', targetAmount)
+
+-- Report
+CustomReport('Go Long Price', goLongPrice..' ('..Round(Delta(CurrentPrice().close, goLongPrice), 2)..'%)')
+CustomReport('Go Short Price', goShortPrice..' ('..Round(Delta(CurrentPrice().close, goShortPrice), 2)..'%)')

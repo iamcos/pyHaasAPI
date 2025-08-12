@@ -1,0 +1,13 @@
+-- This is a example script to show how remote signals can be
+-- produced inside HaasScript.
+
+p = ClosePrices(1);
+
+-- Make some sort of logic to trigger it
+if (p[1] > 100000) then
+
+  -- The public and secret code can be obtained at the Signals on
+  -- the left menu.
+  SaveRemoteSignal('publiccode', 'secretcode', SignalLong)
+
+end

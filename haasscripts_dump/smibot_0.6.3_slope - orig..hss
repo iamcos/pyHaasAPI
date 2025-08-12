@@ -1,0 +1,65 @@
+-- [huluvublue]
+-- SMIbot0.6.3slope
+-- bc1pmygwepesljqk87ccvnvglv07ak5t80xw9ffxaq9ah20vjtvt5vcq9kpa5z
+
+
+function SMIErgodicOscillator(shortPeriod, longPeriod, signalPeriod, maType, source)
+    local tsi = TSI(source, shortPeriod, longPeriod)
+    local signal = MA(tsi, signalPeriod, maType) 
+    return tsi, signal
+end
+
+-- Inputs
+local shortPeriod = Input('Short Period', 5, '')
+local longPeriod = Input('Long Period', 20, '')
+local signalPeriod = Input('Signal Period', 5, '')
+local maType = InputMaTypes('Moving Average Type', EmaType, '') 
+local allowLongs = Input('Allow Long Positions', true, 'bool')
+local allowShorts = Input('Allow Short Positions', true, 'bool')
+local slopeThresholdUp = Input('Slope Threshold Up', 10, 'Number')
+local slopeThresholdDown = Input('Slope Threshold Down', -10, 'Number')
+local prices = ClosePrices()
+
+-- Get the SMI Ergodic Oscillator and Signal line
+local oscillator, signalLine = SMIErgodicOscillator(shortPeriod, longPeriod, signalPeriod, maType, prices)
+
+-- Plot the indicator
+Plot(1, 'Oscillator', oscillator, 'fuchsia')
+Plot(1, 'Signal Line', signalLine, 'orange')
+
+-- Plot the histogram
+local histogram = oscillator - signalLine
+local histoPlot = Plot(1, "Histogram", histogram, Gray)
+PlotHistogram(histoPlot, Maroon, true)  
+
+-- Trading Logic
+local currentPosition = GetPositionDirection()
+local prevOscillator = Load('prevOscillator', 0)
+local prevSignalLine = Load('prevSignalLine', 0)
+
+local slope = oscillator - prevOscillator
+local prevSlope = prevOscillator - prevSignalLine
+
+if slope > slopeThresholdUp and prevSlope <= slopeThresholdUp then
+    -- Buy when the oscillator slope crosses above the upper threshold
+    if currentPosition ~= PositionLong and allowLongs then
+        DoBuy('Go long')
+    elseif currentPosition == PositionShort then
+        DoExitPosition('Exit short position')
+    end
+elseif slope < slopeThresholdDown and prevSlope >= slopeThresholdDown then
+    -- Go short when the oscillator slope crosses below the lower threshold
+    if currentPosition ~= PositionShort and allowShorts then
+        DoShort('Go short')
+    elseif currentPosition == PositionLong then
+        DoExitPosition('Exit long position')
+    end
+end
+
+Save('prevOscillator', oscillator)
+Save('prevSignalLine', signalLine)
+
+local profit = GetBotProfit()
+Plot(2, "PnL", profit, 'green')
+Plot(2, "", 0, 'white')
+

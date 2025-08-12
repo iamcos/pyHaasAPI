@@ -345,6 +345,18 @@ api.delete_lab(executor, lab_id)
 print("Lab deleted successfully")
 ```
 
+### Deleting All Labs Except One
+
+To delete all labs except for a specific one, you can use the `delete_all_labs_except` endpoint on the MCP server. This is useful for cleaning up multiple test labs while preserving a golden configuration.
+
+```python
+# Example using curl to delete all labs except "Simple RSING VWAP Strategy"
+# Replace "Simple RSING VWAP Strategy" with the actual name of the lab you want to keep.
+curl -X DELETE http://localhost:8000/labs/delete_all_except/Simple%20RSING%20VWAP%20Strategy
+```
+
+This operation will iterate through all existing labs and delete any that do not match the provided `lab_name_to_keep`.
+
 ## Advanced Features
 
 ### Bulk Operations

@@ -1,0 +1,48 @@
+-- [EasyMVO] Market Volume Oscillator, https://www.marketvolume.com/technicalanalysis/mvo.asp
+-- Created by pshai
+
+DefineCommand('EasyMVO', 'Easy Market Volume Oscillator')
+
+-- Parameters
+local chartIndex = DefineParameter(NumberType, 'chartIndex', 'The index on which to chart', true, 1, 'Number')
+local name = DefineParameter(StringType, 'name', 'Unique name of the indicator.', false, 'MVO', 'Text')
+local interval = DefineParameter(NumberType, 'interval', 'Used interval for price data. Default is 0 and the main interval will be used.', false, 0, 'Number,InputInterval')
+
+DefineIntervalOptimization(interval)
+
+-- Inputs
+local fastPeriod = Input('Fast Period', 10, '', name..' Settings - PVO')
+local fastMaType = InputMaTypes('Fast MA Type', SmaType, '', name..' Settings - PVO')
+local slowPeriod = Input('Slow Period', 50, '', name..' Settings - PVO')
+local slowMaType = InputMaTypes('Slow MA Type', SmaType, '', name..' Settings - PVO')
+local stochFastK = Input('Fast %K Period', 21, '', name..' Settings - STOCH')
+local stochSlowK = Input('Slow %K Period', 9, '', name..' Settings - STOCH')
+local stochSlowK = Input('Slow %D Period', 9, '', name..' Settings - STOCH')
+
+-- Data
+local volume = GetVolume(interval)
+local high = HighPrices(interval)
+local low = LowPrices(interval)
+local close = ClosePrices(interval)
+
+-- Magic
+local fastVMA = MA(volume, fastPeriod, fastMaType)
+local slowVMA = MA(volume, slowPeriod, slowMaType)
+local pvo = FilterBelow((fastVMA - slowVMA) / slowVMA * 100, 0)
+local stoch = STOCH(high, low, close, stochFastK, stochSlowK, stochSlowK).slowK
+stoch = (stoch - 50) / 50 -- Move to oscillate between [-1, 1]
+local mvo = pvo * stoch
+
+-- Plots
+PlotHorizontalLine(chartIndex, '', Black, 0, Dashed)
+Plot(chartIndex, 'MVO', mvo)
+
+-- Signal logic
+local signal = SignalNone
+if IsRising(mvo, 3) then
+    signal = SignalLong
+elseif IsFalling(mvo, 3) then
+    signal = SignalShort
+end
+
+DefineOutput(EnumType, signal, 'Signal result', 'TradeBotContainer, IndicatorContainer, Signal Helpers')

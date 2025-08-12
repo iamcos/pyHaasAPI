@@ -1,0 +1,278 @@
+EnableHighSpeedUpdates(true)
+HideOrderSettings()
+HideTradeAmountSettings()
+SetFee(-0.02) -- for backtesting
+ 
+ 
+local report = GetTradingReport()
+--local los_pos = (report.losingPositions)
+ 
+local posPnL = GetPositionProfit(pezId)
+ 
+ 
+ 
+ 
+-- inputs
+    local TOTAL_margin = Input('Total Bet Margin', 100, 'Total margin used of quote currency (e.g. USDT)', 'POSITIONS')
+    local short = Input('allow short', true)
+    local long = Input('allow long', true)
+    local lower_diffthresh = Input('lower diff thresh', 10, 'when the diff crosses this (and is below the upper threshold), it will trigger an entry')
+    local diff_gapsize =  Input('upper diff offset', 4, 'how far above the lower thresh to place the upper thresh')
+    local upper_diffthresh = lower_diffthresh + diff_gapsize
+    local tp = Input('take profit', 0.1)
+    local sl = Input('stop loss', 2)
+    local order_offset = Input('entry price offset', 0.2, '')
+    local order_timeout_input = Input('order timeout (min)', 45)
+    local order_timeout = order_timeout_input * 60
+    local timeoutLen = Input('Stoploss Cooldown length (min)', 120, 'The length of cooldown (in minutes) after stop-loss. This will also stop entries after an abnormality in Vol, Price or fast RSI')
+    local volMult = Input('Vol Abnormal Multiplier', 2.6)
+    local price_mult = Input('Price Abnormal Multiplier', 2.6, 'blocks entries')
+    local rsi_s_mult = Input('RSI fast Abnormal Multiplier', 2.6, 'this 1min RSI will block new entries if it spikes, for cooldown length. Range 2-3')
+    local rsi_period = Input('RSI fast period', 14)
+    local forecast_len = Input('forecast length', 5, '')
+    local forecast_num = Input('forecast number', 6, '')
+    local forecast_count = Input('forecast count', 8, '')
+-- data
+    local ob = GetOrderbook()
+    local cp = CurrentPrice()
+    local c = ClosePrices()
+    local c1 = ClosePrices(1)
+    local rsi = RSI(c, rsi_period)
+    local ssa = SimpleForecastBySsa(rsi, forecast_len, forecast_num, forecast_count)
+    local ssa2 = ArrayGet(ssa, forecast_num)
+    local profit = GetBotProfit()
+    local vol = GetVolume()
+ 
+-- values
+    local timeout = Load('timeout', 0)
+    local diff = Abs(rsi - ssa2)
+    local rsi_short = RSI(c1, 14)
+    local RSI_shortAb = IsAbnormal(rsi_short, rsi_s_mult)
+    local vol_ab = IsAbnormal(vol, volMult)
+    local cv = ContractValue()
+    local total_amount = TOTAL_margin/cv * Leverage()
+    local ab_price = IsAbnormal(c1, price_mult)
+ 
+ 
+ 
+-- positions
+    local pezId = Load('pezId', NewGuid())
+    local position = PositionContainer(pezId)
+ 
+-- memory
+    local leid = Load('leid', '')
+    local seid = Load('seid', '')
+    local xeid = Load('xeid', '')
+ 
+-- price adjustment functions
+    function adjustBuyPrice(price)
+        price = SubPerc(ob.bidPrices[1], order_offset)
+ 
+        return price
+    end
+ 
+    function adjustSellPrice(price)
+        price = AddPerc(ob.askPrices[1], order_offset)
+ 
+        return price
+    end
+    
+    function getExitPrice(isLong)
+        return isLong
+            and AddPerc(position.enterPrice, tp)
+            or SubPerc(position.enterPrice, tp)
+    end
+ 
+-- remove plot on backtests
+    function removeOrders()
+        if (leid != '' and not IsOrderOpen(leid)) then
+            CancelAllOrders(pezId)
+            newPosition()
+            Log('canceld leid', DarkGreen)
+        elseif (seid != '' and not IsOrderOpen(seid)) then
+            CancelOrder(pezId)
+            newPosition()
+            Log('canceld seid', Red)
+        end
+    end
+ 
+-- position helper
+    function newPosition()
+        index = 0
+        xeid = ''
+        leid = ''
+        seid = ''
+        pezId = NewGuid()
+    end
+ 
+-- stoploss function
+    function execStopLossExit()
+        if IsAnyOrderOpen() then
+            CancelAllOrders(pezId)
+ 
+        elseif position.isLong or position.isShort then
+            LogWarning('Executing a hard exit!')
+            PlaceExitPositionOrder(pezId, {type = MarketOrderType, note='SL'})
+            newPosition()
+            LogWarning('--- SL cutoff')
+        end
+        timeout = Time() + ((timeoutLen * 60)*2)
+    end
+ 
+-- update orders when in a position
+    function updateOrders(isLong)
+ 
+        if not RSI_shortAb and not vol_ab then
+            execStopLossExit()
+        end
+ 
+ 
+        local slPrice = isLong
+            and SubPerc(position.enterPrice, sl)
+            or AddPerc(position.enterPrice, sl)
+ 
+        if (isLong and cp.bid < slPrice)
+        or (not isLong and cp.ask > slPrice) then
+            execStopLossExit()
+        end
+ 
+        if leid != '' or seid != '' then
+            Plot(0, 'SL', slPrice, {c=Fuchsia(50), id=pezId})
+        end
+ 
+        if (xeid == '' or (xeid != '' and IsOrderOpen(xeid) == false and IsOrderFilled(xeid) == false)) then
+            local exitPrice = getExitPrice(isLong)
+ 
+                xeid = PlaceExitPositionOrder({
+                positionId = pezId,
+                price = exitPrice,
+                type=LimitOrderType,
+                note='Take Profit',
+                timeout=604800
+                })
+        end
+ 
+    end
+ 
+    local not_abnormal = RSI_shortAb and vol_ab and ab_price
+ 
+ 
+    if (GetPositionDirection(pezId) == NoPosition) and not not_abnormal then
+        CancelAllOrders(pezId)
+        newPosition()
+    end    
+ 
+ 
+-- entry logic
+    if (GetPositionDirection(pezId) == NoPosition) and TradeOncePerBar() then 
+        local long_price = adjustBuyPrice(cp.bid)
+        local short_price = adjustSellPrice(cp.ask)
+        if CrossOver(diff, lower_diffthresh) and (diff < upper_diffthresh) and timeout < Time() then
+            if not_abnormal then
+                if rsi < ssa2 and long then
+                    if leid == '' and xeid == '' and seid == '' then
+                        leid = PlaceGoLongOrder(long_price, total_amount, {type=LimitOrderType, note='Long Entry', timeout=order_timeout, positionId=pezId})
+                    end
+                end
+                if rsi > ssa2 and short then
+                    if seid == '' and xeid == '' and leid == '' then
+                        seid = PlaceGoShortOrder(short_price, total_amount, {type=LimitOrderType, note='Short Entry', timeout=order_timeout, positionId=pezId})
+                    end
+                end
+            end
+        end
+    end
+ 
+-- updating orders
+ 
+    if xeid != '' and IsOrderFilled(xeid) then
+        Log('xeid filled', Green(30)) 
+        CancelAllOrders(pezId)
+        newPosition()
+    
+    elseif (GetPositionDirection(pezId) == PositionLong)  then
+        updateOrders(true)
+        
+    elseif (GetPositionDirection(pezId) == PositionShort) then
+        updateOrders(false)
+    
+    elseif (seid != '' and not IsOrderOpen(seid)) or (leid != '' and not IsOrderOpen(leid)) then
+        Log('remove', Cyan(40))
+        removeOrders()
+    end
+ 
+ 
+ 
+ 
+-- plot
+     
+    if not RSI_shortAb then
+        PlotShape(5, ShapeCross, Yellow, 3)
+        timeout = Time() + timeoutLen * 60
+    end
+    if not vol_ab then
+        PlotShape(7, ShapeCross, Yellow , 3)
+        timeout = Time() + timeoutLen * 60
+    end
+ 
+    if not ab_price then
+        PlotShape(0, ShapeCross, Teal, 2, false)
+        timeout = Time() + timeoutLen * 60
+    end
+ 
+    ChartSetOptions(0, '', 0.75)
+    ChartSetOptions(2, 'rsi ssa', 0.3)
+    ChartSetOptions(4, 'diff', 0.25)
+    ChartSetOptions(5, 'rsi fast', 0.25)
+    ChartSetOptions(7, 'volc', 0.25)
+    ChartSetOptions(8, 'PnL', 0.25)
+ 
+    
+    if xeid != '' and IsOrderOpen(xeid) then
+        Plot(0, 'xeid', OrderContainer(xeid).price, {c=Aqua, id=pezId})
+    end
+ 
+    if leid != '' and IsOrderOpen(leid) then
+        Plot(0, 'leid', OrderContainer(leid).price, {c=Green, id=pezId})
+    end
+    
+    if seid != '' and IsOrderOpen(seid) then
+        Plot(0, 'seid', OrderContainer(seid).price, {c=Red, id=pezId})
+    end
+ 
+    
+    local diffplot = Plot(4, 'diff', diff, Yellow(60)) 
+    local prof_plot = Plot(8, "PnL", profit, Green(40))
+    local unprof_plot = Plot(8, "posPnL", posPnL, Green(30))
+    Plot(2, "rsi", rsi)
+    Plot(2, "ssa2", ssa2, White)
+    Plot(4, 'upper_diffthresh', upper_diffthresh, LineOptions(White,Spiked,Dashed))
+    Plot(4, 'lower_diffthresh', lower_diffthresh, LineOptions(White,Spiked,Dashed))
+    Plot(5, "rsi_short", rsi_short, Cyan(20))
+    PlotVolume(7, Green(30), Red(30))
+    Plot(7, "", 0, White(1))
+    PlotDoubleColor(diffplot, lower_diffthresh, Cyan, Yellow(5))
+    PlotDoubleColor(prof_plot, 0, Red)
+    PlotDoubleColor(unprof_plot, 0, Red(50))
+ 
+ 
+ 
+    Save('timeout', timeout)
+    Save('pezId', pezId)
+    Save('leid', leid)
+    Save('seid', seid)
+    Save('xeid', xeid)
+ 
+ 
+ 
+    local maxPnLDD = Load('maxPnLDD', 0)
+    if posPnL < maxPnLDD then
+        maxPnLDD = posPnL
+    end
+    Save('maxPnLDD', maxPnLDD)
+ 
+ 
+    Finalize(function()
+        CustomReport('Max Drawdown', Round(maxPnLDD, 2))
+        --CustomReport('Losing Positions', los_pos)
+    end)

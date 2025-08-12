@@ -1,0 +1,30 @@
+-- Define command
+DefineCommand('EasySmoothRSI', 'RSI smoothed with SMA.')
+
+-- Define command parameters.
+local chartIndex = DefineParameter(NumberType, 'chartIndex', 'The index on which to chart', true, 1, 'Number')
+local name = DefineParameter(StringType, 'name', 'Unique name of the indicator.', false, '', 'Text')
+local interval = DefineParameter(NumberType, 'interval', 'Used interval for price data. Default is 0 and the main interval will be used.', false, 0, 'Number,InputInterval')
+
+DefineIntervalOptimization(interval)
+
+-- Input fields for the indicator. Add the name in front.
+local length = Input(name..' RSI Length', 23)
+local sma = Input(name..' SMA Length', 6)
+
+local buyLevel = Input(name..' Buy Level', 45)
+local sellLevel = Input(name..' Sell Level', 55)
+            
+-- Calculate the RSI
+local prices = ClosePrices(interval)
+local rsi = RSI(prices, length)
+local smoothRSI = SMA(rsi, sma) 
+
+-- Determine the signal.
+local signal = GetBuySellLevelSignal(smoothRSI, buyLevel, sellLevel)
+
+-- Plot the indicator Use the chartIndex parameter.
+PlotLineBuySellZone(chartIndex, 'SmoothRSI', smoothRSI, buyLevel, sellLevel)
+
+--Return the custom signal.
+DefineOutput(EnumType, signal, 'Signal result', 'TradeBotContainer, IndicatorContainer, Signal Helpers')

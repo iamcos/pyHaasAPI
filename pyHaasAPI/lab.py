@@ -28,6 +28,154 @@ from pyHaasAPI.model import (
 from pyHaasAPI.parameters import ParameterRange, ParameterType
 from loguru import logger as log
 
+
+def generate_traditional_parameter_range(param_name: str, current_value: Union[int, float], param_type: str) -> List[str]:
+    """
+    Generate traditional linear parameter ranges (Min/Max/Step approach).
+    
+    This creates simple linear ranges that match what the web interface shows as:
+    RSI length23MinMaxStep8Overbought30MinMaxStep13
+    
+    Args:
+        param_name: Name of the parameter for range selection
+        current_value: Current parameter value
+        param_type: 'integer' or 'decimal'
+        
+    Returns:
+        List of string values for traditional optimization
+    """
+    param_lower = param_name.lower()
+    
+    if param_type == 'integer':
+        current_val = int(current_value)
+        
+        # RSI Length traditional range - REDUCED to prevent server overload
+        if 'rsi' in param_lower and 'length' in param_lower:
+            # Reasonable range: 10 to 25 step 3 (6 values)
+            return [str(v) for v in range(10, 26, 3)]  # 10, 13, 16, 19, 22, 25
+        
+        # Overbought traditional range - REDUCED
+        elif 'overbought' in param_lower:
+            # Reasonable range: 20 to 35 step 5 (4 values)
+            return [str(v) for v in range(20, 36, 5)]  # 20, 25, 30, 35
+            
+        # Oversold traditional range - REDUCED
+        elif 'oversold' in param_lower:
+            # Reasonable range: 65 to 80 step 5 (4 values)
+            return [str(v) for v in range(65, 81, 5)]  # 65, 70, 75, 80
+        
+        # Interval traditional range - REDUCED
+        elif 'interval' in param_lower:
+            # Reasonable range: 1, 5, 15 (3 values)
+            return ['1', '5', '15']
+        
+        # Stoploss traditional range - REDUCED
+        elif 'stoploss' in param_lower or 'stop' in param_lower:
+            # Reasonable range: 1 to 7 step 2 (4 values)
+            return [str(v) for v in range(1, 8, 2)]  # 1, 3, 5, 7
+        
+        # Generic integer parameter - SAFE traditional linear range
+        else:
+            # Keep it small - just 4 values around current
+            return [str(current_val - 1), str(current_val), str(current_val + 1), str(current_val + 2)]
+    
+    else:  # decimal
+        current_val = float(current_value)
+        
+        # Traditional decimal range
+        start = max(0.1, current_val - 2.0)
+        end = current_val + 3.0
+        step = 0.2
+        values = []
+        val = start
+        while val <= end:
+            values.append(str(round(val, 2)))
+            val += step
+        return values
+
+
+def generate_mixed_parameter_range(param_name: str, current_value: Union[int, float], param_type: str) -> List[str]:
+    """
+    Generate sophisticated mixed parameter ranges with specific values AND ranges.
+    
+    Examples:
+    - RSI Length: [3, 5, 20, *range(40, 55, 2), 11, *range(12, 16, 1)]
+    - Overbought: [15, 20, *range(25, 35, 2), 40, *range(70, 85, 5)]
+    
+    Args:
+        param_name: Name of the parameter for intelligent range selection
+        current_value: Current parameter value
+        param_type: 'integer' or 'decimal'
+        
+    Returns:
+        List of string values for optimization
+    """
+    param_lower = param_name.lower()
+    
+    if param_type == 'integer':
+        current_val = int(current_value)
+        
+        # RSI Length optimization
+        if 'rsi' in param_lower and 'length' in param_lower:
+            # Mix specific proven RSI values with ranges
+            specific_values = [5, 9, 14, 21]  # Common RSI periods
+            range1 = list(range(10, 18, 2))   # Fine-tune around 14
+            range2 = list(range(25, 35, 3))   # Test longer periods
+            mixed_list = specific_values + range1 + range2
+            return [str(v) for v in sorted(set(mixed_list))]
+        
+        # Overbought/Oversold levels
+        elif 'overbought' in param_lower:
+            specific_values = [20, 25, 30]    # Common overbought levels
+            range1 = list(range(65, 85, 5))   # Higher sensitivity range
+            mixed_list = specific_values + range1
+            return [str(v) for v in sorted(set(mixed_list))]
+            
+        elif 'oversold' in param_lower:
+            specific_values = [70, 75, 80]    # Common oversold levels  
+            range1 = list(range(15, 35, 5))   # Lower sensitivity range
+            mixed_list = specific_values + range1
+            return [str(v) for v in sorted(set(mixed_list))]
+        
+        # Interval/Timeframe optimization
+        elif 'interval' in param_lower:
+            specific_values = [1, 5, 15, 60]  # Common timeframes (1m, 5m, 15m, 1h)
+            range1 = list(range(2, 8, 2))     # Short-term range
+            mixed_list = specific_values + range1
+            return [str(v) for v in sorted(set(mixed_list))]
+        
+        # Stoploss optimization
+        elif 'stoploss' in param_lower or 'stop' in param_lower:
+            specific_values = [1, 2, 3, 5]    # Conservative stops
+            range1 = list(range(7, 15, 2))    # Wider stops
+            mixed_list = specific_values + range1
+            return [str(v) for v in sorted(set(mixed_list))]
+        
+        # Generic integer parameter
+        else:
+            specific_values = [current_val]
+            range1 = list(range(max(1, current_val - 3), current_val, 1))
+            range2 = list(range(current_val + 1, current_val + 8, 2))
+            mixed_list = specific_values + range1 + range2
+            return [str(v) for v in sorted(set(mixed_list))]
+    
+    else:  # decimal
+        current_val = float(current_value)
+        
+        # Decimal parameter optimization with mixed approach
+        if 'multiplier' in param_lower or 'factor' in param_lower:
+            specific_values = [0.5, 1.0, 1.5, 2.0]  # Common multipliers
+            range1 = [round(x, 2) for x in [current_val + i * 0.25 for i in range(-2, 3)]]
+            mixed_list = specific_values + range1
+            return [str(v) for v in sorted(set(mixed_list))]
+        
+        # Generic decimal parameter
+        else:
+            specific_values = [current_val]
+            range1 = [round(current_val + i * 0.1, 2) for i in range(-5, 6)]
+            mixed_list = specific_values + range1
+            return [str(v) for v in sorted(set([v for v in mixed_list if v > 0]))]
+
 @dataclasses.dataclass
 class ChangeHaasScriptParameterRequest:
     name: str
@@ -173,6 +321,114 @@ def get_lab_parameters(executor: SyncExecutor[Authenticated], lab_id: str) -> Li
     
     return parameters
 
+def update_lab_parameter_ranges_traditional(
+    executor: SyncExecutor[Authenticated], 
+    lab_id: str,
+    randomize: bool = True
+) -> LabDetails:
+    """Update parameter ranges for a lab using TRADITIONAL linear ranges (Min/Max/Step approach)."""
+    lab_details = get_lab_details(executor, lab_id)
+
+    # --- FIX: Deep copy all settings fields ---
+    original_settings = lab_details.settings
+    settings_dict = original_settings.model_dump(by_alias=True)
+
+    # Log what we're preserving
+    log.info(f"🔧 Preserving settings before TRADITIONAL parameter update:")
+    for k, v in settings_dict.items():
+        log.info(f"  {k}: {v}")
+
+    # Convert parameters to proper format and validate
+    updated_parameters = []
+    for param in lab_details.parameters:
+        # Handle both dict and object parameters
+        if isinstance(param, dict):
+            param_dict = param
+        elif hasattr(param, 'model_dump'):
+            param_dict = param.model_dump()
+        else:
+            # Fallback for other object types
+            param_dict = dict(param) if hasattr(param, '__iter__') else str(param)
+        
+        # Validate parameter has required fields
+        if not all(key in param_dict for key in ['K', 'T', 'O']):
+            log.warning(f"⚠️ Skipping invalid parameter: {param_dict}")
+            continue
+            
+        # Generate TRADITIONAL parameter ranges if randomize is enabled
+        if randomize and param_dict.get('T') in [0, 1]:  # INTEGER or DECIMAL types
+            current_value = param_dict['O'][0] if param_dict['O'] else '0'
+            
+            # Check if the value is actually numeric (not a boolean or string)
+            try:
+                # Try to parse as float first to handle both int and decimal
+                current_val = float(current_value)
+                
+                # Skip if it's a boolean value (0.0 or 1.0) or if the original was a string
+                if str(current_value).lower() in ['true', 'false'] or param_dict.get('T') == 3:
+                    log.info(f"  ⏭️ Skipping non-numeric parameter {param_dict['K']}: {current_value}")
+                    updated_parameters.append(param_dict)
+                    continue
+                
+                if param_dict.get('T') == 0:  # INTEGER
+                    current_val = int(current_val)
+                    new_options = generate_traditional_parameter_range(param_dict['K'], current_val, 'integer')
+                else:  # DECIMAL
+                    new_options = generate_traditional_parameter_range(param_dict['K'], current_val, 'decimal')
+                param_dict['O'] = new_options
+                # Enable optimization for this parameter
+                param_dict['I'] = True
+                log.info(f"  🔧 Generated TRADITIONAL range for {param_dict['K']}: {new_options}")
+            except (ValueError, TypeError):
+                log.info(f"  ⏭️ Skipping non-numeric parameter {param_dict['K']}: {current_value}")
+        
+        # Ensure the parameter has the enabled field set properly
+        if 'I' not in param_dict:
+            param_dict['I'] = len(param_dict.get('O', [])) > 1  # Enable if has multiple options
+        
+        updated_parameters.append(param_dict)
+
+    if not updated_parameters:
+        log.warning("⚠️ No valid parameters found for optimization")
+        return lab_details
+
+    # Count how many parameters got ranges
+    ranged_params = sum(1 for p in updated_parameters if len(p.get('O', [])) > 1)
+    log.info(f"  📊 Total parameters: {len(updated_parameters)}")
+    log.info(f"  📊 Parameters with ranges: {ranged_params}")
+    log.info(f"  📊 Parameters without ranges: {len(updated_parameters) - ranged_params}")
+
+    try:
+        # Step 1: Update parameters directly (simpler approach)
+        log.info("🔄 Step 1: Updating TRADITIONAL parameters directly...")
+        
+        # Convert dictionaries to ScriptParameter objects
+        from pyHaasAPI.parameters import ScriptParameter
+        script_parameters = []
+        for param_dict in updated_parameters:
+            script_param = ScriptParameter(
+                K=param_dict['K'],
+                T=param_dict['T'],
+                O=param_dict['O'],
+                I=param_dict['I'],
+                IS=param_dict['IS']
+            )
+            script_parameters.append(script_param)
+        
+        # Get current lab details and update with new parameters
+        current_lab = get_lab_details(executor, lab_id)
+        current_lab.parameters = updated_parameters
+        
+        updated_lab = update_lab_details(executor, current_lab)
+        
+        log.info("✅ TRADITIONAL parameters updated successfully!")
+        return updated_lab
+        
+    except Exception as e:
+        log.error(f"❌ Error during TRADITIONAL lab parameter update: {e}")
+        return lab_details
+
+
 def update_lab_parameter_ranges(
     executor: SyncExecutor[Authenticated], 
     lab_id: str,
@@ -217,24 +473,26 @@ def update_lab_parameter_ranges(
                 current_val = float(current_value)
                 
                 # Skip if it's a boolean value (0.0 or 1.0) or if the original was a string
-                if current_value.lower() in ['true', 'false'] or param_dict.get('T') == 3:
+                if str(current_value).lower() in ['true', 'false'] or param_dict.get('T') == 3:
                     log.info(f"  ⏭️ Skipping non-numeric parameter {param_dict['K']}: {current_value}")
                     updated_parameters.append(param_dict)
                     continue
                 
                 if param_dict.get('T') == 0:  # INTEGER
                     current_val = int(current_val)
-                    # Create wider range around current value for better optimization
-                    new_options = [str(max(1, current_val - 5)), str(max(1, current_val - 3)), str(max(1, current_val - 1)), str(current_val),
-                                   str(current_val + 1), str(current_val + 3), str(current_val + 5), str(current_val + 7), str(current_val + 10)]
+                    new_options = generate_mixed_parameter_range(param_dict['K'], current_val, 'integer')
                 else:  # DECIMAL
-                    # Create wider range around current value for better optimization
-                    new_options = [str(max(0.1, current_val - 1.0)), str(max(0.1, current_val - 0.5)), str(max(0.1, current_val - 0.25)), str(current_val),
-                                   str(current_val + 0.25), str(current_val + 0.5), str(current_val + 1.0), str(current_val + 1.5), str(current_val + 2.0)]
+                    new_options = generate_mixed_parameter_range(param_dict['K'], current_val, 'decimal')
                 param_dict['O'] = new_options
+                # Enable optimization for this parameter
+                param_dict['I'] = True
                 log.info(f"  🔧 Generated range for {param_dict['K']}: {new_options}")
             except (ValueError, TypeError):
                 log.info(f"  ⏭️ Skipping non-numeric parameter {param_dict['K']}: {current_value}")
+        
+        # Ensure the parameter has the enabled field set properly
+        if 'I' not in param_dict:
+            param_dict['I'] = len(param_dict.get('O', [])) > 1  # Enable if has multiple options
         
         updated_parameters.append(param_dict)
 
@@ -265,11 +523,11 @@ def update_lab_parameter_ranges(
             )
             script_parameters.append(script_param)
         
-        updated_lab = api.update_lab_parameters(
-            executor, 
-            lab_id, 
-            script_parameters
-        )
+        # Get current lab details and update with new parameters
+        current_lab = get_lab_details(executor, lab_id)
+        current_lab.parameters = updated_parameters
+        
+        updated_lab = update_lab_details(executor, current_lab)
         
         log.info("✅ Parameters updated successfully!")
         return updated_lab

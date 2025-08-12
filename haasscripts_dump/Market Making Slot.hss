@@ -1,0 +1,139 @@
+DefineCommand("MarketMakingSlot", "Market making bot slot")
+
+local longSide = DefineParameter(BooleanType, "startLong", "Set on true if slots needs to start with a buy/long order or false for sell/short order.", true, true)
+local offset = DefineParameter(NumberType, "offset", 'Price offset from the current price', true, 1)
+local amount = DefineParameter(NumberType, "amount", 'Slot amount', true, 1)
+local enterTimeout = DefineParameter(NumberType, 'enterTimeout', 'Enter timeout', true, 60)
+local exitTimeout = DefineParameter(NumberType, 'exitTimeout', 'Exit timeout', true, 120)
+local stopLoss = DefineParameter(NumberType, 'stopLossPercentage', 'Stop loss percentage. Only active when position if fully open', false, 0)
+local stopLossCoolDown = DefineParameter(NumberType, 'stopLossCoolDown', 'The cooldown after a stop loss as been breached and position is closed', false, 0)
+local reset = DefineParameter(BooleanType, "reset", "If set on true, the slot will reset its saved values.", false, false)
+local note = DefineParameter(StringType, "note", "Optional note to distinguish slot orders.", false, '')
+
+-- Reset values if requested.
+if reset then
+    Save('startLong', longSide)
+    Save('positionId', NewGuid())
+    Save('isEntering', true)
+    Save('stopLossActive', false)
+    Save('stopLossTime', 0)
+    Save('orderId', '')
+end
+
+-- Load values
+local prices = ClosePrices()
+local currentPrice = prices[1]
+local isEntering = Load('isEntering', true)
+local orderId = Load('orderId', '')
+local positionId = Load('positionId', NewGuid())
+local startLong = Load('startLong', longSide)
+local stopLossActive = Load('stopLossActive', false)
+local stopLossTime = Load('stopLossTime', 0)
+local isSpot = MarketType(PriceMarket()) == SpotTrading
+
+-- Position amounts
+local openAmount = GetPositionAmount(positionId)
+local remainingAmount = amount - openAmount
+
+-- Calculate price targets.
+local enterTarget = startLong and SubPerc(currentPrice, offset) or AddPerc(currentPrice, offset)
+local exitTarget = startLong and AddPerc(currentPrice, offset) or SubPerc(currentPrice, offset)
+
+-- Set order placement calls.
+-- If we start long we use PlaceBuyOrder or PlaceGoLongOrder
+-- If we start short we use PlaceSellOrder or PlaceGoShortOrder
+local enterCall = IfElse(isSpot, 
+    IfElse(startLong, PlaceBuyOrder, PlaceSellOrder),
+    IfElse(startLong, PlaceGoLongOrder, PlaceGoShortOrder))
+
+
+if openAmount == 0 and stopLossActive then
+
+    -- Did our stop loss order got filled?
+    if stopLossTime == 0 then
+        stopLossTime = Time()
+    end
+
+end
+
+local cooldownRemaining = Ceil(((stopLossTime + stopLossCoolDown * 60) - Time()) / 60)
+
+-- Check of the stop loss cooldown has been reached.
+if cooldownRemaining <= 0 then
+
+    -- Reset stop loss time.
+    stopLossTime = 0
+
+    if isEntering then
+        -- We are entering a new position or still entering 
+        -- an existing position.
+
+        if IsOrderOpen(orderId) then
+            -- Order is still open. Check the timeout
+            if GetOrderOpenTime(orderId) > enterTimeout then
+                -- Cancel the order. We will place a new one next update.
+                CancelOrder(orderId)
+            end
+
+        elseif IsTradeAmountEnough(PriceMarket(), enterTarget, remainingAmount) then 
+            -- We are not fully in position yet.
+            orderId = enterCall(enterTarget, remainingAmount, '', NoTimeOutOrderType, note, positionId)
+        else
+            -- No open orders and position is opened fully. Start place exit orders
+            isEntering = false
+            orderId = ''
+        end
+    end
+
+    if isEntering == false then
+        -- The position is open.
+        -- Check the stop loss
+        if openAmount > 0 and stopLoss > 0 then
+            stopLossActive = StopLoss(stopLoss, positionId)
+        else
+            stopLossActive = false
+        end
+
+        if stopLossActive then
+            -- Stop loss has been breached
+            -- Cancel order. When order is cancelled, 
+            -- execute market exit order.
+            if IsOrderOpen(orderId) then
+                CancelOrder(orderId)
+            else
+                -- Set stop loss timestamp and exit position
+                stopLossTime = Time()
+                orderId = PlaceExitPositionOrder(positionId, exitTarget, MarketOrderType)
+            end
+
+        elseif IsOrderOpen(orderId) then
+            -- Order is still open. Check the timeout
+            if GetOrderOpenTime(orderId) > exitTimeout then
+                -- Cancel the order. We will place a new one next update.
+                CancelOrder(orderId)
+            end
+
+        elseif IsTradeAmountEnough(PriceMarket(), exitTarget, openAmount) then 
+            -- Order is not open. It should be. Execute exit order.
+            orderId = PlaceExitPositionOrder(positionId, exitTarget, NoTimeOutOrderType)
+        else
+            -- Order has been filled. Reset.
+            isEntering = true
+            orderId = ''
+            positionId = NewGuid()
+        end
+    end
+else
+    Log('Stop loss cooldown active. '..cooldownRemaining..' minute(s) left')
+end
+
+-- Save values for next update
+Save('orderId', orderId)
+Save('positionId', positionId)
+Save('startLong', startLong)
+Save('isEntering', isEntering)
+Save('stopLossActive', stopLossActive)
+Save('stopLossTime', stopLossTime)
+
+-- Return orderId
+DefineOutput(StringType, orderId, 'Open order id. Empty when slot hasn`t got open orders.', 'Save,CancelOrder,GetOrderOpenTime')

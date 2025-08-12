@@ -1,0 +1,36 @@
+-- [MVO] Market Volume Oscillator, https://www.marketvolume.com/technicalanalysis/mvo.asp
+-- Created by pshai
+
+-- Inputs
+local fastPeriod = Input('PVO Fast Period', 10)
+local fastMaType = InputMaTypes('Fast MA Type', SmaType)
+local slowPeriod = Input('PVO Slow Period', 50)
+local slowMaType = InputMaTypes('Slow MA Type', SmaType)
+local stochFastK = Input('STOCH Fast %K Period', 21)
+local stochSlowK = Input('STOCH Slow %K Period', 9)
+local stochSlowK = Input('STOCH Slow %D Period', 9)
+
+-- Data
+local volume = GetVolume()
+local high = HighPrices()
+local low = LowPrices()
+local close = ClosePrices()
+
+-- Magic
+local fastVMA = MA(volume, fastPeriod, fastMaType)
+local slowVMA = MA(volume, slowPeriod, slowMaType)
+local pvo = FilterBelow((fastVMA - slowVMA) / slowVMA * 100, 0)
+local stoch = STOCH(high, low, close, stochFastK, stochSlowK, stochSlowK).slowK
+stoch = (stoch - 50) / 50 -- Move to oscillate between [-1, 1]
+local mvo = pvo * stoch
+
+-- Plots
+PlotHorizontalLine(1, '', Black, 0, Dashed)
+Plot(1, 'MVO', mvo)
+
+-- Trading logic
+if IsRising(mvo, 3) then
+    DoBuy()
+elseif IsFalling(mvo, 3) then
+    DoSell()
+end

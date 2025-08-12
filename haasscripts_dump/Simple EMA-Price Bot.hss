@@ -1,0 +1,18 @@
+-- Input fields
+length = Input('Length', 36)
+
+-- Get the required data
+prices = ClosePrices()
+            
+-- Calculate the SMAs
+ma = EMA(prices, length)
+                
+-- Lets draw the lines on the chart
+Plot(0, 'Moving Average', ma[1], Orange)
+
+-- Check how the SMA looks like and base the trade signal on it.     
+if ma < prices then
+  DoLong()
+elseif ma > prices then
+  DoShort()
+end    
