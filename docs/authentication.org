@@ -1,0 +1,49 @@
+#+TITLE: Authentication
+#+AUTHOR: Your Organization
+#+DATE: July 2024
+
+* Overview
+
+Authentication is required to access the HaasOnline Trading Server API. It ensures secure communication and access control.
+
+* Authentication Process
+
+** Guest Authentication
+
+Guest authentication allows limited access to public API endpoints.
+
+#+begin_src python
+from pyHaasAPI.api import Guest
+
+guest_executor = Guest()
+# Use guest_executor to access public endpoints
+#+end_src
+
+** User Authentication
+
+User authentication provides access to private endpoints using email and password. Use environment variables or config/settings.py to store credentials securely.
+
+#+begin_src python
+from pyHaasAPI.api import Authenticated
+from config import settings
+
+auth_executor = Guest().authenticate(
+    email=settings.API_EMAIL,
+    password=settings.API_PASSWORD
+)
+assert isinstance(auth_executor.state, Authenticated)
+#+end_src
+
+* Best Practices
+
+1. Store credentials securely (use environment variables or config/settings.py)
+2. Never hardcode sensitive data in scripts
+3. Use robust error handling (see example scripts)
+4. For multi-account or CI/CD, load credentials dynamically and avoid interactive prompts
+5. See [examples/README.md](../examples/README.md) for real-world usage patterns
+
+* Error Handling
+
+- All authentication errors raise HaasApiError
+- Use try/except to handle failures and print actionable messages
+- Example scripts demonstrate robust error handling for authentication

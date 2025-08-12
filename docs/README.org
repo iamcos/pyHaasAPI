@@ -1,0 +1,94 @@
+#+TITLE: Haaslib - HaasOnline Trading API Client
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+Haaslib is a Python client library for interacting with the HaasOnline Trading Server API. It provides a type-safe interface for managing trading bots, labs, backtests, and market data.
+
+* Features
+
+- Full type safety with Pydantic models
+- Comprehensive API coverage
+- Support for both authenticated and unauthenticated endpoints
+- Lab management and backtesting capabilities
+- Market data access
+- Bot creation and management
+- Account management
+
+* Installation
+
+#+begin_src bash
+pip install haaslib
+#+end_src
+
+* Quick Start
+
+#+begin_src python
+from haaslib.api import RequestsExecutor, Guest
+from haaslib import api
+
+# Create guest executor
+executor = RequestsExecutor(
+    host="127.0.0.1",
+    port=8090,
+    state=Guest()
+)
+
+# Authenticate
+auth_executor = executor.authenticate(
+    email="your_email@example.com",
+    password="your_password"
+)
+
+# Get markets
+markets = api.get_all_markets(auth_executor)
+#+end_src
+
+* Documentation
+
+The documentation is organized into the following sections:
+
+- [[file:docs/authentication.org][Authentication]]
+- [[file:docs/labs.org][Lab Management]]
+- [[file:docs/markets.org][Market Operations]]
+- [[file:docs/bots.org][Bot Management]]
+- [[file:docs/accounts.org][Account Management]]
+
+* Development
+
+** Prerequisites
+
+- Python 3.11+
+- Poetry (recommended)
+
+** Setting Up Development Environment
+
+1. Clone the repository:
+   #+begin_src bash
+   git clone https://github.com/yourusername/haaslib.git
+   cd haaslib
+   #+end_src
+
+2. Install dependencies:
+   #+begin_src bash
+   poetry install
+   #+end_src
+
+3. Create =.env= file:
+   #+begin_src conf
+   HAAS_API_HOST=127.0.0.1
+   HAAS_API_PORT=8090
+   HAAS_API_EMAIL="your_email@example.com"
+   HAAS_API_PASSWORD="your_password"
+   #+end_src
+
+** Running Tests
+
+#+begin_src bash
+poetry run pytest
+#+end_src
+
+* License
+
+MIT License - see [[file:LICENSE][LICENSE]] for details.

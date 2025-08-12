@@ -1,0 +1,50 @@
+#+TITLE: Market Selection
+#+AUTHOR: Your Organization
+#+DATE: July 2024
+
+* Overview
+
+Selecting the right market is essential for strategy execution and backtesting. See [examples/price_market_example.py](../examples/price_market_example.py) for real-world usage.
+
+* Market Retrieval
+
+Efficiently retrieve all available markets from the API using exchange-specific endpoints.
+
+#+begin_src python
+from pyHaasAPI.price import PriceAPI
+from config import settings
+from pyHaasAPI import api
+
+executor = api.RequestsExecutor(
+    host=settings.API_HOST,
+    port=settings.API_PORT,
+    state=api.Guest()
+).authenticate(
+    email=settings.API_EMAIL,
+    password=settings.API_PASSWORD
+)
+
+price_api = PriceAPI(executor)
+markets = price_api.get_trade_markets("BINANCE")
+for market in markets:
+    print(f"Market: {market.primary}/{market.secondary}")
+#+end_src
+
+* Market Validation
+
+Ensure the selected market is valid for the account and strategy.
+
+#+begin_src python
+valid_market = price_api.get_valid_market(account.exchange_code)
+if price_api.validate_market(valid_market):
+    print(f"Valid market: {valid_market.primary}/{valid_market.secondary}")
+#+end_src
+
+* Best Practices
+
+1. Use exchange-specific fetching for performance (see [market_fetching_optimization.md](./market_fetching_optimization.md))
+2. Validate market data availability before use
+3. Check market compatibility with account and strategy
+4. Monitor market status changes
+5. Use market data caching for performance
+6. Handle market selection errors robustly (see example scripts) 

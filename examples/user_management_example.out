@@ -1,0 +1,13 @@
+App login error: Parameter 'email' is missing.
+Check token error: 1 validation error for ApiResponse[dict]
+Data
+  Input should be a valid dictionary [type=dict_type, input_value='OK', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+Is device approved error: 1 validation error for ApiResponse[dict]
+Data
+  Input should be a valid dictionary [type=dict_type, input_value=False, input_type=bool]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+Logout error: 1 validation error for ApiResponse[dict]
+Data
+  Input should be a valid dictionary [type=dict_type, input_value=True, input_type=bool]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type

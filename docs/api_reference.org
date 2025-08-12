@@ -1,0 +1,133 @@
+#+TITLE: API Reference
+#+AUTHOR: Your Organization
+#+DATE: 2024
+
+* Overview
+
+This document provides a detailed reference for the HaasOnline Trading Server API, including available functions, parameters, and return types.
+
+* Authentication
+
+** Guest Authentication
+
+- Function: =Guest()=
+- Description: Initializes a guest session for accessing public endpoints.
+- Parameters: None
+- Returns: Guest executor instance
+
+** User Authentication
+
+- Function: =authenticate()=
+- Description: Authenticates a user with email and password.
+- Parameters:
+  - =email=: User's email address (string)
+  - =password=: User's password (string)
+- Returns: Authenticated executor instance
+
+* Account Management
+
+** Get Accounts
+
+- Function: =get_accounts()=
+- Description: Retrieves all accounts associated with the authenticated user.
+- Parameters: 
+  - =auth_executor=: Authenticated executor instance
+- Returns: List of UserAccount objects
+
+* Market Operations
+
+** Get All Markets
+
+- Function: =get_all_markets()=
+- Description: Retrieves all available markets.
+- Parameters: 
+  - =executor=: Executor instance (Guest or Authenticated)
+- Returns: List of CloudMarket objects
+
+** Validate Market
+
+- Function: =validate_market()=
+- Description: Validates if a market is suitable for trading.
+- Parameters:
+  - =market=: Market object
+- Returns: Boolean indicating validity
+
+** Price API
+
+- Class: =PriceAPI=
+- Description: Provides methods to interact with market data.
+- Methods:
+  - =get_all_markets()=: Retrieves all available markets.
+    - Parameters: None
+    - Returns: List of CloudMarket objects
+  - =get_valid_market()=: Retrieves a valid market for a given exchange code.
+    - Parameters: 
+      - =exchange_code=: Exchange code (string)
+    - Returns: Market object
+  - =validate_market()=: Validates if a market is suitable for trading.
+    - Parameters:
+      - =market=: Market object
+    - Returns: Boolean indicating validity
+
+* Script Operations
+
+** Get All Scripts
+
+- Function: =get_all_scripts()=
+- Description: Retrieves all scripts available to the user.
+- Parameters: 
+  - =auth_executor=: Authenticated executor instance
+- Returns: List of HaasScriptItemWithDependencies objects
+
+* Lab Management
+
+** Create Lab
+
+- Function: =create_lab()=
+- Description: Creates a new lab instance with specified configuration.
+- Parameters:
+  - =auth_executor=: Authenticated executor instance
+  - =CreateLabRequest=: Configuration object for the lab
+- Returns: LabRecord object
+
+** Delete Lab
+
+- Function: =delete_lab()=
+- Description: Deletes an existing lab.
+- Parameters:
+  - =auth_executor=: Authenticated executor instance
+  - =lab_id=: ID of the lab to delete (string)
+- Returns: None
+
+** Start Lab Execution
+
+- Function: =start_lab_execution()=
+- Description: Begins execution of a lab backtest.
+- Parameters:
+  - =auth_executor=: Authenticated executor instance
+  - =StartLabExecutionRequest=: Configuration object for execution
+- Returns: LabDetails object
+
+** Get Backtest Result
+
+- Function: =get_backtest_result()=
+- Description: Retrieves results of a completed backtest.
+- Parameters:
+  - =auth_executor=: Authenticated executor instance
+  - =GetBacktestResultRequest=: Configuration object for result retrieval
+- Returns: LabBacktestResult object
+
+* Error Handling
+
+** HaasApiError
+
+- Description: Exception raised for API errors.
+- Attributes:
+  - =message=: Error message (string)
+  - =code=: Error code (integer)
+
+* Notes
+
+- Ensure all parameters are validated before making API calls.
+- Handle exceptions gracefully to maintain application stability.
+- Refer to the official API documentation for the latest updates and changes. 
