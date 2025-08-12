@@ -181,6 +181,8 @@ Before pushing to either repository, verify:
 - [ ] README.md reflects any new features
 - [ ] No sensitive data in commits
 - [ ] Examples still work with changes
+- [ ] Follow guidelines in `rules.cursor` for code standards
+- [ ] Test scripts follow patterns in `RUNNING_TESTS.cursor`
 
 ### For MCP Server Updates:
 - [ ] `create_mcp_repo.py` executed successfully
@@ -188,6 +190,7 @@ Before pushing to either repository, verify:
 - [ ] MCP server starts without errors
 - [ ] All endpoints respond correctly
 - [ ] Requirements.txt updated if dependencies changed
+- [ ] Gemini integration tests pass (if applicable)
 
 ## 🚨 Emergency Procedures
 
@@ -214,6 +217,43 @@ Before pushing to either repository, verify:
 3. **Gradually migrate** users to new branch
 4. **Update documentation** to reflect branch changes
 
+## 🤖 AI Assistant Configuration Files
+
+This project includes several configuration files specifically for AI assistants:
+
+### Core Configuration Files:
+1. **`rules.cursor`** - Comprehensive project rules and guidelines
+   - Market naming conventions and API patterns
+   - Python coding standards and architecture rules
+   - API endpoint naming and authentication patterns
+   - Parameter handling and lab management workflows
+   - Error handling and testing guidelines
+
+2. **`RUNNING_TESTS.cursor`** - Testing best practices
+   - Configuration and credential management
+   - Test script placement and organization
+   - Import patterns and authentication setup
+   - Debugging guidelines and templates
+
+3. **`AI_ASSISTANT_QUICK_REFERENCE.md`** - Quick reference for AI assistants
+   - Critical safety rules and commands
+   - Repository information and workflows
+   - Emergency procedures
+
+### Gemini Integration:
+The project includes Gemini AI integration in several areas:
+- **Test Integration**: `tests/integration/test_smart_client.py` includes Gemini API integration
+- **RAG System**: `haasscript_rag/` and `tools/haasscript_rag/` provide memory backend for Gemini
+- **Configuration**: Infrastructure includes Gemini CLI path configuration
+- **Interactive Testing**: Smart client includes Gemini-powered trading advice
+
+### Usage Guidelines for AI Assistants:
+- **Always read `rules.cursor`** before making code changes
+- **Follow testing patterns** from `RUNNING_TESTS.cursor`
+- **Respect project architecture** defined in configuration files
+- **Use established patterns** for API calls, authentication, and error handling
+- **Maintain consistency** with existing code standards
+
 ## 📊 Monitoring and Health Checks
 
 ### Regular Checks (Weekly):
@@ -222,12 +262,15 @@ Before pushing to either repository, verify:
 - [ ] No security alerts on GitHub
 - [ ] Dependencies are up to date
 - [ ] Documentation links work correctly
+- [ ] AI assistant configuration files are up to date
 
 ### Monthly Reviews:
 - [ ] Repository statistics and usage
 - [ ] Outstanding issues and pull requests
 - [ ] Version number consistency
 - [ ] License and attribution accuracy
+- [ ] AI integration functionality (Gemini, RAG systems)
+- [ ] Configuration file accuracy and completeness
 
 ## 📞 Support Information
 
@@ -241,6 +284,9 @@ Before pushing to either repository, verify:
 - `INTERNAL_REPOSITORY_MANAGEMENT.md` - This document
 - `MONOREPO_SETUP_SUMMARY.md` - Architecture overview
 - `haas-mcp-server-repo/.git/` - MCP server git history
+- `rules.cursor` - Cursor AI assistant rules and project guidelines
+- `RUNNING_TESTS.cursor` - Testing guidelines for AI assistants
+- `AI_ASSISTANT_QUICK_REFERENCE.md` - Quick reference for AI assistants
 
 ### Author Information:
 - **GitHub Username**: iamcos
