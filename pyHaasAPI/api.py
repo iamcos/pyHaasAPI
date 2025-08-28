@@ -49,8 +49,9 @@ from pyHaasAPI.model import (
     AccountData,
     HaasScriptFolder,
     ScriptRecord,
-    BacktestRuntimeData, # Import new model
-    BotRuntimeData, # Import new model
+    BacktestRuntimeData,
+    BacktestRuntimeResponse,
+    BotRuntimeData,
 )
 from pyHaasAPI.parameters import (
     LabParameter,
@@ -260,6 +261,8 @@ class RequestsExecutor(Generic[State]):
         log.debug(
             f"[{self.state.__class__.__name__}]: Requesting {url=} with {query_params=}"
         )
+        print(f"Request URL: {url}")
+        print(f"Request Params: {query_params}")
         
         # Determine if we need to use POST method
         use_post = query_params.pop("use_post", False) if query_params else False
@@ -309,6 +312,8 @@ class RequestsExecutor(Generic[State]):
             resp = requests.get(url, params=query_params)
             
         resp.raise_for_status()
+        print(f"Response: {resp.text}")
+        print("---END_OF_RESPONSE---")
 
         ta = TypeAdapter(ApiResponse[response_type])
 
@@ -347,10 +352,10 @@ class RequestsExecutor(Generic[State]):
                 if response_type == HaasBot:
                     log.debug(f"Raw response for HaasBot: {resp_json}")
                 return ta.validate_python(resp_json)
-            except ValidationError:
-                log.error(f"Failed to request: {resp.content}")
-                raise
-        except ValidationError:
+            except ValidationError as e:
+                log.error(f"Pydantic validation error: {e}")
+                return resp_json
+        except Exception as e:
             log.error(f"Failed to request: {resp.content}")
             raise
 
@@ -937,20 +942,52 @@ def get_full_backtest_runtime_data(executor: SyncExecutor[Authenticated], lab_id
     """
     Get detailed runtime information for a specific backtest as a structured object.
     
+    This function retrieves comprehensive backtest runtime data including:
+    - Chart information and status
+    - Compiler errors and warnings
+    - Trading reports with performance metrics
+    - Account and market information
+    - Position and order data
+    - Script execution details
+    
     Args:
         executor: Authenticated executor instance
-        lab_id: ID of the lab
-        backtest_id: ID of the specific backtest
+        lab_id: ID of the lab containing the backtest
+        backtest_id: ID of the specific backtest to retrieve
         
     Returns:
         BacktestRuntimeData object with complete runtime information
         
     Raises:
         HaasApiError: If the API request fails
-    """
-    raw_data = get_backtest_runtime(executor, lab_id, backtest_id)
-    return BacktestRuntimeData(**raw_data.get("Data", {}))
+        ValidationError: If the response data cannot be parsed into expected structure
 
+    Note:
+        The HaasOnline API returns data directly (not wrapped in a Data envelope).
+        Report keys follow the pattern: {AccountId}_{PriceMarket}
+        Example: "6bccabce-9bbe-42a3-a6ee-0cc4bf1e0cbe_BINANCEFUTURES_UNI_USDT_PERPETUAL"
+
+    Example:
+        >>> runtime_data = get_full_backtest_runtime_data(executor, "lab123", "bt456")
+        >>> print(f"Account: {runtime_data.AccountId}")
+        >>> print(f"Market: {runtime_data.PriceMarket}")
+        >>> reports = runtime_data.Reports
+        >>> for key, report in reports.items():
+        ...     print(f"Report {key}: {report.P.C} trades")
+    """
+    try:
+        raw_response = get_backtest_runtime(executor, lab_id, backtest_id)
+
+        # CRITICAL: The API response is direct data, not wrapped in {"Success": ..., "Data": ...}
+        # This was the root cause of all backtest retrieval failures
+        data_content = raw_response
+
+        # Parse the data into our structured BacktestRuntimeData model
+        return BacktestRuntimeData.model_validate(data_content)
+
+    except Exception as e:
+        # Re-raise with more context for debugging
+        raise HaasApiError(f"Failed to get full backtest runtime data for {backtest_id}: {e}") from e
 
 def get_backtest_chart(executor: SyncExecutor[Authenticated], lab_id: str, backtest_id: str) -> dict:
     """

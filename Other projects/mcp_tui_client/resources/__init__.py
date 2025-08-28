@@ -1,0 +1,1 @@
+"""Resource files for MCP TUI Client (themes, templates, etc.)."""
