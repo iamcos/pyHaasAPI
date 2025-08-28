@@ -1,52 +1,88 @@
-# pyHaasAPI Example Scripts
+# HaasOnline API Examples
 
-This directory contains runnable example scripts demonstrating all major features and workflows of the pyHaasAPI client for HaasOnline.
+This directory contains example scripts demonstrating how to use the HaasOnline API for various trading operations.
 
-## Table of Contents
+## Scripts
 
-- [lab_lifecycle_example.py](#lab_lifecycle_examplepy)
-- [bot_lifecycle_example.py](#bot_lifecycle_examplepy)
-- [account_management_example.py](#account_management_examplepy)
-- [haasscript_management_example.py](#haasscript_management_examplepy)
-- [price_market_example.py](#price_market_examplepy)
-- [user_management_example.py](#user_management_examplepy)
-- [utility_advanced_example.py](#utility_advanced_examplepy)
+### setup_trading_accounts.py
 
-## Usage
+**Purpose**: Complete setup script for creating standardized trading accounts.
 
-All scripts are runnable as modules:
+**Features**:
+- Creates 200 simulated trading accounts with naming scheme `4AA-10K-XXX`
+- Funds each account with exactly 10,000 USDT
+- Removes any unwanted cryptocurrencies to ensure clean accounts
+- Comprehensive error handling and progress tracking
+- Verification and cleanup of account balances
 
+**Usage**:
 ```bash
-python -m examples.<script_name>
+# Make sure you have the virtual environment activated
+source .venv/bin/activate
+
+# Run the setup script
+python examples/setup_trading_accounts.py
 ```
 
-Ensure your `config/settings.py` is set up with valid API credentials and server details.
+**Requirements**:
+- HaasOnline API server running on `localhost:8090`
+- Valid API credentials in `.env` file:
+  ```
+  API_HOST=127.0.0.1
+  API_PORT=8090
+  API_EMAIL=your_email@example.com
+  API_PASSWORD=your_password
+  ```
+- pyHaasAPI library installed in virtual environment
 
-## Example Scripts
+**Output**:
+- 200 accounts named `4AA-10K-001` through `4AA-10K-200`
+- Each account contains exactly 10,000 USDT and no other cryptocurrencies
+- Detailed progress reporting and error handling
+- Final verification of account setup
 
-### lab_lifecycle_example.py
-Demonstrates the full lifecycle of a lab: create, clone, update parameters, backtest, and delete.
+## Environment Setup
 
-### bot_lifecycle_example.py
-Shows how to create, activate, monitor, pause, resume, deactivate, and delete a bot.
+Before running any examples, ensure you have:
 
-### account_management_example.py
-Covers listing, filtering, adding, renaming, and deleting accounts (including simulated accounts).
+1. **Virtual Environment**:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
-### haasscript_management_example.py
-Demonstrates HaasScript management: list, get, add, edit, delete, and move scripts to folders.
+2. **Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### price_market_example.py
-Shows how to list markets, get prices, order books, trades, chart data, and manage history depth.
+3. **Environment Variables**:
+   Create a `.env` file in the project root with your HaasOnline API credentials.
 
-### user_management_example.py
-Covers user endpoints: app login, check token, logout, and device approval status.
+4. **HaasOnline Server**:
+   Ensure your HaasOnline server is running and accessible.
 
-### utility_advanced_example.py
-Demonstrates advanced utilities: ensuring market history readiness, error handling, and bulk lab creation.
+## API Channels Used
 
-## Best Practices
+The setup script uses these HaasOnline API channels:
+- `CREATE_SIMULATED_ACCOUNT` - Creates new simulated trading accounts
+- `DEPOSIT_FUNDS` - Adds USDT to accounts
+- `WITHDRAWAL_FUNDS` - Removes unwanted cryptocurrencies
+- `GET_ALL_BALANCES` - Verifies account balances
 
-- Review each script for required arguments and replace placeholder values (e.g., `your_script_id`, `your_account_id`) with real values from your environment.
-- Handle API errors gracefully and check for readiness (e.g., market history) before running workflows.
-- Use these scripts as templates for your own automation and integration tasks. 
+## Error Handling
+
+All scripts include comprehensive error handling for:
+- API connection failures
+- Authentication issues
+- Account creation failures
+- Funding operation failures
+- Balance verification errors
+
+## Support
+
+For issues or questions:
+1. Check the HaasOnline API documentation
+2. Verify your API credentials and server status
+3. Review the script output for specific error messages
+4. Ensure all dependencies are properly installed

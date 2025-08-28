@@ -620,162 +620,297 @@ class AddSimulatedAccountRequest(BaseModel):
 
 # --- NEW MODELS FOR RUNTIME DATA --- #
 
-class InputFieldDetail(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, extra='allow')
-    T: int = Field(description="Parameter Type (matches ParameterType enum)")
-    ST: int = Field(description="Sub-Type")
-    G: str = Field(description="Group name for the parameter")
-    K: str = Field(description="Full parameter key")
-    EK: str = Field(description="Extended Key - numerical prefix of the key")
-    N: str = Field(description="Human-readable Name of the parameter")
-    TT: str = Field(description="Tooltip or description for the parameter")
-    V: Any = Field(description="The actual value used for this parameter")
-    D: Any = Field(description="Default value for the parameter")
-    O: Optional[Dict[str, str]] = Field(None, description="Options for SELECTION types")
-    MIN: float = Field(description="Minimum value for numerical parameters")
-    MAX: float = Field(description="Maximum value for numerical parameters")
+# --- PYDANTIC MODELS FOR RUNTIME DATA --- #
 
-class OrderInPosition(BaseModel):
+class ChartColors(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra='allow')
-    id: str
-    eid: str
-    ot: int # Open Time
-    ct: int # Close Time
-    to: int # Trade Order
-    d: int  # Direction
-    t: int  # Type
-    p: float # Price
-    tp: float # Take Profit
-    ep: float # Entry Price
-    a: float # Amount
-    af: float # Amount Filled
-    fe: float # Fee
-    fc: str # Fee Currency
-    m: float # Margin
-    pr: float # Profit/Loss
-    r: float # Rate
-    cr: int # Custom Report
-    n: str # Note
+    Font: str = Field(alias="Font")
+    Axis: str = Field(alias="Axis")
+    Grid: str = Field(alias="Grid")
+    Text: str = Field(alias="Text")
+    Background: str = Field(alias="Background")
+    PriceGhostLine: str = Field(alias="PriceGhostLine")
+    VolumeGhostLine: str = Field(alias="VolumeGhostLine")
 
-class PositionDetail(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, extra='allow')
-    pg: str # Position Group ID
-    g: str  # Group ID
-    ac: str # Account ID
-    ma: str # Market Tag
-    le: float # Leverage
-    d: int # Direction
-    mt: int # Market Type
-    pl: str # Profit/Loss Currency
-    al: str # Asset Label
-    pd: int # Price Decimals
-    ad: int # Amount Decimals
-    ot: int # Open Time
-    ct: int # Close Time
-    ic: bool # Is Closed
-    ap: float # Average Price
-    t: float # Trade Amount
-    av: float # Average Volume
-    io: float # Initial Order
-    eno: List[OrderInPosition] = Field(default_factory=list) # Entry Orders
-    exo: List[OrderInPosition] = Field(default_factory=list) # Exit Orders
-    cp: float # Current Profit
-    fe: float # Fee
-    rp: float # Realized Profit
-    up: float # Unrealized Profit
-    roi: float # ROI
-    hpip: float # Highest Price in Position
-    lpip: float # Lowest Price in Position
-
-class ReportDetails(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, extra='allow')
-    AID: str
-    M: str
-    AL: str
-    ML: str
-    PL: str
-    F: Dict[str, Any] # Fee details
-    PR: Dict[str, Any] # Profit/Return details
-    O: Dict[str, Any] # Order details
-    P: Dict[str, Any] # Position details
-    T: Dict[str, Any] # Trade statistics
 
 class ChartDetails(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra='allow')
-    Guid: str
-    Interval: int
-    Charts: Dict[str, Any]
-    Colors: Dict[str, str]
-    IsLastPartition: bool
-    Status: int
+    Guid: str = Field(alias="Guid")
+    Interval: int = Field(alias="Interval")
+    Charts: Dict[str, Any] = Field(alias="Charts")
+    Colors: ChartColors = Field(alias="Colors")
+    IsLastPartition: bool = Field(alias="IsLastPartition")
+    Status: int = Field(alias="Status")
+
+
+class Fees(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    FC: float = Field(alias="FC")
+    FR: float = Field(alias="FR")
+    TFC: float = Field(alias="TFC")
+    FPC: Dict[str, float] = Field(alias="FPC")
+
+
+class Performance(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    SP: float = Field(alias="SP")
+    SB: float = Field(alias="SB")
+    PC: float = Field(alias="PC")
+    BC: float = Field(alias="BC")
+    GP: float = Field(alias="GP")
+    RP: float = Field(alias="RP")
+    UP: float = Field(alias="UP")
+    ROI: float = Field(alias="ROI")
+    RM: float = Field(alias="RM")
+    CRM: float = Field(alias="CRM")
+    RPH: List[float] = Field(alias="RPH")
+    ROIH: List[float] = Field(alias="ROIH")
+
+
+class Orders(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    F: int = Field(alias="F")
+    P: int = Field(alias="P")
+    C: int = Field(alias="C")
+    R: int = Field(alias="R")
+    A: int = Field(alias="A")
+    L: int = Field(alias="L")
+    PT: int = Field(alias="PT")
+    LT: int = Field(alias="LT")
+    BW: float = Field(alias="BW")
+    BL: float = Field(alias="BL")
+
+
+class Positions(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    C: int = Field(alias="C")
+    W: int = Field(alias="W")
+    AP: float = Field(alias="AP")
+    APS: float = Field(alias="APS")
+    APM: float = Field(alias="APM")
+    TEM: float = Field(alias="TEM")
+    AW: float = Field(alias="AW")
+    BW: float = Field(alias="BW")
+    TW: float = Field(alias="TW")
+    AL: float = Field(alias="AL")
+    BL: float = Field(alias="BL")
+    TL: float = Field(alias="TL")
+    PH: List[float] = Field(alias="PH")
+
+
+class Trades(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    SHR: float = Field(alias="SHR")
+    SOR: float = Field(alias="SOR")
+    WP: float = Field(alias="WP")
+    WLP: float = Field(alias="WLP")
+    PF: float = Field(alias="PF")
+    CPC: float = Field(alias="CPC")
+    TR: float = Field(alias="TR")
+    CSR: float = Field(alias="CSR")
+    OWR: float = Field(alias="OWR")
+    OLR: float = Field(alias="OLR")
+    PMR: float = Field(alias="PMR")
+    BW: float = Field(alias="BW")
+    BL: float = Field(alias="BL")
+    HP: float = Field(alias="HP")
+    LP: float = Field(alias="LP")
+    TM: float = Field(alias="TM")
+    AVM: float = Field(alias="AVM")
+    AVP: float = Field(alias="AVP")
+
+
+class Report(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    AID: str = Field(alias="AID")
+    M: str = Field(alias="M")
+    AL: str = Field(alias="AL")
+    ML: str = Field(alias="ML")
+    PL: str = Field(alias="PL")
+    F: Fees = Field(alias="F")
+    PR: Performance = Field(alias="PR")
+    O: Orders = Field(alias="O")
+    P: Positions = Field(alias="P")
+    T: Trades = Field(alias="T")
+
+
+class Order(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    paid: str = Field(alias="paid")
+    pa: int = Field(alias="pa")
+    id: str = Field(alias="id")
+    eid: str = Field(alias="eid")
+    ot: int = Field(alias="ot")
+    ct: int = Field(alias="ct")
+    to: int = Field(alias="to")
+    d: int = Field(alias="d")
+    t: int = Field(alias="t")
+    p: float = Field(alias="p")
+    tp: float = Field(alias="tp")
+    ep: float = Field(alias="ep")
+    a: float = Field(alias="a")
+    af: float = Field(alias="af")
+    fe: float = Field(alias="fe")
+    fc: str = Field(alias="fc")
+    m: float = Field(alias="m")
+    pr: float = Field(alias="pr")
+    r: float = Field(alias="r")
+    cr: int = Field(alias="cr")
+    n: str = Field(alias="n")
+
+
+class ManagedPosition(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    pg: str = Field(alias="pg")
+    g: str = Field(alias="g")
+    ac: str = Field(alias="ac")
+    ma: str = Field(alias="ma")
+    le: float = Field(alias="le")
+    d: int = Field(alias="d")
+    mt: int = Field(alias="mt")
+    pl: Optional[str] = Field(alias="pl")
+    al: Optional[str] = Field(alias="al")
+    pd: int = Field(alias="pd")
+    ad: int = Field(alias="ad")
+    ot: int = Field(alias="ot")
+    ct: int = Field(alias="ct")
+    ic: bool = Field(alias="ic")
+    ap: float = Field(alias="ap")
+    t: float = Field(alias="t")
+    av: float = Field(alias="av")
+    io: float = Field(alias="io")
+    eno: List[Any] = Field(alias="eno")
+    exo: List[Any] = Field(alias="exo")
+    cp: float = Field(alias="cp")
+    fe: float = Field(alias="fe")
+    rp: float = Field(alias="rp")
+    up: float = Field(alias="up")
+    roi: float = Field(alias="roi")
+    hpip: float = Field(alias="hpip")
+    lpip: float = Field(alias="lpip")
+
+
+class FinishedPosition(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    pg: str = Field(alias="pg")
+    g: str = Field(alias="g")
+    ac: str = Field(alias="ac")
+    ma: str = Field(alias="ma")
+    le: float = Field(alias="le")
+    d: int = Field(alias="d")
+    mt: int = Field(alias="mt")
+    pl: str = Field(alias="pl")
+    al: str = Field(alias="al")
+    pd: int = Field(alias="pd")
+    ad: int = Field(alias="ad")
+    ot: int = Field(alias="ot")
+    ct: int = Field(alias="ct")
+    ic: bool = Field(alias="ic")
+    ap: float = Field(alias="ap")
+    t: float = Field(alias="t")
+    av: float = Field(alias="av")
+    io: float = Field(alias="io")
+    eno: List[Order] = Field(alias="eno")
+    exo: List[Order] = Field(alias="exo")
+    cp: float = Field(alias="cp")
+    fe: float = Field(alias="fe")
+    rp: float = Field(alias="rp")
+    up: float = Field(alias="up")
+    roi: float = Field(alias="roi")
+    hpip: float = Field(alias="hpip")
+    lpip: float = Field(alias="lpip")
+
+
+class InputField(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    T: int = Field(alias="T")
+    ST: int = Field(alias="ST")
+    G: str = Field(alias="G")
+    K: str = Field(alias="K")
+    EK: str = Field(alias="EK")
+    N: str = Field(alias="N")
+    TT: str = Field(alias="TT")
+    V: str = Field(alias="V")
+    D: str = Field(alias="D")
+    O: Optional[Dict[str, str]] = Field(alias="O")
+    MIN: float = Field(alias="MIN")
+    MAX: float = Field(alias="MAX")
+
 
 class BacktestRuntimeData(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra='allow')
-    Chart: ChartDetails
-    CompilerErrors: List[Any]
-    Reports: Dict[str, ReportDetails]
-    CustomReport: Dict[str, Any]
-    ScriptNote: str
-    TrackedOrderLimit: int
-    OpenOrders: List[Any]
-    FailedOrders: List[Any]
-    ManagedLongPosition: PositionDetail
-    ManagedShortPosition: PositionDetail
-    UnmanagedPositions: List[PositionDetail]
-    FinishedPositions: List[PositionDetail]
-    InputFields: Dict[str, InputFieldDetail]
-    ScriptMemory: Dict[str, Any]
-    LocalMemory: Dict[str, Any]
-    RedisKeys: List[Any]
-    Files: Dict[str, Any]
-    LogId: str
-    LogCount: int
-    ExecutionLog: List[str]
-    UserId: str
-    BotId: str
-    BotName: str
-    ScriptId: str
-    ScriptName: str
-    Activated: bool
-    Paused: bool
-    IsWhiteLabel: bool
-    ActivatedSince: int
-    DeactivatedSince: int
-    DeactivatedReason: str
-    AccountId: str
-    PriceMarket: str
-    Leverage: float
-    MarginMode: int
-    PositionMode: int
-    TradeAmount: float
-    OrderTemplate: int
-    DefaultInterval: int
-    DefaultChartType: int
-    HideTradeAmountSettings: bool
-    HideOrderSettings: bool
-    OrderPersistenceEnabled: bool
-    OrderPersistenceLimit: int
-    EnableHighSpeedUpdates: bool
-    UpdateAfterCompletedOrder: bool
-    IndicatorContainerLogs: bool
-    IsScriptOk: bool
-    TradeAmountError: bool
-    ScriptTradeAmountError: bool
-    UpdateCounter: int
-    IsSpotSupported: bool
-    IsMarginSupported: bool
-    IsLeverageSupported: bool
-    IsManagedTrading: bool
-    IsOneDirection: bool
-    IsMultiMarket: bool
-    IsRemoteSignalBased: bool
-    IsWebHookBased: bool
-    WebHookSignalId: str
-    IsTAUsed: bool
-    Timestamp: int
-    MinuteTimestamp: int
-    LastUpdateTimestamp: int
+    Chart: ChartDetails = Field(alias="Chart")
+    CompilerErrors: List[Any] = Field(alias="CompilerErrors")
+    Reports: Dict[str, Report] = Field(alias="Reports")
+    CustomReport: Dict[str, Any] = Field(alias="CustomReport")
+    ScriptNote: str = Field(alias="ScriptNote")
+    TrackedOrderLimit: int = Field(alias="TrackedOrderLimit")
+    OpenOrders: List[Any] = Field(alias="OpenOrders")
+    FailedOrders: List[Any] = Field(alias="FailedOrders")
+    ManagedLongPosition: ManagedPosition = Field(alias="ManagedLongPosition")
+    ManagedShortPosition: ManagedPosition = Field(alias="ManagedShortPosition")
+    UnmanagedPositions: List[Any] = Field(alias="UnmanagedPositions")
+    FinishedPositions: List[FinishedPosition] = Field(alias="FinishedPositions")
+    InputFields: Dict[str, InputField] = Field(alias="InputFields")
+    ScriptMemory: Dict[str, Any] = Field(alias="ScriptMemory")
+    LocalMemory: Dict[str, Any] = Field(alias="LocalMemory")
+    RedisKeys: List[Any] = Field(alias="RedisKeys")
+    Files: Dict[str, Any] = Field(alias="Files")
+    LogId: str = Field(alias="LogId")
+    LogCount: int = Field(alias="LogCount")
+    ExecutionLog: List[Any] = Field(alias="ExecutionLog")
+    UserId: str = Field(alias="UserId")
+    BotId: str = Field(alias="BotId")
+    BotName: str = Field(alias="BotName")
+    ScriptId: str = Field(alias="ScriptId")
+    ScriptName: str = Field(alias="ScriptName")
+    Activated: bool = Field(alias="Activated")
+    Paused: bool = Field(alias="Paused")
+    IsWhiteLabel: bool = Field(alias="IsWhiteLabel")
+    ActivatedSince: int = Field(alias="ActivatedSince")
+    DeactivatedSince: int = Field(alias="DeactivatedSince")
+    DeactivatedReason: str = Field(alias="DeactivatedReason")
+    AccountId: str = Field(alias="AccountId")
+    PriceMarket: str = Field(alias="PriceMarket")
+    Leverage: float = Field(alias="Leverage")
+    MarginMode: int = Field(alias="MarginMode")
+    PositionMode: int = Field(alias="PositionMode")
+    TradeAmount: float = Field(alias="TradeAmount")
+    OrderTemplate: int = Field(alias="OrderTemplate")
+    DefaultInterval: int = Field(alias="DefaultInterval")
+    DefaultChartType: int = Field(alias="DefaultChartType")
+    HideTradeAmountSettings: bool = Field(alias="HideTradeAmountSettings")
+    HideOrderSettings: bool = Field(alias="HideOrderSettings")
+    OrderPersistenceEnabled: bool = Field(alias="OrderPersistenceEnabled")
+    OrderPersistenceLimit: int = Field(alias="OrderPersistenceLimit")
+    EnableHighSpeedUpdates: bool = Field(alias="EnableHighSpeedUpdates")
+    UpdateAfterCompletedOrder: bool = Field(alias="UpdateAfterCompletedOrder")
+    IndicatorContainerLogs: bool = Field(alias="IndicatorContainerLogs")
+    IsScriptOk: bool = Field(alias="IsScriptOk")
+    TradeAmountError: bool = Field(alias="TradeAmountError")
+    ScriptTradeAmountError: bool = Field(alias="ScriptTradeAmountError")
+    UpdateCounter: int = Field(alias="UpdateCounter")
+    IsSpotSupported: bool = Field(alias="IsSpotSupported")
+    IsMarginSupported: bool = Field(alias="IsMarginSupported")
+    IsLeverageSupported: bool = Field(alias="IsLeverageSupported")
+    IsManagedTrading: bool = Field(alias="IsManagedTrading")
+    IsOneDirection: bool = Field(alias="IsOneDirection")
+    IsMultiMarket: bool = Field(alias="IsMultiMarket")
+    IsRemoteSignalBased: bool = Field(alias="IsRemoteSignalBased")
+    IsWebHookBased: bool = Field(alias="IsWebHookBased")
+    WebHookSignalId: str = Field(alias="WebHookSignalId")
+    IsTAUsed: bool = Field(alias="IsTAUsed")
+    Timestamp: int = Field(alias="Timestamp")
+    MinuteTimestamp: int = Field(alias="MinuteTimestamp")
+    LastUpdateTimestamp: int = Field(alias="LastUpdateTimestamp")
 
-class BotRuntimeData(BacktestRuntimeData):
-    """Bot runtime data has a very similar structure to backtest runtime data"""
-    pass
+
+class BacktestRuntimeResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='allow')
+    Success: bool = Field(alias="Success")
+    Error: str = Field(alias="Error")
+    Data: BacktestRuntimeData = Field(alias="Data")
+
+
+# Alias for backward compatibility
+BotRuntimeData = BacktestRuntimeData

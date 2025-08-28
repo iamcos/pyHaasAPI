@@ -50,6 +50,14 @@ except ImportError as e:
     get_enhanced_executor = None
     get_history_service = None
 
+# Import our enhanced authentication manager
+try:
+    from auth_manager import get_auth_manager, get_authenticated_executor
+except ImportError as e:
+    print(f"Auth manager not found: {e}")
+    get_auth_manager = None
+    get_authenticated_executor = None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("haas-mcp-server")
@@ -60,14 +68,76 @@ class HaasMCPServer:
         self.haas_executor = None
         self._initialize_haas_api()
         self._register_handlers()
+    
+    def _serialize_object(self, obj):
+        """Convert complex objects to JSON-serializable dictionaries"""
+        if hasattr(obj, '__dict__'):
+            # For objects with __dict__, convert to dictionary
+            result = {}
+            for key, value in obj.__dict__.items():
+                if not key.startswith('_'):  # Skip private attributes
+                    try:
+                        json.dumps(value)  # Test if value is JSON serializable
+                        result[key] = value
+                    except (TypeError, ValueError):
+                        result[key] = str(value)  # Convert to string if not serializable
+            return result
+        elif hasattr(obj, '_asdict'):
+            # For namedtuples
+            return obj._asdict()
+        else:
+            # For other objects, try to extract common attributes
+            result = {}
+            common_attrs = ['id', 'name', 'script_id', 'account_id', 'lab_id', 'bot_id', 'market', 'status', 'created', 'modified']
+            for attr in common_attrs:
+                if hasattr(obj, attr):
+                    value = getattr(obj, attr)
+                    try:
+                        json.dumps(value)
+                        result[attr] = value
+                    except (TypeError, ValueError):
+                        result[attr] = str(value)
+            return result if result else str(obj)
 
     def _initialize_haas_api(self):
-        """Initialize HaasOnline API connection"""
+        """Initialize HaasOnline API connection using enhanced authentication manager"""
         if api is None:
             logger.error("pyHaasAPI not available")
             self.haas_executor = None
             return
-        
+
+        # Check if auth manager is available
+        if not get_auth_manager or not get_authenticated_executor:
+            logger.warning("Auth manager not available, falling back to basic authentication")
+            self._fallback_authentication()
+            return
+
+        try:
+            logger.info("Initializing HaasOnline API connection with enhanced authentication...")
+            
+            # Use the authentication manager to get a working executor
+            auth_manager = get_auth_manager()
+            auth_result = auth_manager.authenticate()
+            
+            if auth_result.success:
+                self.haas_executor = auth_result.executor
+                self.auth_manager = auth_manager
+                
+                logger.info(f"✅ Successfully authenticated with {auth_result.credential_set.name} credentials")
+                logger.info(f"Connected to: {auth_result.server_info.get('host')}:{auth_result.server_info.get('port')}")
+                logger.info(f"Account: {auth_result.server_info.get('account_name', 'Unknown')}")
+                
+                return
+            else:
+                logger.error(f"❌ Authentication failed: {auth_result.error_message}")
+                self.haas_executor = None
+                
+        except Exception as e:
+            logger.error(f"Exception during enhanced authentication: {e}")
+            self.haas_executor = None
+
+    def _fallback_authentication(self):
+        """Fallback authentication method (original implementation)"""
         try:
             api_host = os.getenv("API_HOST", "127.0.0.1")
             api_port = int(os.getenv("API_PORT", 8090))
@@ -128,6 +198,24 @@ class HaasMCPServer:
                 Tool(
                     name="get_haas_status",
                     description="Check the status of the HaasOnline API connection",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="get_auth_status",
+                    description="Get detailed authentication status and credential information",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="refresh_authentication",
+                    description="Force refresh of authentication using all available credential sets",
                     inputSchema={
                         "type": "object",
                         "properties": {},
@@ -587,6 +675,96 @@ class HaasMCPServer:
                         "required": ["name_pattern"]
                     }
                 ),
+                Tool(
+                    name="save_script",
+                    description="Save a HaasScript's source code to the server and get validation results",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to save"},
+                            "source_code": {"type": "string", "description": "The HaasScript source code to save"},
+                            "settings": {
+                                "type": "object", 
+                                "description": "Optional script settings (account, market, etc.)",
+                                "properties": {
+                                    "accountId": {"type": "string", "description": "Account ID"},
+                                    "marketTag": {"type": "string", "description": "Market tag (e.g., BINANCE_BTC_USDT_)"},
+                                    "leverage": {"type": "integer", "description": "Leverage setting"},
+                                    "positionMode": {"type": "integer", "description": "Position mode"},
+                                    "marginMode": {"type": "integer", "description": "Margin mode"},
+                                    "tradeAmount": {"type": "number", "description": "Trade amount"},
+                                    "orderTemplate": {"type": "integer", "description": "Order template"},
+                                    "chartStyle": {"type": "integer", "description": "Chart style"},
+                                    "interval": {"type": "integer", "description": "Interval"},
+                                    "scriptParameters": {"type": "object", "description": "Script parameters"},
+                                    "botName": {"type": "string", "description": "Bot name"},
+                                    "botId": {"type": "string", "description": "Bot ID"}
+                                }
+                            }
+                        },
+                        "required": ["script_id", "source_code"]
+                    }
+                ),
+                Tool(
+                    name="validate_script",
+                    description="Validate a HaasScript by saving it and getting validation feedback",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to validate"},
+                            "source_code": {"type": "string", "description": "The HaasScript source code to validate"},
+                            "settings": {
+                                "type": "object", 
+                                "description": "Optional script settings (account, market, etc.)",
+                                "properties": {
+                                    "accountId": {"type": "string", "description": "Account ID"},
+                                    "marketTag": {"type": "string", "description": "Market tag (e.g., BINANCE_BTC_USDT_)"},
+                                    "leverage": {"type": "integer", "description": "Leverage setting"},
+                                    "positionMode": {"type": "integer", "description": "Position mode"},
+                                    "marginMode": {"type": "integer", "description": "Margin mode"},
+                                    "tradeAmount": {"type": "number", "description": "Trade amount"},
+                                    "orderTemplate": {"type": "integer", "description": "Order template"},
+                                    "chartStyle": {"type": "integer", "description": "Chart style"},
+                                    "interval": {"type": "integer", "description": "Interval"},
+                                    "scriptParameters": {"type": "object", "description": "Script parameters"},
+                                    "botName": {"type": "string", "description": "Bot name"},
+                                    "botId": {"type": "string", "description": "Bot ID"}
+                                }
+                            }
+                        },
+                        "required": ["script_id", "source_code"]
+                    }
+                ),
+                Tool(
+                    name="compile_script",
+                    description="[DEPRECATED] Compile/validate a HaasScript (use save_script instead)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to compile"},
+                            "source_code": {"type": "string", "description": "The HaasScript source code to compile"},
+                            "settings": {
+                                "type": "object", 
+                                "description": "Optional script settings (account, market, etc.)",
+                                "properties": {
+                                    "accountId": {"type": "string", "description": "Account ID"},
+                                    "marketTag": {"type": "string", "description": "Market tag (e.g., BINANCE_BTC_USDT_)"},
+                                    "leverage": {"type": "integer", "description": "Leverage setting"},
+                                    "positionMode": {"type": "integer", "description": "Position mode"},
+                                    "marginMode": {"type": "integer", "description": "Margin mode"},
+                                    "tradeAmount": {"type": "number", "description": "Trade amount"},
+                                    "orderTemplate": {"type": "integer", "description": "Order template"},
+                                    "chartStyle": {"type": "integer", "description": "Chart style"},
+                                    "interval": {"type": "integer", "description": "Interval"},
+                                    "scriptParameters": {"type": "object", "description": "Script parameters"},
+                                    "botName": {"type": "string", "description": "Bot name"},
+                                    "botId": {"type": "string", "description": "Bot ID"}
+                                }
+                            }
+                        },
+                        "required": ["script_id", "source_code"]
+                    }
+                ),
                 # Market Data Tools
                 Tool(
                     name="get_market_price",
@@ -735,6 +913,249 @@ class HaasMCPServer:
                             "backtest_id": {"type": "string", "description": "Backtest ID"}
                         },
                         "required": ["lab_id", "backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_execution_update",
+                    description="Get real-time execution status update for a specific backtest",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "lab_id": {"type": "string", "description": "Lab ID"},
+                            "backtest_id": {"type": "string", "description": "Backtest ID"}
+                        },
+                        "required": ["lab_id", "backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_chart_partition",
+                    description="Get chart data partition for a specific backtest (useful for large datasets)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "lab_id": {"type": "string", "description": "Lab ID"},
+                            "backtest_id": {"type": "string", "description": "Backtest ID"},
+                            "partition_index": {"type": "integer", "default": 0, "description": "Index of the partition to retrieve"}
+                        },
+                        "required": ["lab_id", "backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="cancel_backtest",
+                    description="Cancel a running backtest execution",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "service_id": {"type": "string", "description": "Service ID (e.g., LocalService-ENT)"},
+                            "backtest_id": {"type": "string", "description": "Backtest ID to cancel"}
+                        },
+                        "required": ["service_id", "backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="execute_backtest",
+                    description="Execute a backtest with specified parameters",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "Script ID to backtest"},
+                            "start_date": {"type": "string", "description": "Start date for backtest"},
+                            "end_date": {"type": "string", "description": "End date for backtest"},
+                            "additional_params": {"type": "object", "description": "Additional backtest parameters"}
+                        },
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="share_script",
+                    description="Share/publish a HaasScript to make it available to other users",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to share"},
+                            "script_name": {"type": "string", "description": "Display name for the shared script"},
+                            "script_description": {"type": "string", "default": "", "description": "Description of what the script does"},
+                            "status": {"type": "integer", "default": 0, "description": "Sharing status (0 = public)"},
+                            "allowed_users": {"type": "string", "default": "", "description": "Comma-separated list of allowed user IDs"}
+                        },
+                        "required": ["script_id", "script_name"]
+                    }
+                ),
+                # New Script Manipulation Tools
+                Tool(
+                    name="edit_script_sourcecode",
+                    description="Edit and save HaasScript source code with real-time validation",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to edit"},
+                            "source_code": {"type": "string", "description": "New source code for the script"}
+                        },
+                        "required": ["script_id", "source_code"]
+                    }
+                ),
+                Tool(
+                    name="check_script_execution_status",
+                    description="Check if a script is currently executing/compiling",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to check"}
+                        },
+                        "required": ["script_id"]
+                    }
+                ),
+                # New Backtest Management Tools
+                Tool(
+                    name="execute_quicktest",
+                    description="Execute a quick test/validation of a script",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to test"},
+                            "account_id": {"type": "string", "description": "Account ID for the test"},
+                            "market_tag": {"type": "string", "description": "Market tag (e.g., BINANCE_BTC_USDT_)"}
+                        },
+                        "required": ["script_id", "account_id", "market_tag"]
+                    }
+                ),
+                Tool(
+                    name="execute_backtest_advanced",
+                    description="Execute a full backtest with advanced options",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "ID of the script to backtest"},
+                            "account_id": {"type": "string", "description": "Account ID for the backtest"},
+                            "market_tag": {"type": "string", "description": "Market tag (e.g., BINANCE_BTC_USDT_)"},
+                            "start_unix": {"type": "integer", "description": "Start time as Unix timestamp"},
+                            "end_unix": {"type": "integer", "description": "End time as Unix timestamp"},
+                            "send_email": {"type": "boolean", "default": False, "description": "Send email when complete"},
+                            "additional_params": {"type": "object", "description": "Additional backtest parameters"}
+                        },
+                        "required": ["script_id", "account_id", "market_tag", "start_unix", "end_unix"]
+                    }
+                ),
+                Tool(
+                    name="get_execution_update",
+                    description="Get real-time execution status update for any running process",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "process_id": {"type": "string", "description": "Process/execution ID to check"}
+                        },
+                        "required": ["process_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_runtime",
+                    description="Get runtime information for a completed backtest",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_logs",
+                    description="Get execution logs for a backtest",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_chart_partition_advanced",
+                    description="Get chart data partition with indicator data for backtests",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"},
+                            "partition_index": {"type": "integer", "default": 0, "description": "Partition index"},
+                            "include_market_data": {"type": "boolean", "default": False, "description": "Include market data (large)"},
+                            "indicators_only": {"type": "boolean", "default": True, "description": "Return only indicator data"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="archive_backtest",
+                    description="Archive a backtest to preserve it beyond 48 hours",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID to archive"},
+                            "archive_result": {"type": "boolean", "default": True, "description": "Archive the result"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_positions",
+                    description="Get position data for a backtest",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"},
+                            "next_page_id": {"type": "integer", "default": 0, "description": "Next page ID for pagination"},
+                            "page_length": {"type": "integer", "default": 50, "description": "Number of positions per page"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_info",
+                    description="Get comprehensive information about a backtest",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_history",
+                    description="Get backtest history for a script or all backtests",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "Script ID to filter backtests (optional)"},
+                            "limit": {"type": "integer", "default": 50, "description": "Maximum number of backtests to return"},
+                            "offset": {"type": "integer", "default": 0, "description": "Offset for pagination"}
+                        },
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="get_backtest_object",
+                    description="Get a comprehensive backtest object with all data (runtime, positions, info) but excluding heavy chart data",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"},
+                            "include_chart_data": {"type": "boolean", "default": False, "description": "Include heavy chart partition data"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="test_concurrent_backtests",
+                    description="Test running multiple concurrent backtests to determine limits",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "Script ID to test with (default: a46d0d561ebe4e48bd7a1500ea6e1d60)"},
+                            "account_id": {"type": "string", "description": "Account ID for testing"},
+                            "market_tag": {"type": "string", "default": "BINANCE_BTC_USDT_", "description": "Market tag for testing"},
+                            "concurrent_count": {"type": "integer", "default": 3, "description": "Number of concurrent backtests to attempt"}
+                        },
+                        "required": ["account_id"]
                     }
                 ),
                 # Enhanced Execution Tools
@@ -963,6 +1384,55 @@ class HaasMCPServer:
                         },
                         "required": ["script_id", "folder_id"]
                     }
+                ),
+                # New Backtest Management Tools
+                Tool(
+                    name="get_backtest_history",
+                    description="Get list of all backtests",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="get_backtest_profit_chart",
+                    description="Get profit chart data for a backtest",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"},
+                            "interval": {"type": "integer", "default": 1, "description": "Chart interval"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="get_backtest_object",
+                    description="Get unified backtest object with all data (lazy loading for heavy data)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "backtest_id": {"type": "string", "description": "Backtest ID"},
+                            "include_chart_partition": {"type": "boolean", "default": False, "description": "Include heavy chart partition data"},
+                            "summary_only": {"type": "boolean", "default": True, "description": "Return summary only (faster)"}
+                        },
+                        "required": ["backtest_id"]
+                    }
+                ),
+                Tool(
+                    name="test_concurrent_backtests",
+                    description="Test concurrent backtest execution limits",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "script_id": {"type": "string", "description": "Script ID to test with"},
+                            "account_id": {"type": "string", "description": "Account ID for testing"},
+                            "market_tag": {"type": "string", "description": "Market tag for testing"},
+                            "max_concurrent": {"type": "integer", "default": 10, "description": "Maximum concurrent backtests to test"}
+                        },
+                        "required": ["script_id", "account_id", "market_tag"]
+                    }
                 )
             ]
 
@@ -1003,6 +1473,60 @@ class HaasMCPServer:
                 "haas_api_connected": bool(self.haas_executor),
                 "success": True
             }
+        
+        elif name == "get_auth_status":
+            # Get detailed authentication status
+            if hasattr(self, 'auth_manager') and self.auth_manager:
+                status = self.auth_manager.get_authentication_status()
+                return {"success": True, "data": status}
+            else:
+                return {
+                    "success": True,
+                    "data": {
+                        "authenticated": bool(self.haas_executor),
+                        "credential_sets_available": 0,
+                        "current_session": None,
+                        "credential_sets": [],
+                        "note": "Enhanced authentication manager not available"
+                    }
+                }
+        
+        elif name == "refresh_authentication":
+            # Force refresh authentication
+            if hasattr(self, 'auth_manager') and self.auth_manager:
+                try:
+                    auth_result = self.auth_manager.refresh_authentication()
+                    if auth_result.success:
+                        self.haas_executor = auth_result.executor
+                        return {
+                            "success": True,
+                            "message": f"Authentication refreshed successfully with {auth_result.credential_set.name} credentials",
+                            "server_info": auth_result.server_info
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": f"Authentication refresh failed: {auth_result.error_message}"
+                        }
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"Exception during authentication refresh: {str(e)}"
+                    }
+            else:
+                # Fall back to original authentication method
+                try:
+                    self._initialize_haas_api()
+                    return {
+                        "success": bool(self.haas_executor),
+                        "message": "Basic authentication attempted",
+                        "note": "Enhanced authentication manager not available"
+                    }
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"Authentication failed: {str(e)}"
+                    }
         
         elif name == "get_all_accounts":
             # Get all accounts by making a direct HTTP request
@@ -1051,7 +1575,9 @@ class HaasMCPServer:
         
         elif name == "get_all_labs":
             labs = api.get_all_labs(self.haas_executor)
-            return {"success": True, "data": labs}
+            # Convert lab objects to dictionaries for JSON serialization
+            labs_data = [self._serialize_object(lab) for lab in labs]
+            return {"success": True, "data": labs_data}
         
         elif name == "create_lab":
             market = CloudMarket(
@@ -1321,7 +1847,9 @@ class HaasMCPServer:
         # Script Management Tools
         elif name == "get_all_scripts":
             scripts = api.get_all_scripts(self.haas_executor)
-            return {"success": True, "data": scripts}
+            # Convert script objects to dictionaries for JSON serialization
+            scripts_data = [self._serialize_object(script) for script in scripts]
+            return {"success": True, "data": scripts_data}
         
         elif name == "get_script_details":
             script = api.get_script_item(self.haas_executor, arguments["script_id"])
@@ -1344,6 +1872,41 @@ class HaasMCPServer:
         elif name == "get_scripts_by_name":
             scripts = api.get_scripts_by_name(self.haas_executor, arguments["name_pattern"])
             return {"success": True, "data": scripts}
+        
+        elif name in ["save_script", "validate_script", "compile_script"]:
+            # All these tools do the same thing - save script with validation
+            result = api.save_script_with_validation(
+                self.haas_executor,
+                arguments["script_id"],
+                arguments["source_code"],
+                arguments.get("settings")
+            )
+            
+            # Determine the appropriate message based on which tool was called
+            if name == "save_script":
+                success_msg = "Script saved successfully"
+                error_msg = f"Script save failed: {result.get('Error', 'Unknown error')}"
+            elif name == "validate_script":
+                success_msg = "Script validated successfully"
+                error_msg = f"Script validation failed: {result.get('Error', 'Unknown error')}"
+            else:  # compile_script (deprecated)
+                success_msg = "Script compiled successfully"
+                error_msg = f"Script compilation failed: {result.get('Error', 'Unknown error')}"
+            
+            is_valid = result.get("Data", {}).get("IV", False)
+            has_errors = len(result.get("Data", {}).get("LCE", [])) > 0
+            
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "validation_logs": result.get("Data", {}).get("CL", []),
+                "validation_errors": result.get("Data", {}).get("LCE", []),
+                "syntax_errors": result.get("Data", {}).get("VCE", []),
+                "is_valid": is_valid,
+                "has_errors": has_errors,
+                "message": success_msg if result.get("Success", False) and is_valid else error_msg
+            }
         
         # Market Data Tools
         elif name == "get_market_price":
@@ -1399,6 +1962,56 @@ class HaasMCPServer:
         elif name == "get_backtest_log":
             log = api.get_backtest_log(self.haas_executor, arguments["lab_id"], arguments["backtest_id"])
             return {"success": True, "data": log}
+        
+        elif name == "get_backtest_execution_update":
+            update = api.get_backtest_execution_update(self.haas_executor, arguments["lab_id"], arguments["backtest_id"])
+            return {"success": True, "data": update}
+        
+        elif name == "get_backtest_chart_partition":
+            partition = api.get_backtest_chart_partition(
+                self.haas_executor, 
+                arguments["lab_id"], 
+                arguments["backtest_id"],
+                arguments.get("partition_index", 0)
+            )
+            return {"success": True, "data": partition}
+        
+        elif name == "cancel_backtest":
+            success = api.cancel_backtest(
+                self.haas_executor,
+                arguments["service_id"],
+                arguments["backtest_id"]
+            )
+            return {
+                "success": success,
+                "data": {"cancelled": success},
+                "message": "Backtest cancelled successfully" if success else "Failed to cancel backtest"
+            }
+        
+        elif name == "execute_backtest":
+            # Pass all arguments except the tool name to the execute_backtest function
+            backtest_args = {k: v for k, v in arguments.items()}
+            result = api.execute_backtest(self.haas_executor, **backtest_args)
+            return {
+                "success": result.get("Success", False),
+                "data": result,
+                "message": "Backtest execution started successfully" if result.get("Success", False) else f"Failed to start backtest: {result.get('Error', 'Unknown error')}"
+            }
+        
+        elif name == "share_script":
+            shared_id = api.share_script(
+                self.haas_executor,
+                arguments["script_id"],
+                arguments["script_name"],
+                arguments.get("script_description", ""),
+                arguments.get("status", 0),
+                arguments.get("allowed_users", "")
+            )
+            return {
+                "success": bool(shared_id),
+                "data": {"shared_script_id": shared_id},
+                "message": f"Script shared successfully with ID: {shared_id}" if shared_id else "Failed to share script"
+            }
         
         # Enhanced Execution Tools
         elif name == "execute_backtest_with_intelligence":
@@ -1661,6 +2274,280 @@ class HaasMCPServer:
                 arguments["folder_id"]
             )
             return {"success": result, "data": {"moved": result}}
+        
+        # New Script Manipulation Handlers
+        elif name == "edit_script_sourcecode":
+            # Edit and save script source code with validation
+            result = api.edit_script_sourcecode(
+                self.haas_executor,
+                arguments["script_id"],
+                arguments["source_code"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "validation_errors": result.get("Data", {}).get("CompilationErrors", [])
+            }
+        
+        elif name == "check_script_execution_status":
+            # Check if script is executing
+            result = api.is_script_execution(
+                self.haas_executor,
+                arguments["script_id"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "is_executing": result.get("Data", {}).get("S", 0) == 3  # Status 3 = executing
+            }
+        
+        # New Backtest Management Handlers
+        elif name == "execute_quicktest":
+            # Execute quick test
+            result = api.execute_quicktest(
+                self.haas_executor,
+                arguments["script_id"],
+                arguments["account_id"],
+                arguments["market_tag"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", "")
+            }
+        
+        elif name == "execute_backtest_advanced":
+            # Execute full backtest with advanced options
+            result = api.execute_backtest(
+                self.haas_executor,
+                arguments["script_id"],
+                arguments["account_id"],
+                arguments["market_tag"],
+                arguments["start_unix"],
+                arguments["end_unix"],
+                arguments.get("send_email", False),
+                arguments.get("additional_params", {})
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "backtest_id": result.get("Data", {}).get("BID", "")
+            }
+        
+        elif name == "get_execution_update":
+            # Get execution status update
+            result = api.get_execution_update(
+                self.haas_executor,
+                arguments["process_id"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", "")
+            }
+        
+        elif name == "get_backtest_runtime":
+            # Get backtest runtime information
+            result = api.get_backtest_runtime(
+                self.haas_executor,
+                arguments["backtest_id"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", "")
+            }
+        
+        elif name == "get_backtest_logs":
+            # Get backtest execution logs
+            result = api.get_backtest_logs(
+                self.haas_executor,
+                arguments["backtest_id"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "logs": result.get("Data", {}).get("Logs", [])
+            }
+        
+        elif name == "get_backtest_chart_partition_advanced":
+            # Get chart partition with indicator data
+            result = api.get_backtest_chart_partition(
+                self.haas_executor,
+                arguments["backtest_id"],
+                arguments.get("partition_index", 0),
+                arguments.get("include_market_data", False),
+                arguments.get("indicators_only", True)
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "chart_data": result.get("Data", {})
+            }
+        
+        elif name == "archive_backtest":
+            # Archive backtest to preserve beyond 48 hours
+            result = api.archive_backtest(
+                self.haas_executor,
+                arguments["backtest_id"],
+                arguments.get("archive_result", True)
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "archived": result.get("Data", False)
+            }
+        
+        elif name == "get_backtest_positions":
+            # Get backtest position data
+            result = api.get_backtest_positions(
+                self.haas_executor,
+                arguments["backtest_id"],
+                arguments.get("next_page_id", 0),
+                arguments.get("page_length", 50)
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "positions": result.get("Data", {}).get("I", []),
+                "next_page": result.get("Data", {}).get("NP", -1)
+            }
+        
+        elif name == "get_backtest_info":
+            # Get comprehensive backtest information
+            result = api.get_backtest_info(
+                self.haas_executor,
+                arguments["backtest_id"]
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", ""),
+                "backtest_info": result.get("Data", {})
+            }
+        
+        # New Backtest Management Handlers
+        elif name == "get_backtest_history":
+            # Get list of all backtests
+            result = api.get_backtest_history(self.haas_executor)
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", []),
+                "error": result.get("Error", "")
+            }
+        
+        elif name == "get_backtest_profit_chart":
+            # Get profit chart data
+            result = api.get_backtest_profit_chart(
+                self.haas_executor,
+                arguments["backtest_id"],
+                arguments.get("interval", 1)
+            )
+            return {
+                "success": result.get("Success", False),
+                "data": result.get("Data", {}),
+                "error": result.get("Error", "")
+            }
+        
+        elif name == "get_backtest_object":
+            # Get unified backtest object
+            try:
+                from pyHaasAPI.backtest_object import BacktestObject
+                
+                backtest_obj = BacktestObject(self.haas_executor, arguments["backtest_id"])
+                
+                if arguments.get("summary_only", True):
+                    data = backtest_obj.get_summary()
+                else:
+                    data = backtest_obj.get_full_data(
+                        include_chart_partition=arguments.get("include_chart_partition", False)
+                    )
+                
+                return {
+                    "success": True,
+                    "data": data,
+                    "error": ""
+                }
+            except Exception as e:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": str(e)
+                }
+        
+        elif name == "test_concurrent_backtests":
+            # Test concurrent backtest limits
+            try:
+                import time
+                import asyncio
+                from concurrent.futures import ThreadPoolExecutor
+                
+                script_id = arguments["script_id"]
+                account_id = arguments["account_id"]
+                market_tag = arguments["market_tag"]
+                max_concurrent = arguments.get("max_concurrent", 10)
+                
+                # Use a short time period for testing
+                end_time = int(time.time())
+                start_time = end_time - (60 * 60)  # 1 hour ago
+                
+                def start_backtest(test_id):
+                    try:
+                        result = api.execute_backtest(
+                            self.haas_executor,
+                            script_id,
+                            account_id,
+                            market_tag,
+                            start_time,
+                            end_time,
+                            send_email=False
+                        )
+                        return {
+                            "test_id": test_id,
+                            "success": result.get("Success", False),
+                            "backtest_id": result.get("Data", {}).get("BID", ""),
+                            "error": result.get("Error", "")
+                        }
+                    except Exception as e:
+                        return {
+                            "test_id": test_id,
+                            "success": False,
+                            "backtest_id": "",
+                            "error": str(e)
+                        }
+                
+                # Test concurrent execution
+                results = []
+                with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                    futures = [executor.submit(start_backtest, i) for i in range(max_concurrent)]
+                    for future in futures:
+                        results.append(future.result())
+                
+                successful_starts = sum(1 for r in results if r["success"])
+                
+                return {
+                    "success": True,
+                    "data": {
+                        "total_attempts": max_concurrent,
+                        "successful_starts": successful_starts,
+                        "concurrent_limit_reached": successful_starts < max_concurrent,
+                        "results": results
+                    },
+                    "error": ""
+                }
+                
+            except Exception as e:
+                return {
+                    "success": False,
+                    "data": {},
+                    "error": str(e)
+                }
         
         else:
             raise ValueError(f"Unknown tool: {name}")

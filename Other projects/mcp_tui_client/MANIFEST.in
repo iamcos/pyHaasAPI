@@ -1,0 +1,36 @@
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+
+# Include configuration files
+include *.toml
+include *.cfg
+include *.ini
+include *.yaml
+include *.yml
+
+# Include CSS and other resource files
+recursive-include mcp_tui_client *.css
+recursive-include mcp_tui_client *.json
+recursive-include mcp_tui_client *.yaml
+recursive-include mcp_tui_client *.yml
+recursive-include mcp_tui_client *.txt
+
+# Include resources directory
+recursive-include resources *
+
+# Include documentation
+recursive-include docs *.md
+recursive-include docs *.rst
+recursive-include docs *.txt
+
+# Exclude development and test files
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude Makefile
+exclude tox.ini
+recursive-exclude tests *
+recursive-exclude .github *
+recursive-exclude __pycache__ *
+recursive-exclude *.py[co] *
