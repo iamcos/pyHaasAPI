@@ -117,7 +117,7 @@ Special Features:
     parser.add_argument('--position-size', type=float, default=2000.0, help='Position size in USDT (default: 2000)')
     parser.add_argument('--dry-run', action='store_true', help='Dry run - analyze without deploying bots')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
-    parser.add_argument('--output-dir', default='automation_reports', help='Output directory for reports')
+    parser.add_argument('--output-dir', default='cache/automation_reports', help='Output directory for reports')
 
     args = parser.parse_args()
 

@@ -976,14 +976,14 @@ def get_full_backtest_runtime_data(executor: SyncExecutor[Authenticated], lab_id
         ...     print(f"Report {key}: {report.P.C} trades")
     """
     try:
-        raw_response = get_backtest_runtime(executor, lab_id, backtest_id)
+    raw_response = get_backtest_runtime(executor, lab_id, backtest_id)
 
         # CRITICAL: The API response is direct data, not wrapped in {"Success": ..., "Data": ...}
         # This was the root cause of all backtest retrieval failures
         data_content = raw_response
 
         # Parse the data into our structured BacktestRuntimeData model
-        return BacktestRuntimeData.model_validate(data_content)
+    return BacktestRuntimeData.model_validate(data_content)
 
     except Exception as e:
         # Re-raise with more context for debugging

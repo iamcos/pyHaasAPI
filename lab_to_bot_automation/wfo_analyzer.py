@@ -247,8 +247,13 @@ class WFOAnalyzer:
 
             # Extract PC value (Buy & Hold % over the course of the backtest)
             pc_value = 0.0
-            if hasattr(runtime, 'raw_data') and 'PC' in runtime.raw_data:
-                pc_value = float(runtime.raw_data.get('PC', 0.0))
+            if hasattr(runtime, 'raw_data') and runtime.raw_data:
+                # Look for PC value in the Reports section under PR.PC
+                if 'Reports' in runtime.raw_data:
+                    for report_key, report_data in runtime.raw_data['Reports'].items():
+                        if 'PR' in report_data and 'PC' in report_data['PR']:
+                            pc_value = float(report_data['PR']['PC'])
+                            break
 
             # Skip backtests where ROI < PC (not beating buy & hold)
             if roi_percentage < pc_value:

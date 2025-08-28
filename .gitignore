@@ -50,6 +50,13 @@ temp/
 .cache/
 .pytest_cache/
 
+# Cache and output directories
+cache/
+lab_backtests_*/
+automation_reports/
+output/
+reports/
+
 # Documentation and reference
 reference/
 reference_files/
