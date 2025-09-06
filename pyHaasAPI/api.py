@@ -219,6 +219,10 @@ class RequestsExecutor(Generic[State]):
             case _:
                 raise ValueError(f"Unknown auth state: {self.state}")
 
+        # Handle case where _execute_inner returns data directly (for list responses)
+        if isinstance(resp, list):
+            return resp
+
         if not resp.success:
             raise HaasApiError(resp.error or "Request failed")
 
@@ -261,6 +265,7 @@ class RequestsExecutor(Generic[State]):
         log.debug(
             f"[{self.state.__class__.__name__}]: Requesting {url=} with {query_params=}"
         )
+        #To debug uncomment these lines.
         print(f"Request URL: {url}")
         print(f"Request Params: {query_params}")
         
@@ -312,8 +317,9 @@ class RequestsExecutor(Generic[State]):
             resp = requests.get(url, params=query_params)
             
         resp.raise_for_status()
-        print(f"Response: {resp.text}")
-        print("---END_OF_RESPONSE---")
+        # Uncomment for api Response
+        #print(f"Response: {resp.text}")
+        #print("---END_OF_RESPONSE---")
 
         ta = TypeAdapter(ApiResponse[response_type])
 
@@ -343,10 +349,11 @@ class RequestsExecutor(Generic[State]):
             # Handle cases where the API returns a list in the 'Data' field
             if response_type == list[dict] or (isinstance(response_type, type) and issubclass(response_type, List)):
                 if isinstance(resp_json, dict) and "Data" in resp_json:
+                    # Return the data directly for list responses
                     return resp_json["Data"]
                 else:
                     # If it's supposed to be a list but not in 'Data', return raw or empty list
-                    return resp_json # Or return [] if an empty list is preferred on malformed response
+                    return resp_json if isinstance(resp_json, list) else []
 
             try:
                 if response_type == HaasBot:
@@ -976,14 +983,14 @@ def get_full_backtest_runtime_data(executor: SyncExecutor[Authenticated], lab_id
         ...     print(f"Report {key}: {report.P.C} trades")
     """
     try:
-    raw_response = get_backtest_runtime(executor, lab_id, backtest_id)
+        raw_response = get_backtest_runtime(executor, lab_id, backtest_id)
 
         # CRITICAL: The API response is direct data, not wrapped in {"Success": ..., "Data": ...}
         # This was the root cause of all backtest retrieval failures
         data_content = raw_response
 
         # Parse the data into our structured BacktestRuntimeData model
-    return BacktestRuntimeData.model_validate(data_content)
+        return BacktestRuntimeData.model_validate(data_content)
 
     except Exception as e:
         # Re-raise with more context for debugging
@@ -1726,6 +1733,28 @@ def get_account_balance(executor: SyncExecutor[Authenticated], account_id: str) 
     )
 
 
+def get_all_accounts(executor: SyncExecutor[Authenticated]) -> list[dict]:
+    """
+    Get all accounts
+    
+    Args:
+        executor: Authenticated executor instance
+        
+    Returns:
+        List of account dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_ACCOUNTS",
+        },
+    )
+
+
 def get_all_account_balances(executor: SyncExecutor[Authenticated]) -> list[dict]:
     """
     Get balance information for all accounts
@@ -1860,228 +1889,968 @@ def deposit_funds(executor: SyncExecutor[Authenticated], account_id: str, curren
     )
 
 
-def update_lab_parameters(
-    executor: SyncExecutor[Authenticated],
-    lab_id: str,
-    parameters: List[ScriptParameter]
-) -> LabDetails:
+def delete_account(executor: SyncExecutor[Authenticated], account_id: str) -> bool:
     """
-    Update lab parameters with new values/ranges
-    
-    :param executor: API executor
-    :param lab_id: ID of lab to update
-    :param parameters: List of parameters with updated values/ranges
-    :return: Updated lab details
-    """
-    # Get current lab details
-    lab_details = get_lab_details(executor, lab_id)
-    
-    # Create update request
-    return executor.execute(
-        endpoint="Labs",
-        response_type=LabDetails,
-        query_params={
-            "channel": "UPDATE_LAB_DETAILS",
-            "labId": lab_id,
-            "config": lab_details.config.model_dump_json(),
-            "settings": lab_details.settings.model_dump_json(),
-            "name": lab_details.name,
-            "type": lab_details.type,
-            "parameters": [p.model_dump(by_alias=True) if hasattr(p, 'model_dump') else p for p in parameters]
-        }
-    )
-
-
-def get_all_markets(executor: SyncExecutor[Authenticated]) -> list[CloudMarket]:
-    """
-    Get all available markets
+    Delete an account
     
     Args:
         executor: Authenticated executor instance
+        account_id: ID of the account to delete
         
     Returns:
-        List of CloudMarket objects
+        True if successful, False otherwise
         
     Raises:
         HaasApiError: If the API request fails
     """
     return executor.execute(
-        endpoint="Price",
-        response_type=list[CloudMarket],
+        endpoint="Account",
+        response_type=bool,
         query_params={
-            "channel": "MARKETLIST",
+            "channel": "DELETE_ACCOUNT",
+            "accountid": account_id,
         },
     )
 
 
-def get_market_price(executor: SyncExecutor[Authenticated], market: str) -> dict:
+def add_simulated_account(
+    executor: SyncExecutor[Authenticated], 
+    name: str, 
+    driver_code: str = "SIMULATED", 
+    driver_type: int = 0
+) -> dict:
     """
-    Get current price for a specific market
+    Create a simulated account
     
     Args:
         executor: Authenticated executor instance
-        market: Market identifier (e.g., "BINANCE_BTC_USDT")
+        name: Account display name
+        driver_code: Driver code (default: "SIMULATED")
+        driver_type: Account type identifier (default: 0 for simulated)
         
     Returns:
-        Price information dictionary
+        Account creation response dictionary
         
     Raises:
         HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "ADD_SIMULATED_ACCOUNT",
+            "name": name,
+            "drivercode": driver_code,
+            "drivertype": driver_type,
+        },
+    )
+
+
+def test_account(
+    executor: SyncExecutor[Authenticated],
+    driver_code: str,
+    driver_type: int,
+    version: int,
+    public_key: str,
+    private_key: str,
+    extra_key: str = ""
+) -> dict:
+    """
+    Test account connection
+    
+    Args:
+        executor: Authenticated executor instance
+        driver_code: Exchange driver code (e.g., "BINANCE", "KRAKEN")
+        driver_type: Account type (1 for real, 0 for test)
+        version: API version
+        public_key: API public key
+        private_key: API private key
+        extra_key: Optional passphrase
+        
+    Returns:
+        Test result dictionary with success status
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "TEST_ACCOUNT",
+            "drivercode": driver_code,
+            "drivertype": driver_type,
+            "version": version,
+            "publickey": public_key,
+            "privatekey": private_key,
+            "extrakey": extra_key,
+        },
+    )
+
+
+def set_position_mode(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str, 
+    position_mode: int
+) -> dict:
+    """
+    Set position mode for futures trading (ONE_WAY vs HEDGE)
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        position_mode: Position mode (0 for ONE_WAY, 1 for HEDGE)
+        
+    Returns:
+        Dictionary with updated margin settings
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    # First get current settings to include all required parameters
+    current_settings = get_margin_settings(executor, account_id, market)
+    
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "ADJUST_MARGIN_SETTINGS",
+            "accountid": account_id,
+            "market": market,
+            "positionmode": position_mode,
+            "marginmode": current_settings.get('SMM', 0),
+            "leverage": current_settings.get('LL', 20.0),
+        },
+    )
+
+
+def set_margin_mode(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str, 
+    margin_mode: int
+) -> dict:
+    """
+    Set margin mode for futures trading (CROSS vs ISOLATED)
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        margin_mode: Margin mode (0 for CROSS, 1 for ISOLATED)
+        
+    Returns:
+        Dictionary with updated margin settings
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    # First get current settings to include all required parameters
+    current_settings = get_margin_settings(executor, account_id, market)
+    
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "ADJUST_MARGIN_SETTINGS",
+            "accountid": account_id,
+            "market": market,
+            "positionmode": current_settings.get('PM', 1),
+            "marginmode": margin_mode,
+            "leverage": current_settings.get('LL', 20.0),
+        },
+    )
+
+
+def set_leverage(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str, 
+    leverage: float
+) -> dict:
+    """
+    Set leverage for futures trading
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        leverage: Leverage value (e.g., 20.0 for 20x)
+        
+    Returns:
+        Dictionary with updated margin settings
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    # First get current settings to include all required parameters
+    current_settings = get_margin_settings(executor, account_id, market)
+    
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "ADJUST_MARGIN_SETTINGS",
+            "accountid": account_id,
+            "market": market,
+            "positionmode": current_settings.get('PM', 1),
+            "marginmode": current_settings.get('SMM', 0),
+            "leverage": leverage,
+        },
+    )
+
+
+def get_margin_settings(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str
+) -> dict:
+    """
+    Get current margin settings for an account/market
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        
+    Returns:
+        Margin settings dictionary
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params={
+            "channel": "GET_MARGIN_SETTINGS",
+            "accountid": account_id,
+            "market": market,
+        },
+    )
+
+
+def get_position_mode(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str
+) -> int:
+    """
+    Get current position mode for an account/market
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        
+    Returns:
+        Position mode (0 for ONE_WAY, 1 for HEDGE)
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=int,
+        query_params={
+            "channel": "GET_POSITION_MODE",
+            "accountid": account_id,
+            "market": market,
+        },
+    )
+
+
+def get_margin_mode(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str
+) -> int:
+    """
+    Get current margin mode for an account/market
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        
+    Returns:
+        Margin mode (0 for CROSS, 1 for ISOLATED)
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=int,
+        query_params={
+            "channel": "GET_MARGIN_MODE",
+            "accountid": account_id,
+            "market": market,
+        },
+    )
+
+
+def get_leverage(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    market: str
+) -> float:
+    """
+    Get current leverage for an account/market
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        
+    Returns:
+        Current leverage value
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=float,
+        query_params={
+            "channel": "GET_LEVERAGE",
+            "accountid": account_id,
+            "market": market,
+        },
+    )
+
+
+def adjust_margin_settings(
+    executor: SyncExecutor[Authenticated],
+    account_id: str,
+    market: str,
+    position_mode: Optional[int] = None,
+    margin_mode: Optional[int] = None,
+    leverage: Optional[float] = None
+) -> dict:
+    """
+    Adjust multiple margin settings at once
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        position_mode: Position mode (0 for ONE_WAY, 1 for HEDGE)
+        margin_mode: Margin mode (0 for CROSS, 1 for ISOLATED)
+        leverage: Leverage value
+        
+    Returns:
+        Dictionary with updated margin settings:
+        - PM: Position Mode (0=ONE_WAY, 1=HEDGE)
+        - SMM: Spot Margin Mode (0=CROSS, 1=ISOLATED) 
+        - LL: Leverage Limit
+        - SL: Spot Leverage
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    # First get current settings to include all required parameters
+    current_settings = get_margin_settings(executor, account_id, market)
+    
+    query_params = {
+        "channel": "ADJUST_MARGIN_SETTINGS",
+        "accountid": account_id,
+        "market": market,
+        "positionmode": position_mode if position_mode is not None else current_settings.get('PM', 1),
+        "marginmode": margin_mode if margin_mode is not None else current_settings.get('SMM', 0),
+        "leverage": leverage if leverage is not None else current_settings.get('LL', 20.0),
+    }
+    
+    return executor.execute(
+        endpoint="Account",
+        response_type=dict,
+        query_params=query_params,
+    )
+
+
+# ============================================================================
+# Bot Configuration and Management Functions
+# ============================================================================
+
+def configure_bot_settings(
+    executor: SyncExecutor[Authenticated],
+    bot_id: str,
+    position_mode: int = 1,  # 1 for HEDGE
+    margin_mode: int = 0,     # 0 for CROSS
+    leverage: float = 20.0,
+    account_id: Optional[str] = None
+) -> dict:
+    """
+    Configure comprehensive bot settings including margin configuration
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: Bot ID to configure
+        position_mode: Position mode (0 for ONE_WAY, 1 for HEDGE)
+        margin_mode: Margin mode (0 for CROSS, 1 for ISOLATED)
+        leverage: Leverage value (e.g., 20.0 for 20x)
+        account_id: Account ID (if None, will get from bot)
+        
+    Returns:
+        Dictionary with configuration results
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    try:
+        # Get bot details if account_id not provided
+        if account_id is None:
+            bot = get_bot(executor, bot_id)
+            if not bot:
+                raise HaasApiError(f"Bot {bot_id} not found")
+            account_id = getattr(bot, 'account_id', None)
+            if not account_id:
+                raise HaasApiError(f"Bot {bot_id} has no account ID")
+        
+        # Get bot market
+        bot = get_bot(executor, bot_id)
+        if not bot:
+            raise HaasApiError(f"Bot {bot_id} not found")
+        market = getattr(bot, 'market', None)
+        if not market:
+            raise HaasApiError(f"Bot {bot_id} has no market")
+        
+        # Configure margin settings
+        result = adjust_margin_settings(
+            executor, 
+            account_id, 
+            market, 
+            position_mode, 
+            margin_mode, 
+            leverage
+        )
+        
+        return {
+            "success": True,
+            "bot_id": bot_id,
+            "account_id": account_id,
+            "market": market,
+            "position_mode": position_mode,
+            "margin_mode": margin_mode,
+            "leverage": leverage,
+            "margin_settings": result
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "bot_id": bot_id,
+            "error": str(e)
+        }
+
+
+def migrate_bot_to_account(
+    executor: SyncExecutor[Authenticated],
+    bot_id: str,
+    new_account_id: str,
+    preserve_settings: bool = True,
+    position_mode: int = 1,
+    margin_mode: int = 0,
+    leverage: float = 20.0
+) -> dict:
+    """
+    Migrate a bot to a new account with full configuration
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: Bot ID to migrate
+        new_account_id: New account ID
+        preserve_settings: Whether to preserve current bot settings
+        position_mode: Position mode (0 for ONE_WAY, 1 for HEDGE)
+        margin_mode: Margin mode (0 for CROSS, 1 for ISOLATED)
+        leverage: Leverage value
+        
+    Returns:
+        Dictionary with migration results including new bot ID
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    try:
+        # Get current bot details
+        bot = get_bot(executor, bot_id)
+        if not bot:
+            raise HaasApiError(f"Bot {bot_id} not found")
+        
+        bot_name = getattr(bot, 'bot_name', f"Bot_{bot_id[:8]}")
+        market = getattr(bot, 'market', 'BINANCEFUTURES_BTC_USDT_PERPETUAL')
+        script_id = getattr(bot, 'script_id', '')
+        
+        # Get bot's lab and backtest info for recreation
+        labs = get_all_labs(executor)
+        lab = None
+        for l in labs:
+            if getattr(l, 'script_id', '') == script_id:
+                lab = l
+                break
+        
+        if not lab:
+            raise HaasApiError(f"Could not find lab for bot {bot_id}")
+        
+        lab_id = getattr(lab, 'lab_id', '')
+        if not lab_id:
+            raise HaasApiError(f"Lab {getattr(lab, 'name', 'Unknown')} has no lab ID")
+        
+        # Get backtests from lab
+        from pyHaasAPI.model import GetBacktestResultRequest
+        
+        request = GetBacktestResultRequest(
+            lab_id=lab_id,
+            next_page_id=0,
+            page_lenght=100
+        )
+        
+        response = get_backtest_result(executor, request)
+        if not response or not hasattr(response, 'items') or not response.items:
+            raise HaasApiError(f"No backtests found for lab {lab_id}")
+        
+        # Use first backtest as template
+        backtest = response.items[0]
+        backtest_id = getattr(backtest, 'backtest_id', '')
+        if not backtest_id:
+            raise HaasApiError(f"Backtest has no ID")
+        
+        # Create new bot on new account
+        from pyHaasAPI.model import AddBotFromLabRequest
+        
+        create_request = AddBotFromLabRequest(
+            lab_id=lab_id,
+            backtest_id=backtest_id,
+            account_id=new_account_id,
+            bot_name=bot_name,
+            market=market,
+            leverage=leverage
+        )
+        
+        new_bot = add_bot_from_lab(executor, create_request)
+        if not new_bot:
+            raise HaasApiError(f"Failed to create new bot on account {new_account_id}")
+        
+        new_bot_id = getattr(new_bot, 'bot_id', None)
+        if not new_bot_id:
+            raise HaasApiError(f"New bot created but has no ID")
+        
+        # Configure margin settings on new bot
+        if preserve_settings:
+            configure_result = configure_bot_settings(
+                executor, 
+                new_bot_id, 
+                position_mode, 
+                margin_mode, 
+                leverage, 
+                new_account_id
+            )
+        else:
+            configure_result = {"success": True, "message": "Settings preserved"}
+        
+        # Delete old bot
+        delete_result = delete_bot(executor, bot_id)
+        
+        return {
+            "success": True,
+            "old_bot_id": bot_id,
+            "new_bot_id": new_bot_id,
+            "new_account_id": new_account_id,
+            "bot_name": bot_name,
+            "market": market,
+            "configuration": configure_result,
+            "old_bot_deleted": delete_result
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "bot_id": bot_id,
+            "error": str(e)
+        }
+
+
+def configure_multiple_bots(
+    executor: SyncExecutor[Authenticated],
+    bot_ids: List[str],
+    position_mode: int = 1,
+    margin_mode: int = 0,
+    leverage: float = 20.0
+) -> dict:
+    """
+    Configure multiple bots with the same settings
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_ids: List of bot IDs to configure
+        position_mode: Position mode (0 for ONE_WAY, 1 for HEDGE)
+        margin_mode: Margin mode (0 for CROSS, 1 for ISOLATED)
+        leverage: Leverage value
+        
+    Returns:
+        Dictionary with results for each bot
+    """
+    results = {}
+    
+    for bot_id in bot_ids:
+        try:
+            result = configure_bot_settings(
+                executor, 
+                bot_id, 
+                position_mode, 
+                margin_mode, 
+                leverage
+            )
+            results[bot_id] = result
+        except Exception as e:
+            results[bot_id] = {
+                "success": False,
+                "error": str(e)
+            }
+    
+    return {
+        "total_bots": len(bot_ids),
+        "successful": sum(1 for r in results.values() if r.get("success", False)),
+        "failed": sum(1 for r in results.values() if not r.get("success", False)),
+        "results": results
+    }
+
+
+def distribute_bots_to_accounts(
+    executor: SyncExecutor[Authenticated],
+    bot_ids: List[str],
+    account_ids: List[str],
+    configure_margin: bool = True,
+    position_mode: int = 1,
+    margin_mode: int = 0,
+    leverage: float = 20.0
+) -> dict:
+    """
+    Distribute multiple bots across different accounts
+    
+    Args:
+        executor: SyncExecutor[Authenticated] instance
+        bot_ids: List of bot IDs to distribute
+        account_ids: List of account IDs to use
+        configure_margin: Whether to configure margin settings
+        position_mode: Position mode (0 for ONE_WAY, 1 for HEDGE)
+        margin_mode: Margin mode (0 for CROSS, 1 for ISOLATED)
+        leverage: Leverage value
+        
+    Returns:
+        Dictionary with distribution results
+    """
+    if len(bot_ids) > len(account_ids):
+        raise HaasApiError(f"Not enough accounts ({len(account_ids)}) for bots ({len(bot_ids)})")
+    
+    results = {}
+    
+    for i, bot_id in enumerate(bot_ids):
+        account_id = account_ids[i % len(account_ids)]
+        
+        try:
+            result = migrate_bot_to_account(
+                executor,
+                bot_id,
+                account_id,
+                preserve_settings=True,
+                position_mode=position_mode,
+                margin_mode=margin_mode,
+                leverage=leverage
+            )
+            results[bot_id] = result
+        except Exception as e:
+            results[bot_id] = {
+                "success": False,
+                "error": str(e)
+            }
+    
+    return {
+        "total_bots": len(bot_ids),
+        "total_accounts": len(account_ids),
+        "successful": sum(1 for r in results.values() if r.get("success", False)),
+        "failed": sum(1 for r in results.values() if not r.get("success", False)),
+        "results": results
+    }
+
+
+def place_order(
+    executor: SyncExecutor[Authenticated],
+    account_id: str,
+    market: str,
+    side: str,
+    price: float,
+    amount: float,
+    order_type: int = 0,
+    tif: int = 0,
+    source: str = "Manual"
+) -> str:
+    """
+    Place an order
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        market: Market identifier
+        side: Order side ("buy" or "sell")
+        price: Order price
+        amount: Order amount
+        order_type: Order type (0=limit, 1=market)
+        tif: Time in force (0=GTC, 1=IOC, 2=FOK)
+        source: Order source
+        
+    Returns:
+        Order ID if successful
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=str,
+        query_params={
+            "channel": "PLACE_ORDER",
+            "accountid": account_id,
+            "market": market,
+            "side": side,
+            "price": price,
+            "amount": amount,
+            "ordertype": order_type,
+            "tif": tif,
+            "source": source,
+        },
+    )
+
+
+def cancel_order(
+    executor: SyncExecutor[Authenticated], 
+    account_id: str, 
+    order_id: str
+) -> bool:
+    """
+    Cancel a specific order
+    
+    Args:
+        executor: Authenticated executor instance
+        account_id: Account ID
+        order_id: Order ID to cancel
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=bool,
+        query_params={
+            "channel": "CANCEL_ORDER",
+            "accountid": account_id,
+            "orderid": order_id,
+        },
+    )
+
+
+def get_all_orders(executor: SyncExecutor[Authenticated]) -> list[dict]:
+    """
+    Get all orders across all accounts
+    
+    Args:
+        executor: Authenticated executor instance
+        
+    Returns:
+        List of order dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_ALL_ORDERS",
+        },
+    )
+
+
+def get_all_positions(executor: SyncExecutor[Authenticated]) -> list[dict]:
+    """
+    Get all positions across all accounts
+    
+    Args:
+        executor: Authenticated executor instance
+        
+    Returns:
+        List of position dictionaries
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Account",
+        response_type=list[dict],
+        query_params={
+            "channel": "GET_ALL_POSITIONS",
+        },
+    )
+
+
+def change_bot_account(
+    executor: SyncExecutor[Authenticated], 
+    bot_id: str, 
+    new_account_id: str
+) -> bool:
+    """
+    Change a bot's account assignment
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: Bot ID to move
+        new_account_id: New account ID to assign to the bot
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=bool,
+        query_params={
+            "channel": "CHANGE_BOT_ACCOUNT",
+            "botid": bot_id,
+            "newaccountid": new_account_id,
+        },
+    )
+
+
+def move_bot(
+    executor: SyncExecutor[Authenticated], 
+    bot_id: str, 
+    new_account_id: str
+) -> bool:
+    """
+    Move a bot to a different account (alias for change_bot_account)
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: Bot ID to move
+        new_account_id: New account ID to assign to the bot
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return change_bot_account(executor, bot_id, new_account_id)
+
+
+def set_bot_account(
+    executor: SyncExecutor[Authenticated], 
+    bot_id: str, 
+    account_id: str
+) -> bool:
+    """
+    Set a bot's account assignment
+    
+    Args:
+        executor: Authenticated executor instance
+        bot_id: Bot ID to configure
+        account_id: Account ID to assign to the bot
+        
+    Returns:
+        True if successful, False otherwise
+        
+    Raises:
+        HaasApiError: If the API request fails
+    """
+    return executor.execute(
+        endpoint="Bot",
+        response_type=bool,
+        query_params={
+            "channel": "SET_BOT_ACCOUNT",
+            "botid": bot_id,
+            "accountid": account_id,
+        },
+    )
+
+
+
+# Price Data Functions
+
+def get_price_data(executor: SyncExecutor[Authenticated], market: str) -> dict:
+    """
+    Get real-time price data for a specific market.
+    
+    This function retrieves current price information including:
+    - Current price (close)
+    - Opening price
+    - High and low prices
+    - Volume
+    - Best bid and ask prices
+    - Timestamp
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market identifier (e.g., "BINANCEFUTURES_BTC_USDT_PERPETUAL")
+        
+    Returns:
+        Dictionary containing price data with keys:
+        - T: Timestamp (Unix)
+        - O: Opening price
+        - H: High price
+        - L: Low price
+        - C: Close/Current price
+        - V: Volume
+        - B: Best bid price
+        - S: Best ask price
+        
+    Raises:
+        HaasApiError: If the API request fails
+        
+    Example:
+        >>> price_data = get_price_data(executor, "BINANCEFUTURES_BTC_USDT_PERPETUAL")
+        >>> print(f"BTC Price: ${price_data['C']}")
+        >>> print(f"24h Volume: {price_data['V']}")
     """
     return executor.execute(
         endpoint="Price",
         response_type=dict,
         query_params={
             "channel": "PRICE",
-            "market": market,
-        },
-    )
-
-
-def get_order_book(executor: SyncExecutor[Authenticated], market: str, depth: int = 20) -> dict:
-    """
-    Get order book for a specific market
-    
-    Args:
-        executor: Authenticated executor instance
-        market: Market identifier (e.g., "BINANCE_BTC_USDT")
-        depth: Number of order book levels to retrieve (default: 20)
-        
-    Returns:
-        Order book dictionary with bids and asks
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
-    return executor.execute(
-        endpoint="Price",
-        response_type=dict,
-        query_params={
-            "channel": "ORDERBOOK",
-            "market": market,
-            "depth": depth,
-        },
-    )
-
-
-def get_last_trades(executor: SyncExecutor[Authenticated], market: str, limit: int = 100) -> list[dict]:
-    """
-    Get recent trades for a specific market
-    
-    Args:
-        executor: Authenticated executor instance
-        market: Market identifier (e.g., "BINANCE_BTC_USDT")
-        limit: Number of trades to retrieve (default: 100)
-        
-    Returns:
-        List of trade dictionaries
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
-    return executor.execute(
-        endpoint="Price",
-        response_type=list[dict],
-        query_params={
-            "channel": "LASTTRADES",
-            "market": market,
-        },
-    )
-
-
-def get_market_snapshot(executor: SyncExecutor[Authenticated], market: str) -> dict:
-    """
-    Get market snapshot with current price, volume, and other metrics
-    
-    Args:
-        executor: Authenticated executor instance
-        market: Market identifier (e.g., "BINANCE_BTC_USDT")
-        
-    Returns:
-        Market snapshot dictionary
-        
-    Raises:
-        HaasApiError: If the API request fails
-    """
-    # Extract pricesource from market string (e.g., "BINANCE_BTC_USDT_" -> "BINANCE")
-    pricesource = market.split('_')[0] if '_' in market else market
-    
-    return executor.execute(
-        endpoint="Price",
-        response_type=dict,
-        query_params={
-            "channel": "SNAPSHOT",
-            "market": market,
-            "pricesource": pricesource,
-        },
-    )
-
-
-def get_all_script_folders(
-    executor: SyncExecutor[Authenticated],
-) -> list[HaasScriptFolder]:
-    """
-    Retrieves all script folders for the authenticated user.
-
-    :param executor: Executor for Haas API interaction
-    :raises HaasApiError: If something goes wrong
-    :return: List with all available script folders
-    """
-    return executor.execute(
-        endpoint="HaasScript",
-        response_type=list[HaasScriptFolder],
-        query_params={"channel": "GET_ALL_SCRIPT_FOLDERS"},
-    )
-
-
-def create_script_folder(
-    executor: SyncExecutor[Authenticated],
-    foldername: str,
-    parentid: int = -1
-) -> HaasScriptFolder:
-    """
-    Create a new script folder.
-    :param executor: Authenticated executor
-    :param foldername: Name of the folder
-    :param parentid: Parent folder ID (-1 for root)
-    :return: HaasScriptFolder object
-    """
-    user_id = executor.state.user_id
-    interface_key = executor.state.interface_key
-    return executor.execute(
-        endpoint="HaasScript",
-        response_type=HaasScriptFolder,
-        query_params={
-            "channel": "CREATE_FOLDER",
-            "foldername": foldername,
-            "parentid": parentid,
-            "interfacekey": interface_key,
-            "userid": user_id,
+            "market": market
         }
     )
 
-def move_script_to_folder(
-    executor: SyncExecutor[Authenticated],
-    script_id: str,
-    folder_id: int
-) -> bool:
+
+def get_historical_data(executor: SyncExecutor[Authenticated], market: str, interval: int = 1, limit: int = 100) -> dict:
     """
-    Move a script to a different folder.
-    :param executor: Authenticated executor
-    :param script_id: Script ID to move
-    :param folder_id: Target folder ID
-    :return: True if successful
+    Get historical price data for a specific market.
+    
+    Args:
+        executor: Authenticated executor instance
+        market: Market identifier (e.g., "BINANCEFUTURES_BTC_USDT_PERPETUAL")
+        interval: Time interval in minutes (1, 5, 15, 30, 60, 240, 1440)
+        limit: Number of data points to retrieve (max 1000)
+        
+    Returns:
+        Dictionary containing historical price data
+        
+    Raises:
+        HaasApiError: If the API request fails
     """
-    user_id = executor.state.user_id
-    interface_key = executor.state.interface_key
     return executor.execute(
-        endpoint="HaasScript",
-        response_type=bool,
+        endpoint="Price",
+        response_type=dict,
         query_params={
-            "channel": "MOVE_SCRIPT_TO_FOLDER",
-            "scriptid": script_id,
-            "folderid": folder_id,
-            "interfacekey": interface_key,
-            "userid": user_id,
+            "channel": "HISTORICAL_DATA",
+            "market": market,
+            "interval": interval,
+            "limit": limit
         }
     )

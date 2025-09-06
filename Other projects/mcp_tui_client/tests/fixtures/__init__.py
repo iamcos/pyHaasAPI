@@ -1,1 +1,0 @@
-"""Test fixtures and mock data for MCP TUI Client tests."""

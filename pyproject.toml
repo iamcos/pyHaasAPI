@@ -63,3 +63,8 @@ filterwarnings = [
     "ignore:Valid config keys have changed in V2:UserWarning"
 ]
 
+
+# CLI entry points
+[tool.poetry.scripts]
+haas-analyze = "pyHaasAPI.cli.main:main"
+haas-cli = "pyHaasAPI.cli.main:main"

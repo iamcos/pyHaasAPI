@@ -1,0 +1,597 @@
+# pyHaasAPI Library - Cursor Rules
+
+## Overview
+pyHaasAPI is a comprehensive Python library for interacting with HaasOnline trading platform. It provides complete functionality for lab analysis, backtest processing, bot management, and automated trading workflows.
+
+## Core Architecture
+
+### Complete Package Structure (CLEAN & ORGANIZED)
+```
+pyHaasAPI/                         # Main library package
+├── __init__.py                    # Main package exports
+├── api.py                         # Core API functions (2780+ lines)
+├── model.py                       # Data models and request/response classes
+├── domain.py                      # Domain objects and exceptions
+├── exceptions.py                  # Custom exception classes
+├── types.py                       # Type definitions and protocols
+├── logger.py                      # Logging configuration
+├── tools.py                       # Utility tools and helpers
+├── price.py                       # Price data API
+├── optimization.py                # Optimization algorithms
+├── parameter_handler.py           # Parameter handling utilities
+├── parameters.py                  # Parameter definitions and enums
+├── iterable_extensions.py         # Iterable utility extensions
+├── enhanced_execution.py          # Enhanced execution capabilities
+├── history_intelligence.py        # History intelligence features
+├── lab_backup.py                  # Lab backup functionality
+├── lab_manager.py                 # Lab management (462 lines)
+├── market_manager.py              # Market management (289 lines)
+├── bot_editing_api.py             # Bot editing API
+├── backtest_object.py             # Backtest object handling
+├── lab.py                         # Lab object definitions
+├── client/                        # Client implementations
+│   └── base.py                   # Base client class
+├── models/                        # Data models
+│   ├── __init__.py               # Model exports
+│   ├── base.py                   # Base model classes
+│   ├── common.py                 # Common model definitions
+│   ├── scripts.py                # Script-related models
+│   └── auth.py                   # Authentication models
+├── analysis/                      # Analysis module (INTEGRATED)
+│   ├── __init__.py               # Analysis exports
+│   ├── models.py                 # Analysis data classes
+│   ├── cache.py                  # Unified cache management
+│   ├── analyzer.py               # Main analysis engine
+│   ├── extraction.py             # Data extraction utilities
+│   ├── metrics.py                # Performance metrics
+│   ├── scoring.py                # Scoring algorithms
+│   └── logs.py                   # Analysis logging
+├── cli/                          # CLI interfaces (NEW)
+│   ├── __init__.py               # CLI exports
+│   ├── main.py                   # Main CLI entry point
+│   ├── mass_bot_creator.py       # Mass bot creation tool (PRIMARY)
+│   ├── fix_bot_trade_amounts.py  # Bot trade amount management
+│   ├── price_tracker.py          # Real-time price tracking
+│   └── account_cleanup.py        # Account management tools
+├── examples/                     # Example scripts (NEW)
+│   ├── __init__.py               # Examples exports
+│   ├── complete_bot_management_example.py
+│   └── example_usage.py
+├── tools/                        # Tools and utilities (REORGANIZED)
+│   ├── __init__.py               # Tools exports
+│   ├── scripts/                  # Moved from scripts/
+│   ├── config/                   # Moved from config/
+│   └── utils/                    # Moved from utils/
+│       ├── __init__.py
+│       ├── analysis_tools.py     # Advanced analysis heuristics
+│       ├── backtest_tools.py     # Backtest utilities
+│       ├── research_tools.py     # Research utilities
+│       ├── auth/                 # Authentication utilities
+│       ├── lab_management/       # Lab management utilities
+│       └── market_data/          # Market data utilities
+├── accounts/                     # Account management
+│   ├── __init__.py               # Account exports
+│   └── management.py             # Account operations (686 lines)
+├── labs/                         # Lab-specific functionality
+│   ├── __init__.py               # Lab exports
+│   └── cloning.py                # Lab cloning utilities
+├── markets/                      # Market-specific functionality
+│   ├── __init__.py               # Market exports
+│   └── discovery.py              # Market discovery
+└── api/                          # API-specific modules
+    └── scripts.py                # Script API functions
+```
+
+### Repository Structure (CLEAN ROOT)
+```
+pyHaasAPI/                         # Repository root
+├── README.md                      # Main documentation
+├── pyproject.toml                 # Package configuration
+├── requirements.txt               # Dependencies
+├── poetry.lock                    # Poetry lock file
+├── LICENSE                        # License file
+├── .cursorrules                   # Development rules (THIS FILE)
+├── DEVELOPMENT_WORKFLOW.md        # Development guidelines
+├── env.example                    # Environment template
+├── pytest.ini                    # Test configuration
+├── MANIFEST.in                    # Package manifest
+├── pyHaasAPI/                     # Main library package (see above)
+├── tests/                         # Test files
+├── docs/                          # Documentation
+│   ├── ai_docs/                  # AI documentation
+│   └── api_reference/            # API reference
+├── unified_cache/                 # Active cache directory
+└── archive/                       # Archived files (ORGANIZED)
+    ├── old_docs/                 # 20 documentation files
+    ├── obsolete_scripts/         # 15 script files
+    ├── build_scripts/            # 7 build scripts
+    ├── config/                   # 3 config files
+    ├── cache/                    # 4 old cache directories
+    ├── experimental/             # 278 experimental files
+    ├── old_scripts/              # 17 old scripts
+    └── other_projects/           # 359 other project files
+```
+
+### Key File Sizes & Complexity
+- **api.py**: 2780+ lines - Core API functions
+- **model.py**: 917+ lines - Data models and schemas
+- **lab_manager.py**: 462 lines - Lab management
+- **market_manager.py**: 289 lines - Market management
+- **accounts/management.py**: 686 lines - Account operations
+- **analysis/**: Complete analysis system with caching
+
+## Key Classes and Functions
+
+### Core Analysis Classes (NEW - Integrated)
+```python
+# Main analyzer class
+HaasAnalyzer
+- connect()                          # Connect to HaasOnline API
+- analyze_lab(lab_id, top_count)     # Analyze lab and select top backtests
+- create_bots_from_analysis()        # Create bots from analysis results
+- create_and_activate_bots()         # Create and activate bots for live trading
+- activate_bot(bot_id)               # Activate individual bot
+- list_labs()                        # List all available labs
+
+# Cache management
+UnifiedCacheManager
+- cache_backtest_data()              # Cache backtest runtime data
+- load_backtest_cache()              # Load cached data
+- save_analysis_report()             # Save CSV analysis reports
+
+# Data models
+BacktestAnalysis                     # Individual backtest analysis results
+BotCreationResult                    # Bot creation results with configuration
+LabAnalysisResult                    # Complete lab analysis results
+```
+
+### Core API Functions (Complete List)
+
+#### Authentication & Session Management
+```python
+api.authenticate(email, password)    # Authenticate with credentials
+api.login_with_one_time_code()       # Complete authentication with OTC
+```
+
+#### Lab Management
+```python
+api.create_lab()                     # Create new lab
+api.get_labs()                       # Get all labs
+api.get_lab_details()                # Get specific lab details
+api.update_lab_details()             # Update lab configuration
+api.delete_lab()                     # Delete lab
+api.clone_lab()                      # Clone existing lab
+api.change_lab_script()              # Change lab's script
+api.start_lab_execution()            # Start lab backtesting
+api.cancel_lab_execution()           # Cancel running lab
+api.get_lab_execution_update()       # Get lab execution status
+api.get_backtest_result()            # Get backtest results
+api.get_backtest_result_page()       # Get paginated backtest results
+api.get_backtest_runtime()           # Get backtest runtime data
+api.get_full_backtest_runtime_data() # Get detailed backtest data
+api.get_backtest_chart()             # Get backtest chart data
+api.get_backtest_log()               # Get backtest execution logs
+```
+
+#### Bot Management
+```python
+api.add_bot()                        # Create new bot
+api.add_bot_from_lab()               # Create bot from lab backtest
+api.delete_bot()                     # Delete bot
+api.get_all_bots()                   # Get all bots
+api.get_bot()                        # Get specific bot details
+api.get_full_bot_runtime_data()      # Get detailed bot runtime data
+api.edit_bot_parameter()             # Update bot settings
+api.activate_bot()                   # Activate bot for live trading
+api.deactivate_bot()                 # Deactivate bot
+api.pause_bot()                      # Pause bot
+api.resume_bot()                     # Resume paused bot
+api.deactivate_all_bots()            # Deactivate all bots
+api.get_bot_orders()                 # Get bot's orders
+api.get_bot_positions()              # Get bot's positions
+api.cancel_bot_order()               # Cancel specific order
+api.cancel_all_bot_orders()          # Cancel all bot orders
+```
+
+#### Account Management
+```python
+api.get_accounts()                   # Get all accounts
+api.get_account_data()               # Get specific account data
+api.get_account_balance()            # Get account balance
+api.get_all_account_balances()       # Get all account balances
+api.get_account_orders()             # Get account orders
+api.get_margin_settings()            # Get account margin settings
+api.adjust_margin_settings()         # Configure margin settings
+api.set_position_mode()              # Set position mode (HEDGE/ONE_WAY)
+api.set_margin_mode()                # Set margin mode (CROSS/ISOLATED)
+api.set_leverage()                   # Set leverage
+api.distribute_bots_to_accounts()    # Distribute bots across accounts
+api.migrate_bot_to_account()         # Move bot to different account
+api.change_bot_account()             # Change bot's account assignment
+api.move_bot()                       # Move bot between accounts
+api.set_bot_account()                # Set bot's account assignment
+```
+
+#### Script Management
+```python
+api.get_all_scripts()                # Get all scripts
+api.get_script_record()              # Get script record
+api.get_script_item()                # Get script item with dependencies
+api.get_scripts_by_name()            # Find scripts by name
+api.add_script()                     # Create new script
+api.edit_script()                    # Edit existing script
+api.edit_script_sourcecode()         # Edit script source code
+api.delete_script()                  # Delete script
+api.publish_script()                 # Publish script
+api.get_haasscript_commands()        # Get HaasScript commands
+api.execute_debug_test()             # Execute debug test
+api.execute_quicktest()              # Execute quick test
+```
+
+#### Market & Price Data
+```python
+api.get_trade_markets()              # Get trading markets
+api.get_price_data()                 # Get real-time price data
+api.get_historical_data()            # Get historical price data
+```
+
+#### Price Data Models
+```python
+# PriceData model with structured price information
+PriceData
+- timestamp: int                     # Unix timestamp
+- open: float                        # Opening price
+- high: float                        # High price
+- low: float                         # Low price
+- close: float                       # Closing price
+- volume: float                      # Volume
+- bid: float                         # Best bid price
+- ask: float                         # Best ask price
+- spread: float                      # Bid-ask spread
+- spread_percentage: float           # Spread as percentage
+```
+
+### Manager Classes (High-Level Abstractions)
+
+#### LabManager
+```python
+LabManager
+- create_optimized_lab()             # Create lab with parameter optimization
+- run_parameter_optimization()       # Run parameter optimization
+- get_optimization_results()         # Get optimization results
+- manage_lab_lifecycle()             # Complete lab lifecycle management
+```
+
+#### MarketManager
+```python
+MarketManager
+- get_markets_efficiently()          # Get markets for multiple exchanges
+- find_market_by_symbol()            # Find market by trading pair
+- get_market_info()                  # Get detailed market information
+- cache_markets()                    # Cache market data
+```
+
+#### AccountManager
+```python
+AccountManager
+- get_account_info()                 # Get comprehensive account info
+- verify_account_status()            # Verify account status
+- manage_account_assignments()       # Manage bot account assignments
+- distribute_bots_to_accounts()      # Distribute bots across accounts
+```
+
+### Analysis & Data Extraction
+
+#### BacktestDataExtractor
+```python
+BacktestDataExtractor
+- extract_trade_data()               # Extract individual trade data
+- extract_performance_metrics()      # Extract performance metrics
+- validate_data_integrity()          # Validate data integrity
+- debug_data_issues()                # Debug data extraction issues
+```
+
+#### Performance Analysis
+```python
+# Available in utils/analysis_tools.py
+EquityCurveStability                 # Analyze equity curve stability
+PerformanceMetrics                  # Comprehensive performance analysis
+TradesAnalysis                      # Detailed trade statistics
+RiskMetrics                         # Risk analysis metrics
+```
+
+## Bot Management Standards
+
+### Bot Naming Convention
+Format: `LabName - ScriptName - ROI pop/gen WR%`
+Example: `1   ADX BB STOCH Scalper   2.7 years UNI   beta   Data Interval 20/30 -  - 1875 13/19 65%`
+
+### Bot Configuration Standards
+- **Position Mode**: HEDGE (1) - Always use hedge mode for risk management
+- **Margin Mode**: CROSS (0) - Use cross margin for better capital efficiency
+- **Leverage**: 20x - Standard leverage for futures trading
+- **Trade Amount**: $2,000 USDT (20% of $10,000 account) - Risk management
+- **Account Assignment**: Individual accounts - Each bot gets its own account
+
+### Bot Creation Workflow
+1. Analyze lab and select top performers based on ROI
+2. Create bots with proper naming convention
+3. Assign each bot to individual account
+4. Configure margin settings (HEDGE, CROSS, 20x leverage)
+5. Set trade amount to $2,000 USDT
+6. Optionally activate bots for live trading
+
+## Data Models
+
+### BacktestAnalysis
+```python
+@dataclass
+class BacktestAnalysis:
+    backtest_id: str
+    lab_id: str
+    generation_idx: Optional[int]
+    population_idx: Optional[int]
+    market_tag: str
+    script_id: str
+    script_name: str
+    roi_percentage: float
+    win_rate: float
+    total_trades: int
+    max_drawdown: float
+    realized_profits_usdt: float
+    pc_value: float
+    avg_profit_per_trade: float
+    profit_factor: float
+    sharpe_ratio: float
+    analysis_timestamp: str
+```
+
+### BotCreationResult
+```python
+@dataclass
+class BotCreationResult:
+    bot_id: str
+    bot_name: str
+    backtest_id: str
+    account_id: str
+    market_tag: str
+    leverage: float
+    margin_mode: str
+    position_mode: str
+    trade_amount_usdt: float
+    creation_timestamp: str
+    success: bool
+    activated: bool
+    error_message: Optional[str]
+```
+
+## Cache Management
+
+### Unified Cache Structure
+```
+unified_cache/
+├── backtests/              # Cached backtest runtime data
+│   └── {lab_id}_{backtest_id}.json
+├── reports/                # CSV analysis reports
+│   └── lab_analysis_{lab_id}_{timestamp}.csv
+└── logs/                   # Analysis logs
+```
+
+### Cache Benefits
+- Avoids redundant API calls for backtest data
+- Speeds up subsequent analysis runs
+- Provides offline access to analysis results
+- Enables historical analysis tracking
+
+## Mass Bot Creation System
+
+### Primary Tool: `mass_bot_creator.py`
+The main tool for creating bots from all qualifying labs with advanced filtering and management options.
+
+#### Key Features:
+- **Lab Filtering**: Include/exclude specific labs, minimum backtest requirements
+- **Win Rate Filtering**: Set minimum win rate thresholds for bot creation
+- **Smart Trade Amounts**: Price-based calculation with intelligent precision
+- **Individual Account Assignment**: Each bot gets its own account
+- **Standardized Configuration**: 20x leverage, HEDGE mode, CROSS margin
+- **Live Activation**: Optional immediate activation for live trading
+
+#### Command Options:
+```bash
+# Basic usage - create top 5 bots from all labs
+python -m pyHaasAPI.cli.mass_bot_creator --top-count 5 --activate
+
+# Advanced filtering
+python -m pyHaasAPI.cli.mass_bot_creator --min-backtests 50 --min-winrate 0.6
+
+# Specific lab targeting
+python -m pyHaasAPI.cli.mass_bot_creator --lab-ids lab1,lab2 --exclude-lab-ids lab3
+
+# Dry run for testing
+python -m pyHaasAPI.cli.mass_bot_creator --dry-run --top-count 3
+```
+
+#### Bot Naming Convention:
+Format: `LabName - ScriptName - ROI pop/gen WR%`
+Example: `1 ADX BB STOCH Scalper 2.7 years UNI beta Data Interval 20/30 - 1875 13/19 65%`
+
+### Supporting Tools:
+
+#### `fix_bot_trade_amounts.py`
+Manage trade amounts for existing bots with multiple calculation methods.
+
+#### `account_cleanup.py`
+Clean up and organize simulated accounts with proper naming conventions.
+
+#### `price_tracker.py`
+Real-time price data tracking for market analysis.
+
+## Usage Patterns
+
+### CLI Usage (RECOMMENDED)
+```bash
+# Mass bot creation for all labs (NEW - PRIMARY FEATURE):
+python -m pyHaasAPI.cli.mass_bot_creator --top-count 5 --activate
+python -m pyHaasAPI.cli.mass_bot_creator --exclude-lab-ids lab1,lab2 --min-backtests 50
+python -m pyHaasAPI.cli.mass_bot_creator --lab-ids lab1,lab2 --min-winrate 0.6
+
+# Individual lab analysis:
+python -m pyHaasAPI.cli analyze lab-id --create-count 3 --activate
+python -m pyHaasAPI.cli list-labs
+python -m pyHaasAPI.cli complete-workflow lab-id --verify
+
+# Bot trade amount management:
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --method usdt --target-amount 2000
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --method wallet --wallet-percentage 20
+
+# Price tracking:
+python -m pyHaasAPI.cli.price_tracker BTC_USDT_PERPETUAL
+
+# With entry points (after poetry install):
+haas-mass-bot-creator --top-count 5 --activate
+haas-analyze lab-id --create-count 3 --activate
+haas-cli list-labs
+```
+
+### Programmatic Usage
+```python
+from pyHaasAPI import HaasAnalyzer, UnifiedCacheManager
+
+# Setup
+cache = UnifiedCacheManager()
+analyzer = HaasAnalyzer(cache)
+analyzer.connect()
+
+# Analyze and create bots
+result = analyzer.analyze_lab("lab-id", top_count=5)
+bots = analyzer.create_and_activate_bots(result, create_count=3, activate=True)
+```
+
+### Advanced Analysis with Custom Filtering
+```python
+# Custom analysis criteria
+result = analyzer.analyze_lab("lab-id", top_count=10)
+high_roi_bots = [bt for bt in result.top_backtests if bt.roi_percentage > 1000]
+high_winrate_bots = [bt for bt in result.top_backtests if bt.win_rate > 0.6]
+```
+
+### Example Scripts
+```bash
+# Run example scripts
+python -m pyHaasAPI.examples.complete_bot_management_example
+python -m pyHaasAPI.examples.example_usage
+```
+
+## Error Handling
+
+### Common Issues and Solutions
+1. **Authentication**: Always use proper email/password and handle OTC
+2. **API Rate Limits**: Implement proper delays between requests
+3. **Bot Configuration**: Verify margin settings after bot creation
+4. **Account Assignment**: Ensure sufficient accounts for bot distribution
+5. **Trade Amount**: Verify trade amount is set correctly ($2,000 USDT)
+
+### Validation
+- Always verify bot configuration after creation
+- Check account margin settings
+- Validate trade amount settings
+- Confirm bot activation status
+
+## Development Guidelines
+
+### Code Organization
+- Keep analysis logic in `pyHaasAPI/analysis/` module
+- Use data classes for structured results
+- Implement proper error handling and logging
+- Cache expensive operations (backtest data fetching)
+- Provide both programmatic and CLI interfaces
+
+### Testing
+- Test with real lab data
+- Verify bot configuration accuracy
+- Test account assignment functionality
+- Validate cache operations
+- Test activation workflows
+
+### Documentation
+- Update this file when adding new functionality
+- Document all new classes and methods
+- Provide usage examples
+- Keep API documentation current
+
+## Development Workflow
+
+### Code Organization Standards
+1. **New Features**: Develop in `pyHaasAPI/` modules, not root scripts
+2. **CLI Tools**: Add to `pyHaasAPI/cli/` module
+3. **Examples**: Store in `pyHaasAPI/examples/` module
+4. **Tools**: Organize in `pyHaasAPI/tools/` module
+5. **Archive**: Move obsolete files to `archive/` with proper categorization
+
+### Development Process
+1. **Prototype**: Create experimental scripts in `archive/experimental/`
+2. **Integrate**: Move working functionality to `pyHaasAPI/` modules
+3. **Test**: Ensure all imports work and functionality is preserved
+4. **Document**: Update `.cursorrules` and `README.md`
+5. **Clean**: Archive obsolete files, maintain clean root directory
+
+### File Naming Conventions
+- **CLI Scripts**: Use descriptive names in `pyHaasAPI/cli/`
+- **Examples**: Use descriptive names in `pyHaasAPI/examples/`
+- **Tools**: Use descriptive names in `pyHaasAPI/tools/`
+- **Archive**: Categorize by type (old_docs, obsolete_scripts, experimental, etc.)
+
+## Recent Updates
+
+### v2.2 - Mass Bot Creation & Advanced Management
+- ✅ **Mass bot creation tool** - Create bots for all labs with advanced filtering
+- ✅ **Lab filtering options** - Min backtests, win rate, include/exclude labs
+- ✅ **Smart trade amount precision** - Intelligent rounding for different currencies
+- ✅ **Bot trade amount management** - Fix existing bots with USDT/wallet percentage
+- ✅ **Account cleanup tools** - Rename and organize simulated accounts
+- ✅ **Price-based calculations** - Real-time price data for accurate trade amounts
+- ✅ **Comprehensive CLI tools** - Full suite of management utilities
+
+### v2.1 - Clean Architecture & Organization
+- ✅ **Complete repository cleanup** - 84+ files organized into archive
+- ✅ **Professional structure** - Clean root directory with only 12 essential files
+- ✅ **CLI integration** - Unified CLI interface in `pyHaasAPI/cli/`
+- ✅ **Example organization** - Examples moved to `pyHaasAPI/examples/`
+- ✅ **Tools consolidation** - All tools organized in `pyHaasAPI/tools/`
+- ✅ **Archive system** - Proper categorization of old files
+- ✅ **Entry points** - CLI commands available via `haas-analyze` and `haas-cli`
+
+### v2.0 - Integrated Analysis System
+- Added comprehensive analysis module
+- Implemented unified cache management
+- Created structured data models
+- Added bot management with proper configuration
+- Implemented individual account assignment
+- Added activation workflows
+- Created CLI tools and examples
+
+### Key Features Added
+- ✅ Lab analysis with performance metrics extraction
+- ✅ Intelligent bot creation with proper naming
+- ✅ Individual account assignment
+- ✅ Standardized bot configuration (HEDGE, CROSS, 20x, $2K)
+- ✅ Bot activation for live trading
+- ✅ Comprehensive CSV reporting
+- ✅ Unified cache management
+- ✅ CLI tools for easy usage
+- ✅ **Real-time price data integration**
+- ✅ **Price-based trade amount calculation**
+- ✅ **Clean, professional repository structure**
+- ✅ **Mass bot creation for all labs**
+- ✅ **Advanced lab filtering (min backtests, win rate)**
+- ✅ **Smart trade amount precision**
+- ✅ **Bot trade amount management tools**
+- ✅ **Account cleanup and management**
+
+## Future Enhancements
+- Multi-lab analysis capabilities
+- Advanced performance metrics
+- Risk management features
+- Portfolio optimization
+- Real-time monitoring
+- Automated rebalancing

@@ -1,9 +1,0 @@
-DefineCommand('HMA', 'Hull Moving Average by pshai')
- 
-local src = DefineParameter(ListNumberType, 'source', 'Source data', true, ClosePrices(), 'ClosePrices')
-local period = DefineParameter(NumberType, 'period', 'Period Length', true, 20, 'Input, Number, SessionGet')
-local maType = DefineParameter(EnumType, 'maType', 'Type of Moving Average', false, WmaType, 'InputMaTypes')
- 
-local hma = MA(2*MA(src, Round(period/2, 0), maType) - MA(src, period, maType), Round(Sqrt(period), 0), maType)
- 
-DefineOutput(ListNumberType, hma, 'Hull Moving Average values array')
