@@ -10,6 +10,9 @@ A comprehensive Python library for HaasOnline API integration with advanced trad
 - **Lab Management**: Bulk lab cloning and automated configuration
 - **Account Management**: Standardized account creation and naming schemas
 - **Parameter Intelligence**: Advanced parameter optimization with strategic values
+- **🆕 Mass Bot Creation**: Create bots from top backtests across all labs with advanced filtering
+- **🆕 Smart Trade Amounts**: Price-based trade amount calculation with intelligent precision
+- **🆕 Bot Management Tools**: Comprehensive bot configuration and trade amount management
 
 ## 📦 Installation
 
@@ -31,6 +34,43 @@ executor = api.get_authenticated_executor()
 extractor = BacktestDataExtractor()
 summary = extractor.extract_backtest_data("backtest_results.json")
 print(f"Extracted {len(summary.trades)} trades with {summary.win_rate:.1f}% win rate")
+```
+
+## 🛠️ CLI Tools
+
+The `pyHaasAPI/cli/` directory contains powerful command-line tools for automated trading:
+
+### Mass Bot Creation
+```bash
+# Create top 5 bots from all labs and activate them
+python -m pyHaasAPI.cli.mass_bot_creator --top-count 5 --activate
+
+# Create bots only from labs with 50+ backtests and 60%+ win rate
+python -m pyHaasAPI.cli.mass_bot_creator --min-backtests 50 --min-winrate 0.6
+
+# Create bots from specific labs only
+python -m pyHaasAPI.cli.mass_bot_creator --lab-ids lab1,lab2 --top-count 3
+```
+
+### Bot Trade Amount Management
+```bash
+# Fix all bots to $2000 USDT equivalent
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --target-amount 2000
+
+# Use wallet percentage instead of USDT amount
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --method wallet --wallet-percentage 20
+
+# Get leverage recommendations
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --show-recommendations
+```
+
+### Account Management
+```bash
+# Clean up simulated accounts with proper naming
+python -m pyHaasAPI.cli.account_cleanup
+
+# Track real-time price data
+python -m pyHaasAPI.cli.price_tracker BTC_USDT_PERPETUAL
 ```
 
 ## 📋 Examples

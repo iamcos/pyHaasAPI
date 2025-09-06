@@ -82,3 +82,9 @@ node_modules/
 # Temporary files
 *.tmp
 *.temp
+archive/experimental/haasscripts_dump/
+archive/experimental/
+archive/cache/
+unified_cache/
+archive/bigger_projects_unfinished/
+archive/haasscripts_dump/
