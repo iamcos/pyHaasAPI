@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 import dataclasses
 from typing import (Any, Dict, List, Optional, Generic, Literal, TypeVar, Type, Union, TYPE_CHECKING)
 from pydantic import BaseModel, Field, ConfigDict, field_validator
@@ -157,10 +157,6 @@ PriceDataStyle = Literal[
     "Mountain",
 ]
 
-from enum import IntEnum
-from typing import Literal, Optional, List, Dict, Any, Type, Self
-from pydantic import BaseModel, Field, ConfigDict, field_validator
-import dataclasses
 
 class PositionMode(IntEnum):
     """Position mode enumeration"""
@@ -237,7 +233,7 @@ class CreateLabRequest:
 
     @classmethod
     def with_generated_name(
-        cls: Type[Self],
+        cls,
         script_id: str,
         account_id: str,
         market: CloudMarket,
@@ -245,7 +241,7 @@ class CreateLabRequest:
         interval: int,
         default_price_data_style: PriceDataStyle,
         contract_type: Optional[str] = None,
-    ) -> Self:
+    ):
         name = f"{interval}_{market.primary}_{market.secondary}_{script_id}_{account_id}"
         
         # Format market tag string with contract type support
@@ -262,7 +258,7 @@ class CreateLabRequest:
 
     @classmethod
     def with_futures_market(
-        cls: Type[Self],
+        cls,
         script_id: str,
         account_id: str,
         market: CloudMarket,
@@ -270,7 +266,7 @@ class CreateLabRequest:
         interval: int,
         default_price_data_style: PriceDataStyle,
         contract_type: str = "PERPETUAL",
-    ) -> Self:
+    ):
         """
         Create lab request specifically for futures markets (BINANCEQUARTERLY style)
         
@@ -914,3 +910,99 @@ class BacktestRuntimeResponse(BaseModel):
 
 # Alias for backward compatibility
 BotRuntimeData = BacktestRuntimeData
+
+
+# Backtest Execution Models
+class ExecuteBacktestRequest(BaseModel):
+    """Request model for executing a backtest with bot parameters"""
+    backtest_id: str = Field(alias="BacktestId")  # Can be new UUID
+    script_id: str = Field(alias="ScriptId")
+    settings: dict = Field(alias="Settings")  # JSON with bot parameters
+    start_unix: int = Field(alias="StartUnix")
+    end_unix: int = Field(alias="EndUnix")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ExecuteBacktestResponse(BaseModel):
+    """Response model for backtest execution"""
+    success: bool = Field(alias="Success")
+    error: str = Field(alias="Error")
+    data: Optional[str] = Field(default=None, alias="Data")  # Usually "LocalService-ENT"
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class GetScriptRecordRequest(BaseModel):
+    """Request model for getting script record"""
+    script_id: str = Field(alias="ScriptId")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class GetScriptRecordResponse(BaseModel):
+    """Response model for script record"""
+    success: bool = Field(alias="Success")
+    error: str = Field(alias="Error")
+    data: Optional[dict] = Field(default=None, alias="Data")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class BacktestHistoryRequest(BaseModel):
+    """Request model for getting backtest history"""
+    script_id: Optional[str] = Field(default=None, alias="ScriptId")
+    market_tag: Optional[str] = Field(default=None, alias="MarketTag")
+    account_id: Optional[str] = Field(default=None, alias="AccountId")
+    start_date: Optional[int] = Field(default=None, alias="StartDate")
+    end_date: Optional[int] = Field(default=None, alias="EndDate")
+    limit: int = Field(default=100, alias="Limit")
+    offset: int = Field(default=0, alias="Offset")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class BacktestHistoryItem(BaseModel):
+    """Individual backtest history item"""
+    backtest_id: str = Field(alias="BacktestId")
+    script_id: str = Field(alias="ScriptId")
+    script_name: str = Field(alias="ScriptName")
+    market_tag: str = Field(alias="MarketTag")
+    account_id: str = Field(alias="AccountId")
+    start_unix: int = Field(alias="StartUnix")
+    end_unix: int = Field(alias="EndUnix")
+    created_at: int = Field(alias="CreatedAt")
+    status: str = Field(alias="Status")
+    tag: Optional[str] = Field(default=None, alias="Tag")
+    roi: float = Field(alias="ROI")
+    win_rate: float = Field(alias="WinRate")
+    total_trades: int = Field(alias="TotalTrades")
+    max_drawdown: float = Field(alias="MaxDrawdown")
+    is_archived: bool = Field(default=False, alias="IsArchived")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class BacktestHistoryResponse(BaseModel):
+    """Response model for backtest history"""
+    backtests: List[BacktestHistoryItem] = Field(alias="Backtests")
+    total_count: int = Field(alias="TotalCount")
+    has_more: bool = Field(alias="HasMore")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EditBacktestTagRequest(BaseModel):
+    """Request model for editing backtest tags"""
+    backtest_id: str = Field(alias="BacktestId")
+    tag: str = Field(alias="Tag")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ArchiveBacktestRequest(BaseModel):
+    """Request model for archiving backtests"""
+    backtest_id: str = Field(alias="BacktestId")
+    archive_result: bool = Field(default=True, alias="ArchiveResult")
+    
+    model_config = ConfigDict(populate_by_name=True)
