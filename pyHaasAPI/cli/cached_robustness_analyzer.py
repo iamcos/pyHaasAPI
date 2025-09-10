@@ -32,6 +32,68 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def extract_balance_data(data: dict) -> tuple:
+    """Extract and calculate balance information from cached backtest data"""
+    
+    # Default values
+    starting_balance = 10000.0
+    final_balance = 10000.0
+    peak_balance = 10000.0
+    
+    try:
+        # Try to extract from runtime data Reports section
+        runtime_data = data.get('runtime_data', {})
+        reports = runtime_data.get('Reports', {})
+        
+        # Find the first report (there's usually only one)
+        if reports:
+            report_key = list(reports.keys())[0]
+            report_data = reports[report_key]
+            
+            # Extract balance fields from report
+            pr_data = report_data.get('PR', {})
+            if pr_data:
+                # SB = Starting Balance, PC = Portfolio Value (current/final)
+                starting_balance = pr_data.get('SB', starting_balance)
+                final_balance = pr_data.get('PC', final_balance)
+                
+                # Calculate peak balance from realized profits
+                realized_profits = pr_data.get('RP', 0.0)
+                peak_balance = starting_balance + realized_profits
+        
+        # Try to calculate final balance from trades if available
+        trades = data.get('trades', [])
+        if trades:
+            calculated_final_balance = calculate_final_balance_from_trades(trades, starting_balance)
+            if calculated_final_balance != starting_balance:  # Only use if different from starting
+                final_balance = calculated_final_balance
+                logger.debug(f"Calculated final balance from trades: {final_balance}")
+        
+        # Ensure peak balance is at least as high as final balance
+        peak_balance = max(peak_balance, final_balance)
+        
+    except Exception as e:
+        logger.warning(f"Error extracting balance data: {e}")
+    
+    return starting_balance, final_balance, peak_balance
+
+
+def calculate_final_balance_from_trades(trades: list, starting_balance: float) -> float:
+    """Calculate final balance from trade data"""
+    
+    if not trades:
+        return starting_balance
+    
+    current_balance = starting_balance
+    
+    for trade in trades:
+        # Assuming trade has profit/loss information
+        profit = trade.get('profit', 0.0)
+        current_balance += profit
+    
+    return current_balance
+
+
 def load_cached_lab_data(lab_id: str, cache_manager: UnifiedCacheManager) -> list:
     """Load all cached backtest data for a specific lab"""
     
@@ -57,6 +119,9 @@ def load_cached_lab_data(lab_id: str, cache_manager: UnifiedCacheManager) -> lis
             calculated_roi_percentage = data.get('calculated_roi_percentage', roi_percentage)
             roi_difference = calculated_roi_percentage - roi_percentage
             
+            # Extract balance information from runtime data
+            starting_balance, final_balance, peak_balance = extract_balance_data(data)
+            
             backtest_analysis = BacktestAnalysis(
                 backtest_id=backtest_id,
                 lab_id=lab_id,
@@ -76,9 +141,9 @@ def load_cached_lab_data(lab_id: str, cache_manager: UnifiedCacheManager) -> lis
                 avg_profit_per_trade=data.get('avg_profit_per_trade', 0.0),
                 profit_factor=data.get('profit_factor', 0.0),
                 sharpe_ratio=data.get('sharpe_ratio', 0.0),
-                starting_balance=data.get('starting_balance', 10000.0),
-                final_balance=data.get('final_balance', 10000.0),
-                peak_balance=data.get('peak_balance', 10000.0),
+                starting_balance=starting_balance,
+                final_balance=final_balance,
+                peak_balance=peak_balance,
                 analysis_timestamp=datetime.now().isoformat()
             )
             
