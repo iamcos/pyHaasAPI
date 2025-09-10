@@ -11,6 +11,31 @@ from datetime import datetime
 
 
 @dataclass
+class DrawdownEvent:
+    """Individual drawdown event"""
+    timestamp: str
+    balance: float
+    drawdown_amount: float
+    drawdown_percentage: float
+
+@dataclass
+class DrawdownAnalysis:
+    """Comprehensive drawdown analysis"""
+    max_drawdown_percentage: float
+    lowest_balance: float
+    drawdown_count: int  # Number of times balance went below zero
+    drawdown_events: List[DrawdownEvent]  # List of all drawdown events
+    balance_history: List[float]  # Balance progression over time
+    
+    # Robustness analysis fields
+    max_drawdown_duration_days: int = 0
+    max_consecutive_losses: int = 0
+    worst_drawdown_start: Optional[datetime] = None
+    worst_drawdown_end: Optional[datetime] = None
+    account_blowup_risk: bool = False
+    safe_leverage_multiplier: float = 1.0
+
+@dataclass
 class BacktestAnalysis:
     """Comprehensive backtest analysis data"""
     backtest_id: str
@@ -22,7 +47,9 @@ class BacktestAnalysis:
     script_name: str
     
     # Performance metrics
-    roi_percentage: float
+    roi_percentage: float  # ROI from lab data
+    calculated_roi_percentage: float  # ROI calculated from trades (ROE)
+    roi_difference: float  # Difference between lab ROI and calculated ROI
     win_rate: float
     total_trades: int
     max_drawdown: float
@@ -34,8 +61,16 @@ class BacktestAnalysis:
     profit_factor: float
     sharpe_ratio: float
     
+    # Balance information
+    starting_balance: float  # Starting account balance
+    final_balance: float     # Final account balance
+    peak_balance: float      # Peak account balance reached
+    
     # Timestamps
     analysis_timestamp: str
+    
+    # Optional fields (must be at the end)
+    drawdown_analysis: Optional[DrawdownAnalysis] = None
     backtest_timestamp: Optional[str] = None
 
 
