@@ -55,11 +55,19 @@ def extract_balance_data(data: dict) -> tuple:
             if pr_data:
                 # SB = Starting Balance, PC = Portfolio Value (current/final)
                 starting_balance = pr_data.get('SB', starting_balance)
-                final_balance = pr_data.get('PC', final_balance)
                 
-                # Calculate peak balance from realized profits
+                # Calculate final balance from realized profits (more accurate than PC)
                 realized_profits = pr_data.get('RP', 0.0)
+                final_balance = starting_balance + realized_profits
                 peak_balance = starting_balance + realized_profits
+        
+        # Fallback: use top-level realized_profits_usdt if runtime data extraction failed
+        if final_balance == 10000.0:  # Still using default
+            realized_profits = data.get('realized_profits_usdt', 0.0)
+            if realized_profits != 0.0:
+                final_balance = starting_balance + realized_profits
+                peak_balance = final_balance
+                logger.debug(f"Using fallback realized_profits_usdt: {realized_profits}")
         
         # Try to calculate final balance from trades if available
         trades = data.get('trades', [])
