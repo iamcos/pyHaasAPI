@@ -105,7 +105,7 @@ def list_labs(status_filter: str = None):
         return False
 
 
-def main():
+def main(args=None):
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(description='Simple HaasOnline Analysis CLI')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
@@ -120,7 +120,7 @@ def main():
     list_parser = subparsers.add_parser('list-labs', help='List available labs')
     list_parser.add_argument('--status', choices=['active', 'completed', 'paused'], help='Filter labs by status')
     
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     
     if args.command == 'analyze':
         success = analyze_lab(args.lab_id, args.top, args.create_bots)

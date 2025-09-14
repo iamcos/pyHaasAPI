@@ -31,6 +31,7 @@ from pyHaasAPI.model import (
     CreateLabRequest, StartLabExecutionRequest, 
     GetBacktestResultRequest, AddBotFromLabRequest
 )
+from pyHaasAPI.tools.utils import fetch_all_lab_backtests
 
 # Import configuration
 from config.settings import (
@@ -248,29 +249,23 @@ class SingleLabOptimizer:
         logger.info("📊 Getting backtest results...")
         
         try:
-            results = api.get_backtest_result(
-                authenticator.get_executor(),
-                GetBacktestResultRequest(
-                    lab_id=lab_id,
-                    next_page_id=0,
-                    page_lenght=1000
-                )
-            )
+            # Use centralized fetcher instead of direct API call
+            backtests = fetch_all_lab_backtests(authenticator.get_executor(), lab_id)
             
-            if not results.items:
+            if not backtests:
                 logger.error("❌ No backtest results found")
                 return None
             
             # Sort by ROI
-            sorted_results = sorted(results.items, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0, reverse=True)
+            sorted_results = sorted(backtests, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0, reverse=True)
             
             analysis = {
-                "total_configurations": len(results.items),
+                "total_configurations": len(backtests),
                 "best_roi": sorted_results[0].summary.ReturnOnInvestment if sorted_results[0].summary else 0,
                 "best_backtest_id": sorted_results[0].backtest_id,
                 "best_parameters": getattr(sorted_results[0], 'parameters', {}),
                 "top_3_results": sorted_results[:3],
-                "all_results": results.items
+                "all_results": backtests
             }
             
             logger.info(f"✅ Results analyzed:")

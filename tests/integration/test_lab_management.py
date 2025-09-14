@@ -14,6 +14,7 @@ load_dotenv()
 from pyHaasAPI import api
 from pyHaasAPI.model import CreateLabRequest, StartLabExecutionRequest, GetBacktestResultRequest
 from pyHaasAPI.price import PriceAPI
+from pyHaasAPI.tools.utils import fetch_all_lab_backtests
 
 class LabIntegrationTester:
     def __init__(self):
@@ -182,20 +183,14 @@ class LabIntegrationTester:
     def get_backtest_results(self, lab_id: str) -> Any:
         print(f"📊 Getting backtest results for lab {lab_id}")
         try:
-            results = api.get_backtest_result(
-                self.executor,
-                GetBacktestResultRequest(
-                    lab_id=lab_id,
-                    next_page_id=0,
-                    page_lenght=1000
-                )
-            )
-            if not results.items:
+            # Use centralized fetcher instead of direct API call
+            backtests = fetch_all_lab_backtests(self.executor, lab_id)
+            if not backtests:
                 print(f"  ❌ No backtest results found")
                 return None
-            best_result = max(results.items, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
+            best_result = max(backtests, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
             print(f"  ✅ Best ROI: {best_result.summary.ReturnOnInvestment if best_result.summary else 0}")
-            return results
+            return backtests
         except Exception as e:
             print(f"  ❌ Failed to get results: {e}")
             return None

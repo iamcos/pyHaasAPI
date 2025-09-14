@@ -1,0 +1,17 @@
+{
+  "9653fe9a-3614-4591-b4e3-e9a457b10325": {
+    "lab_id": "9653fe9a-3614-4591-b4e3-e9a457b10325",
+    "lab_name": "Lab 9653fe9a",
+    "total_qualifying_bots": 1,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_UNI_USDT_PERPETUAL",
+        "roe_range": "1.8-1.8%",
+        "winrate_range": "47-47%",
+        "trades_range": "114-114",
+        "bot_count": 1
+      }
+    ]
+  }
+}

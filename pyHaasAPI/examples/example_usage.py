@@ -121,22 +121,17 @@ def example_individual_backtest_analysis():
         
         print(f"📊 Lab: {lab.name}")
         
-        # Get backtests
-        from pyHaasAPI.model import GetBacktestResultRequest
-        request = GetBacktestResultRequest(
-            lab_id=lab_id,
-            next_page_id=0,
-            page_lenght=5  # Just get first 5 for example
-        )
+        # Get backtests using centralized fetcher
+        from pyHaasAPI.tools.utils import fetch_top_performers
+        backtests = fetch_top_performers(analyzer.executor, lab_id, top_count=5)
         
-        response = api.get_backtest_result(analyzer.executor, request)
-        if not response or not hasattr(response, 'items'):
+        if not backtests:
             print("❌ No backtests found")
             return
         
         # Analyze first backtest
-        if response.items:
-            backtest = response.items[0]
+        if backtests:
+            backtest = backtests[0]
             print(f"🔍 Analyzing backtest {backtest.backtest_id[:8]}...")
             
             analysis = analyzer.analyze_backtest(lab_id, backtest)

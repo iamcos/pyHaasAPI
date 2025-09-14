@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from pyHaasAPI.api import RequestsExecutor, get_lab_details, get_backtest_result
 from pyHaasAPI.backtest_object import BacktestObject
 from pyHaasAPI.model import GetBacktestResultRequest
+from pyHaasAPI.tools.utils import fetch_all_lab_backtests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -45,16 +46,10 @@ def test_retrieve_all_lab_data(authenticated_executor):
     except Exception as e:
         pytest.fail(f"Failed to get lab details: {e}")
 
-    # 2. Get Backtest Results for the Lab
+    # 2. Get Backtest Results for the Lab using centralized fetcher
     backtests = []
     try:
-        req = GetBacktestResultRequest(lab_id=lab_id, next_page_id=0, page_lenght=100)
-        paginated_response = get_backtest_result(authenticated_executor, req)
-        
-        if hasattr(paginated_response, 'items'):
-             backtests = paginated_response.items
-        else:
-            backtests = paginated_response
+        backtests = fetch_all_lab_backtests(authenticated_executor, lab_id)
 
         print(f"Found {len(backtests)} backtests for Lab ID: {lab_id}")
         assert isinstance(backtests, list)

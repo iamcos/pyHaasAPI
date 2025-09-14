@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from pyHaasAPI import HaasAnalyzer, UnifiedCacheManager
 from pyHaasAPI.api import RequestsExecutor, get_all_labs, get_lab_details, get_all_accounts
 from pyHaasAPI.analysis.models import BacktestAnalysis, BotCreationResult, LabAnalysisResult
+from pyHaasAPI.analysis.robustness import StrategyRobustnessAnalyzer, RobustnessMetrics
 from dotenv import load_dotenv
 
 # Load environment variables
