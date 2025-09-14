@@ -5,7 +5,7 @@ Quick check of parameter iteration results
 
 import time
 from pyHaasAPI import api
-from pyHaasAPI.model import GetBacktestResultRequest
+from pyHaasAPI.tools.utils import fetch_all_lab_backtests
 
 def check_results():
     print("🔍 Checking parameter iteration results...")
@@ -49,28 +49,21 @@ def check_results():
                 
                 print(f"   Optimized parameters: {optimized_params}")
                 
-                # Get backtest results
+                # Get backtest results using centralized fetcher
                 try:
-                    results = api.get_backtest_result(
-                        executor,
-                        GetBacktestResultRequest(
-                            lab_id=lab.lab_id,
-                            next_page_id=0,
-                            page_lenght=1000
-                        )
-                    )
+                    backtests = fetch_all_lab_backtests(executor, lab.lab_id)
                     
-                    if results.items:
-                        print(f"   Backtest configurations: {len(results.items)}")
+                    if backtests:
+                        print(f"   Backtest configurations: {len(backtests)}")
                         
                         # Show best result
-                        best_result = max(results.items, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
+                        best_result = max(backtests, key=lambda x: x.summary.ReturnOnInvestment if x.summary else 0)
                         print(f"   Best ROI: {best_result.summary.ReturnOnInvestment if best_result.summary else 0:.2f}%")
                         
                         # Show parameter variations if any
-                        if len(results.items) > 1:
+                        if len(backtests) > 1:
                             print(f"   ✅ Multiple configurations tested!")
-                            for i, result in enumerate(results.items[:3]):  # Show first 3
+                            for i, result in enumerate(backtests[:3]):  # Show first 3
                                 roi = result.summary.ReturnOnInvestment if result.summary else 0
                                 params = getattr(result, 'parameters', {})
                                 print(f"     Config {i+1}: ROI {roi:.2f}%, Params: {params}")

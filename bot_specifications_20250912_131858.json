@@ -1,0 +1,42 @@
+[
+  {
+    "bot_number": 1,
+    "bot_name": "d26e6ff3 - ADX BB STOCH Scalper - 78.4% 57%",
+    "lab_id": "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+    "backtest_id": "06abfb79-e6a2-4327-b6cc-619aef5ba2e4",
+    "script_name": "ADX BB STOCH Scalper",
+    "market_tag": "BINANCEFUTURES_GALA_USDT_PERPETUAL",
+    "roe_percentage": 78.42476486527826,
+    "win_rate": 56.61764705882353,
+    "total_trades": 272,
+    "max_drawdown": 929.9067226985294,
+    "starting_balance": 43415.204915475,
+    "final_balance": 77463.477286215,
+    "risk_level": "MEDIUM",
+    "trade_amount_usdt": 2000.0,
+    "position_mode": "HEDGE",
+    "margin_mode": "CROSS",
+    "leverage": 20.0,
+    "creation_timestamp": "2025-09-12T13:18:58.025847"
+  },
+  {
+    "bot_number": 2,
+    "bot_name": "d26e6ff3 - ADX BB STOCH Scalper - 77.9% 56%",
+    "lab_id": "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+    "backtest_id": "d62b3f3d-20bb-4d8b-925d-1f9f18404172",
+    "script_name": "ADX BB STOCH Scalper",
+    "market_tag": "BINANCEFUTURES_GALA_USDT_PERPETUAL",
+    "roe_percentage": 77.85323028289628,
+    "win_rate": 56.20437956204379,
+    "total_trades": 274,
+    "max_drawdown": 929.9033372481751,
+    "starting_balance": 42294.802647905,
+    "final_balance": 75222.672751075,
+    "risk_level": "MEDIUM",
+    "trade_amount_usdt": 2000.0,
+    "position_mode": "HEDGE",
+    "margin_mode": "CROSS",
+    "leverage": 20.0,
+    "creation_timestamp": "2025-09-12T13:18:58.025863"
+  }
+]

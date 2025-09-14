@@ -13,6 +13,7 @@ A comprehensive Python library for HaasOnline API integration with advanced trad
 - **🆕 Mass Bot Creation**: Create bots from top backtests across all labs with advanced filtering
 - **🆕 Smart Trade Amounts**: Price-based trade amount calculation with intelligent precision
 - **🆕 Bot Management Tools**: Comprehensive bot configuration and trade amount management
+- **🆕 Walk Forward Optimization (WFO)**: Comprehensive WFO analysis with multiple modes and stability scoring
 
 ## 📦 Installation
 
@@ -62,6 +63,21 @@ python -m pyHaasAPI.cli.fix_bot_trade_amounts --method wallet --wallet-percentag
 
 # Get leverage recommendations
 python -m pyHaasAPI.cli.fix_bot_trade_amounts --show-recommendations
+```
+
+### Walk Forward Optimization (WFO)
+```bash
+# Basic WFO analysis
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31
+
+# Custom training/testing periods
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31 --training-days 180 --testing-days 60
+
+# Fixed window mode with custom step
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31 --mode fixed --step-days 45
+
+# Dry run to see what would be analyzed
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31 --dry-run
 ```
 
 ### Account Management

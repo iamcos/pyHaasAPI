@@ -1,0 +1,261 @@
+{
+  "analysis_timestamp": "2025-09-10T16:18:19.684157",
+  "total_labs_analyzed": 29,
+  "total_backtests_analyzed": 122,
+  "total_viable_bots": 90,
+  "lab_ids": [
+    "3df1e8b3-5b37-4c40-9221-334047027c4c",
+    "fd4b1daf-7b3e-43c8-a3e2-d09368bb0ebc",
+    "272bbb66-f2b3-4eae-8c32-714747dcb827",
+    "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+    "091b0fc3-e3a8-4743-851a-e12847a9510b",
+    "caed4df4-bcf9-4d4c-a8af-a51af6b7982e",
+    "86a66f48-a75b-4d40-9d3e-8538a845a4fa",
+    "058c6c5a-549a-4828-9169-a79b0a317229",
+    "8a03fde1-c755-494c-a975-daeed1257518",
+    "c758b7af-bf9a-49e1-83a3-dc0ad7e4f71a",
+    "6b380157-cfd3-44c1-9056-95377aae7667",
+    "080c4827-15b5-45ba-aa61-983c7d5e4c4d",
+    "c97c0bbd-28f7-4dcd-8842-1cbd9448601e",
+    "55b45ee4-9cc5-42f7-8556-4c3aa2b13a44",
+    "6fe2213c-00bd-41d8-b4de-73adf1eac0e8",
+    "9653fe9a-3614-4591-b4e3-e9a457b10325",
+    "6ca592b5-33b9-4ec3-a6c9-b306337d91a0",
+    "5bf547a7-eb4e-471b-b65d-a1e6f9d9b11b",
+    "e4616b35-8065-4095-966b-546de68fd493",
+    "170d6fd2-35f8-4d40-81b6-956d987a59b8",
+    "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+    "d021cb27-bbe2-41e5-ba6a-400a211cde88",
+    "972327cc-0c12-400d-a370-f34699917cb2",
+    "cf9c7894-8081-4179-8253-2ffa0982b468",
+    "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+    "cb87a095-3410-4270-81f0-20f8df928696",
+    "6e04e13c-1a12-4759-b037-b6997f830edf",
+    "bc37e21d-ae13-47cc-859c-41954e15be5e",
+    "97364821-2f4d-40fb-9a85-0ef87057ed0a"
+  ],
+  "top_10_viable_bots": [
+    {
+      "backtest_id": "2913b78a-d025-42bb-8959-17fe2d26f5c2",
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "script_name": "",
+      "roi_percentage": 4006.1339,
+      "win_rate": 0.6139240506329114,
+      "total_trades": 158,
+      "max_drawdown": 930.0465821518987,
+      "realized_profits_usdt": 37258.9110556
+    },
+    {
+      "backtest_id": "12cc52c3-041b-48b6-8a8f-40207314430f",
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "script_name": "",
+      "roi_percentage": 3865.091,
+      "win_rate": 0.6285714285714286,
+      "total_trades": 140,
+      "max_drawdown": 929.97461275,
+      "realized_profits_usdt": 35944.3654328
+    },
+    {
+      "backtest_id": "071aa398-5e65-4276-8b96-7e376bc25f9b",
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "script_name": "",
+      "roi_percentage": 3865.091,
+      "win_rate": 0.6285714285714286,
+      "total_trades": 140,
+      "max_drawdown": 929.97461275,
+      "realized_profits_usdt": 35944.3654328
+    },
+    {
+      "backtest_id": "f0bd1027-0635-48e3-90c2-dce7008923cc",
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "script_name": "",
+      "roi_percentage": 3839.2544,
+      "win_rate": 0.5485074626865671,
+      "total_trades": 268,
+      "max_drawdown": 929.9673705037313,
+      "realized_profits_usdt": 35703.81276225
+    },
+    {
+      "backtest_id": "3886fbb0-902b-4f39-9a53-7b6086bc26ea",
+      "lab_id": "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+      "script_name": "",
+      "roi_percentage": 3677.9898,
+      "win_rate": 0.5591715976331361,
+      "total_trades": 338,
+      "max_drawdown": 929.9576992855029,
+      "realized_profits_usdt": 34203.749244185
+    },
+    {
+      "backtest_id": "06abfb79-e6a2-4327-b6cc-619aef5ba2e4",
+      "lab_id": "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+      "script_name": "",
+      "roi_percentage": 3661.4718,
+      "win_rate": 0.5661764705882353,
+      "total_trades": 272,
+      "max_drawdown": 929.9067226985294,
+      "realized_profits_usdt": 34048.27237074
+    },
+    {
+      "backtest_id": "7ab86110-02e0-4d3a-89b4-e2c3635471bd",
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "script_name": "",
+      "roi_percentage": 3604.098,
+      "win_rate": 0.6,
+      "total_trades": 155,
+      "max_drawdown": 930.049719,
+      "realized_profits_usdt": 33519.90301715
+    },
+    {
+      "backtest_id": "c1631080-3404-4608-9a1a-31018a4d6dd1",
+      "lab_id": "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+      "script_name": "",
+      "roi_percentage": 3595.2174,
+      "win_rate": 0.5531914893617021,
+      "total_trades": 329,
+      "max_drawdown": 929.9578908130699,
+      "realized_profits_usdt": 33434.00821221
+    },
+    {
+      "backtest_id": "3c36f45a-2589-4b85-a5c4-a7d33dda1ddb",
+      "lab_id": "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+      "script_name": "",
+      "roi_percentage": 3590.5546,
+      "win_rate": 0.5567375886524822,
+      "total_trades": 282,
+      "max_drawdown": 929.9587295088653,
+      "realized_profits_usdt": 33390.67591542
+    },
+    {
+      "backtest_id": "d207004e-1cbf-4335-bc3d-1785127a6999",
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "script_name": "",
+      "roi_percentage": 3547.376,
+      "win_rate": 0.5988023952095808,
+      "total_trades": 167,
+      "max_drawdown": 929.9841318263473,
+      "realized_profits_usdt": 32990.03418705
+    }
+  ],
+  "lab_summaries": [
+    {
+      "lab_id": "3df1e8b3-5b37-4c40-9221-334047027c4c",
+      "lab_name": "0 - ADX BB STOCH Scalper - 2 years ADA - alpha test - Data Interval 20 minute",
+      "total_backtests": 3,
+      "best_roi": 1713.9282,
+      "best_win_rate": 0.5526315789473685,
+      "viable_bots_count": 2
+    },
+    {
+      "lab_id": "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+      "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years GALA - beta - Data Interval 20 minute -",
+      "total_backtests": 10,
+      "best_roi": 3661.4718,
+      "best_win_rate": 0.5661764705882353,
+      "viable_bots_count": 10
+    },
+    {
+      "lab_id": "c758b7af-bf9a-49e1-83a3-dc0ad7e4f71a",
+      "lab_name": "0 - ADX BB STOCH Scalper - 2 years BNB - alpha test",
+      "total_backtests": 10,
+      "best_roi": 1958.4059,
+      "best_win_rate": 0.47714808043875684,
+      "viable_bots_count": 0
+    },
+    {
+      "lab_id": "c97c0bbd-28f7-4dcd-8842-1cbd9448601e",
+      "lab_name": "1 - ADX BB STOCH Scalper -beta - 3 years ETH (1w/5min/4hrs)",
+      "total_backtests": 10,
+      "best_roi": 2504.5809,
+      "best_win_rate": 0.5177865612648221,
+      "viable_bots_count": 9
+    },
+    {
+      "lab_id": "55b45ee4-9cc5-42f7-8556-4c3aa2b13a44",
+      "lab_name": "0 - ADX BB STOCH Scalper - 2 years ETH - alpha test",
+      "total_backtests": 10,
+      "best_roi": 1283.4564,
+      "best_win_rate": 0.49044585987261147,
+      "viable_bots_count": 4
+    },
+    {
+      "lab_id": "9653fe9a-3614-4591-b4e3-e9a457b10325",
+      "lab_name": "0 - ADX BB STOCH Scalper - 2 years UNI - alpha test - Data Interval 20 minute",
+      "total_backtests": 2,
+      "best_roi": 98.3772,
+      "best_win_rate": 1.0,
+      "viable_bots_count": 0
+    },
+    {
+      "lab_id": "6ca592b5-33b9-4ec3-a6c9-b306337d91a0",
+      "lab_name": "0 - ADX BB STOCH Scalper - 2 years BTC - alpha test - Data Interval 20 minute",
+      "total_backtests": 2,
+      "best_roi": 1410.0459,
+      "best_win_rate": 0.5684210526315789,
+      "viable_bots_count": 2
+    },
+    {
+      "lab_id": "e4616b35-8065-4095-966b-546de68fd493",
+      "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years UNI - beta - Data Interval 20/30",
+      "total_backtests": 10,
+      "best_roi": 1874.812,
+      "best_win_rate": 0.6491228070175439,
+      "viable_bots_count": 10
+    },
+    {
+      "lab_id": "170d6fd2-35f8-4d40-81b6-956d987a59b8",
+      "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years Gala - alpha test - Data Interval 20 minute",
+      "total_backtests": 10,
+      "best_roi": 2375.5694,
+      "best_win_rate": 0.5766871165644172,
+      "viable_bots_count": 7
+    },
+    {
+      "lab_id": "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+      "lab_name": "1 - ADX BB STOCH Scalper - 2 years BTC - beta - Data Interval 20 minute -",
+      "total_backtests": 10,
+      "best_roi": 3677.9898,
+      "best_win_rate": 0.5591715976331361,
+      "viable_bots_count": 10
+    },
+    {
+      "lab_id": "972327cc-0c12-400d-a370-f34699917cb2",
+      "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years SOL - beta",
+      "total_backtests": 10,
+      "best_roi": 426.2907,
+      "best_win_rate": 1.0,
+      "viable_bots_count": 10
+    },
+    {
+      "lab_id": "cf9c7894-8081-4179-8253-2ffa0982b468",
+      "lab_name": "0 - ADX BB STOCH Scalper - 3 years XRP - 1hr/3hr/3d",
+      "total_backtests": 10,
+      "best_roi": 1600.0699,
+      "best_win_rate": 0.6923076923076923,
+      "viable_bots_count": 10
+    },
+    {
+      "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+      "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years ADA - beta - Data Interval 20/20/4 -",
+      "total_backtests": 10,
+      "best_roi": 4006.1339,
+      "best_win_rate": 0.6139240506329114,
+      "viable_bots_count": 10
+    },
+    {
+      "lab_id": "6e04e13c-1a12-4759-b037-b6997f830edf",
+      "lab_name": "0 - ADX BB STOCH Scalper - 1 month ]UNI - TEST ZERO",
+      "total_backtests": 7,
+      "best_roi": 50.5465,
+      "best_win_rate": 1.0,
+      "viable_bots_count": 0
+    },
+    {
+      "lab_id": "bc37e21d-ae13-47cc-859c-41954e15be5e",
+      "lab_name": "0 - ADX BB STOCH Scalper - 2 years XRP - alpha test",
+      "total_backtests": 8,
+      "best_roi": 462.1582,
+      "best_win_rate": 0.7,
+      "viable_bots_count": 6
+    }
+  ]
+}

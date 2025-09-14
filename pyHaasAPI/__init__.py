@@ -14,8 +14,12 @@ from .parameter_handler import ParameterHandler
 # Import new analysis functionality
 from .analysis import (
     BacktestAnalysis, BotCreationResult, LabAnalysisResult,
-    UnifiedCacheManager, HaasAnalyzer
+    UnifiedCacheManager, HaasAnalyzer,
+    WFOAnalyzer, WFOConfig, WFOMode, WFOResult, WFOAnalysisResult
 )
+
+# Import backtest management functionality
+from .backtest_manager import BacktestManager, BacktestExecutionResult, BacktestValidationResult
 
 # Import CLI functionality
 from .cli import simple_cli_main
@@ -28,6 +32,10 @@ __all__ = [
     # New analysis functionality
     "BacktestAnalysis", "BotCreationResult", "LabAnalysisResult",
     "UnifiedCacheManager", "HaasAnalyzer",
+    # Walk Forward Optimization
+    "WFOAnalyzer", "WFOConfig", "WFOMode", "WFOResult", "WFOAnalysisResult",
+    # Backtest management
+    "BacktestManager", "BacktestExecutionResult", "BacktestValidationResult",
     # CLI functionality
     "simple_cli_main"
 ]

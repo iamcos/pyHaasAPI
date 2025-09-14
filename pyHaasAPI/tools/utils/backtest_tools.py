@@ -3,6 +3,7 @@ import os
 from config import settings
 from pyHaasAPI import api
 from pyHaasAPI.model import GetBacktestResultRequest, LabBacktestSummary
+from .backtest_fetcher import BacktestFetcher, BacktestFetchConfig
 
 def extract_chart_datapoints(filepath: str, indicator_name: str) -> dict:
     """
@@ -60,13 +61,10 @@ def get_full_backtest_data(executor, lab_id: str, backtest_id: str) -> dict:
     """
     consolidated_data = {}
     try:
-        # Get basic backtest result item
-        # Note: get_backtest_result is paginated, so we need to fetch the specific item
-        # For simplicity, we'll re-fetch the page and find the item.
-        # In a real scenario, you might pass the item directly or optimize this.
-        req = GetBacktestResultRequest(lab_id=lab_id, next_page_id=0, page_lenght=100) # Assuming it's on the first page
-        backtest_results_page = api.get_backtest_result(executor, req)
-        item = next((i for i in backtest_results_page.items if i.backtest_id == backtest_id), None)
+        # Get basic backtest result item using centralized fetcher
+        fetcher = BacktestFetcher(executor, BacktestFetchConfig(page_size=100))
+        all_backtests = fetcher.fetch_all_backtests(lab_id)
+        item = next((i for i in all_backtests if i.backtest_id == backtest_id), None)
 
         if not item:
             print(f"Error: Backtest {backtest_id} not found in lab {lab_id}.")

@@ -14,8 +14,9 @@ from dataclasses import asdict
 
 from .. import api
 from ..api import get_full_backtest_runtime_data
-from ..model import GetBacktestResultRequest, AddBotFromLabRequest
-from .models import BacktestAnalysis, BotCreationResult, LabAnalysisResult
+from ..model import AddBotFromLabRequest
+from ..tools.utils import BacktestFetcher, BacktestFetchConfig
+from .models import BacktestAnalysis, BotCreationResult, LabAnalysisResult, DrawdownAnalysis
 from .cache import UnifiedCacheManager
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,9 @@ class HaasAnalyzer:
             
             # Initialize analysis
             analysis_data = {
-                'roi_percentage': 0.0,
+                'roi_percentage': 0.0,  # ROI from lab data
+                'calculated_roi_percentage': 0.0,  # ROI calculated from trades
+                'roi_difference': 0.0,  # Difference between lab and calculated ROI
                 'win_rate': 0.0,
                 'total_trades': 0,
                 'max_drawdown': 0.0,
@@ -138,6 +141,18 @@ class HaasAnalyzer:
                 if analysis_data['realized_profits_usdt'] > 0:
                     analysis_data['profit_factor'] = analysis_data['realized_profits_usdt'] / abs(analysis_data['max_drawdown']) if analysis_data['max_drawdown'] != 0 else 0.0
             
+            # Calculate ROI from trades data
+            calculated_roi = self._calculate_roi_from_trades(runtime_data)
+            analysis_data['calculated_roi_percentage'] = calculated_roi
+            analysis_data['roi_difference'] = abs(analysis_data['roi_percentage'] - calculated_roi)
+            
+            # Analyze drawdowns from balance history
+            drawdown_analysis = self._analyze_drawdowns_from_balance_history(runtime_data)
+            
+            # Extract balance information
+            balance_info = self._extract_balance_information(runtime_data)
+            analysis_data.update(balance_info)
+            
             # Create analysis object
             analysis = BacktestAnalysis(
                 backtest_id=backtest_id,
@@ -148,14 +163,20 @@ class HaasAnalyzer:
                 script_id=script_id,
                 script_name=script_name,
                 roi_percentage=analysis_data['roi_percentage'],
+                calculated_roi_percentage=analysis_data['calculated_roi_percentage'],
+                roi_difference=analysis_data['roi_difference'],
                 win_rate=analysis_data['win_rate'],
                 total_trades=analysis_data['total_trades'],
                 max_drawdown=analysis_data['max_drawdown'],
                 realized_profits_usdt=analysis_data['realized_profits_usdt'],
                 pc_value=analysis_data['pc_value'],
+                drawdown_analysis=drawdown_analysis,
                 avg_profit_per_trade=analysis_data['avg_profit_per_trade'],
                 profit_factor=analysis_data['profit_factor'],
                 sharpe_ratio=analysis_data['sharpe_ratio'],
+                starting_balance=analysis_data['starting_balance'],
+                final_balance=analysis_data['final_balance'],
+                peak_balance=analysis_data['peak_balance'],
                 analysis_timestamp=datetime.now().isoformat()
             )
             
@@ -164,7 +185,13 @@ class HaasAnalyzer:
             cache_data['runtime_data'] = runtime_data.model_dump() if hasattr(runtime_data, 'model_dump') else str(runtime_data)
             self.cache_manager.cache_backtest_data(lab_id, backtest_id, cache_data)
             
-            logger.info(f"✅ Analysis complete: ROI={analysis.roi_percentage:.2f}%, Win Rate={analysis.win_rate:.1%}, Trades={analysis.total_trades}")
+            # Enhanced logging with drawdown details
+            drawdown_info = ""
+            if analysis.drawdown_analysis:
+                dd = analysis.drawdown_analysis
+                drawdown_info = f", DD Count={dd.drawdown_count}, Lowest={dd.lowest_balance:.1f}"
+            
+            logger.info(f"✅ Analysis complete: Lab ROI={analysis.roi_percentage:.2f}%, ROE={analysis.calculated_roi_percentage:.2f}%, Win Rate={analysis.win_rate:.1%}, Max DD={analysis.max_drawdown:.1f}%, Trades={analysis.total_trades}, Balance: {analysis.starting_balance:.0f}→{analysis.final_balance:.0f} USDT{drawdown_info}")
             return analysis
             
         except Exception as e:
@@ -173,6 +200,17 @@ class HaasAnalyzer:
     
     def _create_analysis_from_cache(self, cached_data: Dict[str, Any], lab_id: str, backtest_obj) -> BacktestAnalysis:
         """Create analysis from cached data"""
+        
+        # Extract balance information from runtime_data in cache
+        balance_info = {
+            'starting_balance': 0.0,
+            'final_balance': 0.0,
+            'peak_balance': 0.0
+        }
+        
+        if 'runtime_data' in cached_data:
+            balance_info = self._extract_balance_information(cached_data['runtime_data'])
+        
         return BacktestAnalysis(
             backtest_id=cached_data['backtest_id'],
             lab_id=lab_id,
@@ -182,6 +220,8 @@ class HaasAnalyzer:
             script_id=cached_data['script_id'],
             script_name=cached_data['script_name'],
             roi_percentage=cached_data['roi_percentage'],
+            calculated_roi_percentage=cached_data.get('calculated_roi_percentage', 0.0),
+            roi_difference=cached_data.get('roi_difference', 0.0),
             win_rate=cached_data['win_rate'],
             total_trades=cached_data['total_trades'],
             max_drawdown=cached_data['max_drawdown'],
@@ -190,7 +230,264 @@ class HaasAnalyzer:
             avg_profit_per_trade=cached_data['avg_profit_per_trade'],
             profit_factor=cached_data['profit_factor'],
             sharpe_ratio=cached_data['sharpe_ratio'],
+            starting_balance=balance_info['starting_balance'],
+            final_balance=balance_info['final_balance'],
+            peak_balance=balance_info['peak_balance'],
             analysis_timestamp=cached_data['analysis_timestamp']
+        )
+    
+    def _calculate_roi_from_trades(self, runtime_data) -> float:
+        """Calculate ROI from individual trades data"""
+        try:
+            # Extract trades from runtime data
+            trades = self._extract_trades_from_runtime_data(runtime_data)
+            if not trades:
+                logger.warning("No trades found in runtime data for ROI calculation")
+                return 0.0
+            
+            # Calculate total profit/loss from trades
+            total_profit = 0.0
+            total_investment = 0.0
+            
+            for trade in trades:
+                # Get trade profit/loss (net after fees)
+                trade_profit = trade.get('net_profit', trade.get('profit_loss', 0.0))
+                trade_amount = trade.get('trade_amount', trade.get('margin', 0.0))
+                
+                total_profit += trade_profit
+                total_investment += trade_amount
+            
+            # Calculate ROI percentage
+            if total_investment > 0:
+                roi_percentage = (total_profit / total_investment) * 100
+                logger.debug(f"Calculated ROI from {len(trades)} trades: {roi_percentage:.2f}%")
+                return roi_percentage
+            else:
+                logger.warning("Total investment is 0, cannot calculate ROI")
+                return 0.0
+                
+        except Exception as e:
+            logger.error(f"Error calculating ROI from trades: {e}")
+            return 0.0
+    
+    def _extract_trades_from_runtime_data(self, runtime_data) -> List[Dict[str, Any]]:
+        """Extract trades from runtime data - handles both dict and object formats"""
+        trades = []
+        
+        try:
+            # Handle dict format (from cached data)
+            if isinstance(runtime_data, dict):
+                # Look for FinishedPositions at the top level of runtime_data
+                finished_positions = runtime_data.get('FinishedPositions', [])
+                
+                for position in finished_positions:
+                    # Extract trade data from finished position
+                    trade_data = {
+                        'position_id': position.get('g', ''),
+                        'profit_loss': position.get('rp', 0.0),  # Realized profit
+                        'fees': position.get('fe', 0.0),  # Total fees for position
+                        'trade_amount': 0.0,  # Will be calculated from entry orders
+                        'net_profit': 0.0  # Will be calculated
+                    }
+                    
+                    # Get trade amount from entry orders (eno)
+                    entry_orders = position.get('eno', [])
+                    if entry_orders:
+                        # Sum up all entry order margins
+                        total_margin = sum(order.get('m', 0.0) for order in entry_orders)
+                        trade_data['trade_amount'] = total_margin
+                    
+                    # Calculate net profit (profit - fees)
+                    trade_data['net_profit'] = trade_data['profit_loss'] - trade_data['fees']
+                    
+                    # Only include trades with actual activity
+                    if trade_data['trade_amount'] > 0 or trade_data['profit_loss'] != 0:
+                        trades.append(trade_data)
+            
+            # Handle object format (from API)
+            else:
+                # Look for positions in runtime data
+                if hasattr(runtime_data, 'Positions') and runtime_data.Positions:
+                    for position_id, position in runtime_data.Positions.items():
+                        # Extract trade data from position
+                        trade_data = {
+                            'position_id': position_id,
+                            'profit_loss': getattr(position, 'rp', 0.0),  # Realized profit
+                            'fees': getattr(position, 'fe', 0.0),  # Fees
+                            'trade_amount': getattr(position, 'm', 0.0),  # Margin/trade amount
+                            'net_profit': 0.0  # Will be calculated
+                        }
+                        
+                        # Calculate net profit (profit - fees)
+                        trade_data['net_profit'] = trade_data['profit_loss'] - trade_data['fees']
+                        
+                        trades.append(trade_data)
+                
+                # Alternative: look for trades in different structure
+                elif hasattr(runtime_data, 'trades') and runtime_data.trades:
+                    for trade in runtime_data.trades:
+                        trade_data = {
+                            'position_id': getattr(trade, 'id', ''),
+                            'profit_loss': getattr(trade, 'profit', 0.0),
+                            'fees': getattr(trade, 'fees', 0.0),
+                            'trade_amount': getattr(trade, 'amount', 0.0),
+                            'net_profit': 0.0
+                        }
+                        trade_data['net_profit'] = trade_data['profit_loss'] - trade_data['fees']
+                        trades.append(trade_data)
+            
+            logger.debug(f"Extracted {len(trades)} trades from runtime data")
+            
+        except Exception as e:
+            logger.error(f"Error extracting trades from runtime data: {e}")
+        
+        return trades
+    
+    def _analyze_drawdowns_from_balance_history(self, runtime_data) -> Optional[DrawdownAnalysis]:
+        """Analyze drawdowns from balance history (RPH array)"""
+        try:
+            # Handle dict format (from cached data)
+            if isinstance(runtime_data, dict):
+                # Look for balance history in Reports section
+                reports = runtime_data.get('Reports', {})
+                for report_key, report_data in reports.items():
+                    pr_data = report_data.get('PR', {})
+                    balance_history = pr_data.get('RPH', [])  # Realized Profit History
+                    
+                    if balance_history:
+                        return self._calculate_drawdown_analysis(balance_history)
+            
+            # Handle object format (from API)
+            else:
+                if hasattr(runtime_data, 'Reports') and runtime_data.Reports:
+                    report_key = list(runtime_data.Reports.keys())[0]
+                    report_data = runtime_data.Reports[report_key]
+                    
+                    if hasattr(report_data, 'PR'):
+                        pr_data = report_data.PR
+                        if hasattr(pr_data, 'RPH'):
+                            balance_history = pr_data.RPH
+                            return self._calculate_drawdown_analysis(balance_history)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error analyzing drawdowns: {e}")
+            return None
+    
+    def _extract_balance_information(self, runtime_data) -> Dict[str, float]:
+        """Extract balance information from runtime data"""
+        try:
+            balance_info = {
+                'starting_balance': 0.0,
+                'final_balance': 0.0,
+                'peak_balance': 0.0
+            }
+            
+            # Handle dict format (from cached data)
+            if isinstance(runtime_data, dict):
+                reports = runtime_data.get('Reports', {})
+                for report_key, report_data in reports.items():
+                    pr_data = report_data.get('PR', {})
+                    
+                    # Get starting balance (SB field)
+                    starting_balance = pr_data.get('SB', 0.0)
+                    
+                    # Get RPH (Realized Profit History)
+                    rph_data = pr_data.get('RPH', [])
+                    
+                    if rph_data and starting_balance > 0:
+                        # Calculate real account balances
+                        starting_balance_real = starting_balance
+                        final_profit = rph_data[-1] if rph_data else 0.0
+                        peak_profit = max(rph_data) if rph_data else 0.0
+                        
+                        balance_info['starting_balance'] = starting_balance_real
+                        balance_info['final_balance'] = starting_balance_real + final_profit
+                        balance_info['peak_balance'] = starting_balance_real + peak_profit
+                        
+                        logger.debug(f"Balance info: Start={starting_balance_real:.2f}, Final={balance_info['final_balance']:.2f}, Peak={balance_info['peak_balance']:.2f}")
+                        break
+            
+            # Handle object format (from API)
+            else:
+                if hasattr(runtime_data, 'Reports') and runtime_data.Reports:
+                    report_key = list(runtime_data.Reports.keys())[0]
+                    report_data = runtime_data.Reports[report_key]
+                    
+                    if hasattr(report_data, 'PR'):
+                        pr_data = report_data.PR
+                        starting_balance = getattr(pr_data, 'SB', 0.0)
+                        
+                        if hasattr(pr_data, 'RPH'):
+                            rph_data = pr_data.RPH
+                            if rph_data and starting_balance > 0:
+                                starting_balance_real = starting_balance
+                                final_profit = rph_data[-1] if rph_data else 0.0
+                                peak_profit = max(rph_data) if rph_data else 0.0
+                                
+                                balance_info['starting_balance'] = starting_balance_real
+                                balance_info['final_balance'] = starting_balance_real + final_profit
+                                balance_info['peak_balance'] = starting_balance_real + peak_profit
+            
+            return balance_info
+            
+        except Exception as e:
+            logger.error(f"Error extracting balance information: {e}")
+            return {'starting_balance': 0.0, 'final_balance': 0.0, 'peak_balance': 0.0}
+    
+    def _calculate_drawdown_analysis(self, balance_history: List[float]) -> DrawdownAnalysis:
+        """Calculate comprehensive drawdown analysis from balance history"""
+        from .models import DrawdownEvent, DrawdownAnalysis
+        from datetime import datetime, timedelta
+        
+        if not balance_history:
+            return DrawdownAnalysis(
+                max_drawdown_percentage=0.0,
+                lowest_balance=0.0,
+                drawdown_count=0,
+                drawdown_events=[],
+                balance_history=[]
+            )
+        
+        # Find the lowest balance
+        lowest_balance = min(balance_history)
+        
+        # Calculate max drawdown percentage
+        # Assuming starting balance is 0, so max drawdown is the lowest point
+        max_drawdown_percentage = abs(lowest_balance) if lowest_balance < 0 else 0.0
+        
+        # Count drawdowns (times balance went below zero)
+        drawdown_events = []
+        drawdown_count = 0
+        
+        # Create timestamps (assuming equal intervals - we'll use relative timestamps)
+        start_time = datetime.now() - timedelta(days=len(balance_history))
+        
+        for i, balance in enumerate(balance_history):
+            if balance < 0:  # Below zero = drawdown
+                drawdown_count += 1
+                
+                # Create timestamp (relative to start)
+                timestamp = start_time + timedelta(days=i)
+                
+                # Calculate drawdown amount and percentage
+                drawdown_amount = abs(balance)
+                drawdown_percentage = abs(balance) if balance < 0 else 0.0
+                
+                drawdown_events.append(DrawdownEvent(
+                    timestamp=timestamp.strftime("%d.%m.%y %H:%M"),
+                    balance=balance,
+                    drawdown_amount=drawdown_amount,
+                    drawdown_percentage=drawdown_percentage
+                ))
+        
+        return DrawdownAnalysis(
+            max_drawdown_percentage=max_drawdown_percentage,
+            lowest_balance=lowest_balance,
+            drawdown_count=drawdown_count,
+            drawdown_events=drawdown_events,
+            balance_history=balance_history
         )
     
     def analyze_lab(self, lab_id: str, top_count: int = 5) -> LabAnalysisResult:
@@ -208,18 +505,12 @@ class HaasAnalyzer:
             lab_name = lab.name
             logger.info(f"📊 Lab: {lab_name}")
             
-            # Get backtests
-            request = GetBacktestResultRequest(
-                lab_id=lab_id,
-                next_page_id=0,
-                page_lenght=100
-            )
+            # Get backtests using centralized fetcher
+            fetcher = BacktestFetcher(self.executor, BacktestFetchConfig(page_size=100))
+            backtests = fetcher.fetch_all_backtests(lab_id)
             
-            response = api.get_backtest_result(self.executor, request)
-            if not response or not hasattr(response, 'items'):
+            if not backtests:
                 raise ValueError("No backtests found")
-            
-            backtests = response.items
             total_backtests = len(backtests)
             logger.info(f"📈 Found {total_backtests} backtests")
             

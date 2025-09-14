@@ -9,9 +9,10 @@ from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 
 from pyHaasAPI import api
-from pyHaasAPI.model import CreateLabRequest, StartLabExecutionRequest, CloudMarket, GetBacktestResultRequest
+from pyHaasAPI.model import CreateLabRequest, StartLabExecutionRequest, CloudMarket
 from pyHaasAPI.parameter_handler import ParameterHandler
 from pyHaasAPI.parameters import LabSettings as ParametersLabSettings
+from pyHaasAPI.tools.utils import BacktestFetcher, BacktestFetchConfig
 
 logger = logging.getLogger(__name__)
 
@@ -300,16 +301,9 @@ class LabManager:
             # Get lab details
             lab_details = api.get_lab_details(self.executor, lab_id)
             
-            # Get backtest results
-            backtest_result_obj = api.get_backtest_result(
-                self.executor,
-                api.GetBacktestResultRequest(
-                    lab_id=lab_id,
-                    next_page_id=0,
-                    page_lenght=100
-                )
-            )
-            backtest_results = getattr(backtest_result_obj, 'items', [])
+            # Get backtest results using centralized fetcher
+            fetcher = BacktestFetcher(self.executor, BacktestFetchConfig(page_size=100))
+            backtest_results = fetcher.fetch_all_backtests(lab_id)
             
             if not backtest_results:
                 return {"error": "No backtest results found"}

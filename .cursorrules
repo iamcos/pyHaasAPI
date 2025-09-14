@@ -92,6 +92,8 @@ pyHaasAPI/                         # Repository root
 ├── LICENSE                        # License file
 ├── .cursorrules                   # Development rules (THIS FILE)
 ├── DEVELOPMENT_WORKFLOW.md        # Development guidelines
+├── CLI_DOCUMENTATION.md           # CLI usage documentation
+├── COMPREHENSIVE_SYSTEM_DOCUMENTATION.md # System overview
 ├── env.example                    # Environment template
 ├── pytest.ini                    # Test configuration
 ├── MANIFEST.in                    # Package manifest
@@ -103,7 +105,8 @@ pyHaasAPI/                         # Repository root
 ├── unified_cache/                 # Active cache directory
 └── archive/                       # Archived files (ORGANIZED)
     ├── old_docs/                 # 20 documentation files
-    ├── obsolete_scripts/         # 15 script files
+    ├── obsolete_scripts/         # 28 script files (CLEANED UP)
+    ├── development_tools/        # 19 debug/test scripts (NEW)
     ├── build_scripts/            # 7 build scripts
     ├── config/                   # 3 config files
     ├── cache/                    # 4 old cache directories
@@ -133,6 +136,14 @@ HaasAnalyzer
 - activate_bot(bot_id)               # Activate individual bot
 - list_labs()                        # List all available labs
 
+# Walk Forward Optimization (NEW)
+WFOAnalyzer
+- connect()                          # Connect to HaasOnline API
+- generate_wfo_periods(config)       # Generate WFO periods based on configuration
+- analyze_wfo_period(lab_id, period) # Analyze single WFO period
+- analyze_lab_wfo(lab_id, config)    # Complete WFO analysis on a lab
+- save_wfo_report(result)            # Save WFO analysis report to CSV
+
 # Cache management
 UnifiedCacheManager
 - cache_backtest_data()              # Cache backtest runtime data
@@ -143,6 +154,9 @@ UnifiedCacheManager
 BacktestAnalysis                     # Individual backtest analysis results
 BotCreationResult                    # Bot creation results with configuration
 LabAnalysisResult                    # Complete lab analysis results
+WFOConfig                           # WFO configuration settings
+WFOResult                           # Single WFO period results
+WFOAnalysisResult                   # Complete WFO analysis results
 ```
 
 ### Core API Functions (Complete List)
@@ -235,6 +249,15 @@ api.get_price_data()                 # Get real-time price data
 api.get_historical_data()            # Get historical price data
 ```
 
+#### Walk Forward Optimization (NEW)
+```python
+# WFO analysis functions
+WFOAnalyzer.analyze_lab_wfo()        # Complete WFO analysis
+WFOAnalyzer.generate_wfo_periods()   # Generate WFO periods
+WFOAnalyzer.analyze_wfo_period()     # Analyze single period
+WFOAnalyzer.save_wfo_report()        # Save WFO results to CSV
+```
+
 #### Price Data Models
 ```python
 # PriceData model with structured price information
@@ -278,6 +301,46 @@ AccountManager
 - verify_account_status()            # Verify account status
 - manage_account_assignments()       # Manage bot account assignments
 - distribute_bots_to_accounts()      # Distribute bots across accounts
+```
+
+### Centralized Backtest Fetcher (NEW - CRITICAL)
+
+#### BacktestFetcher
+```python
+# Centralized backtest fetching with proper pagination
+BacktestFetcher
+- fetch_single_page()                 # Fetch single page of results
+- fetch_backtests()                   # Fetch all backtests with pagination
+- fetch_all_backtests()               # Fetch all backtests (convenience)
+- fetch_top_backtests()               # Fetch top N backtests
+- fetch_backtests_generator()         # Generator for memory-efficient processing
+
+# Configuration
+BacktestFetchConfig
+- page_size: int = 100                # Page size for pagination
+- max_retries: int = 3                # Maximum retry attempts
+- retry_delay: float = 1.0            # Delay between retries
+- max_pages: Optional[int] = None     # Maximum pages to fetch
+- timeout: float = 30.0               # Request timeout
+
+# Convenience Functions
+fetch_lab_backtests()                 # Fetch all backtests for a lab
+fetch_top_performers()                # Fetch top performing backtests
+fetch_all_lab_backtests()             # Fetch with common defaults
+backtest_fetcher()                    # Context manager
+```
+
+**CRITICAL: Use BacktestFetcher instead of direct GetBacktestResultRequest calls!**
+
+**Migration Pattern:**
+```python
+# OLD (DON'T USE):
+request = GetBacktestResultRequest(lab_id=lab_id, next_page_id=0, page_lenght=1_000_000)
+response = api.get_backtest_result(executor, request)
+
+# NEW (USE THIS):
+from pyHaasAPI.tools.utils import fetch_all_lab_backtests
+backtests = fetch_all_lab_backtests(executor, lab_id)
 ```
 
 ### Analysis & Data Extraction
@@ -435,6 +498,12 @@ python -m pyHaasAPI.cli.mass_bot_creator --top-count 5 --activate
 python -m pyHaasAPI.cli.mass_bot_creator --exclude-lab-ids lab1,lab2 --min-backtests 50
 python -m pyHaasAPI.cli.mass_bot_creator --lab-ids lab1,lab2 --min-winrate 0.6
 
+# Walk Forward Optimization (NEW):
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31 --training-days 180 --testing-days 60
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31 --mode fixed --step-days 45
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31 --dry-run
+
 # Individual lab analysis:
 python -m pyHaasAPI.cli analyze lab-id --create-count 3 --activate
 python -m pyHaasAPI.cli list-labs
@@ -455,16 +524,42 @@ haas-cli list-labs
 
 ### Programmatic Usage
 ```python
-from pyHaasAPI import HaasAnalyzer, UnifiedCacheManager
+from pyHaasAPI import HaasAnalyzer, UnifiedCacheManager, WFOAnalyzer, WFOConfig, WFOMode
+from pyHaasAPI.tools.utils import BacktestFetcher, BacktestFetchConfig, fetch_all_lab_backtests
 
 # Setup
 cache = UnifiedCacheManager()
 analyzer = HaasAnalyzer(cache)
 analyzer.connect()
 
+# Backtest Fetcher Usage (NEW - PREFERRED)
+# Simple usage
+backtests = fetch_all_lab_backtests(executor, lab_id)
+
+# Advanced usage with configuration
+config = BacktestFetchConfig(page_size=50, max_retries=5)
+fetcher = BacktestFetcher(executor, config)
+backtests = fetcher.fetch_all_backtests(lab_id)
+top_backtests = fetcher.fetch_top_backtests(lab_id, top_count=10)
+
 # Analyze and create bots
 result = analyzer.analyze_lab("lab-id", top_count=5)
 bots = analyzer.create_and_activate_bots(result, create_count=3, activate=True)
+
+# Walk Forward Optimization
+wfo_analyzer = WFOAnalyzer(cache)
+wfo_analyzer.connect()
+
+config = WFOConfig(
+    total_start_date=datetime(2022, 1, 1),
+    total_end_date=datetime(2023, 12, 31),
+    training_duration_days=365,
+    testing_duration_days=90,
+    mode=WFOMode.ROLLING_WINDOW
+)
+
+wfo_result = wfo_analyzer.analyze_lab_wfo("lab-id", config)
+report_path = wfo_analyzer.save_wfo_report(wfo_result)
 ```
 
 ### Advanced Analysis with Custom Filtering
@@ -506,6 +601,38 @@ python -m pyHaasAPI.examples.example_usage
 - Cache expensive operations (backtest data fetching)
 - Provide both programmatic and CLI interfaces
 
+### Authentication Pattern (CRITICAL)
+**NEVER ask about authentication - it's always the same pattern:**
+
+```python
+# Standard authentication pattern for ALL pyHaasAPI scripts:
+from pyHaasAPI import api
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+# Create API connection
+haas_api = api.RequestsExecutor(
+    host='127.0.0.1',
+    port=8090,
+    state=api.Guest()
+)
+
+# Authenticate (handles email/password + OTC internally)
+executor = haas_api.authenticate(
+    os.getenv('API_EMAIL'), 
+    os.getenv('API_PASSWORD')
+)
+```
+
+**Key Points:**
+- Always use environment variables API_EMAIL and API_PASSWORD
+- Always use .venv for Python execution: `source .venv/bin/activate && python script.py`
+- The authenticate() method handles both steps internally
+- Never ask users for credentials interactively
+- This pattern works in ALL CLI tools and examples
+
 ### Testing
 - Test with real lab data
 - Verify bot configuration accuracy
@@ -542,6 +669,34 @@ python -m pyHaasAPI.examples.example_usage
 - **Archive**: Categorize by type (old_docs, obsolete_scripts, experimental, etc.)
 
 ## Recent Updates
+
+### v2.5 - Root Directory Cleanup (NEW)
+- ✅ **Professional repository structure** - Clean root directory with only essential files
+- ✅ **Eliminated duplicate scripts** - Archived 32 duplicate scripts that duplicate API/CLI functionality
+- ✅ **Organized archive structure** - Proper categorization of obsolete scripts and development tools
+- ✅ **Removed generated files** - Cleaned up 15+ temporary JSON/PNG/TXT files
+- ✅ **Updated documentation** - Comprehensive cleanup documentation and usage guidance
+- ✅ **Improved developer experience** - Clear guidance on which tools to use
+
+### v2.4 - Centralized Backtest Fetcher (NEW)
+- ✅ **BacktestFetcher class** - Centralized backtest fetching with proper pagination
+- ✅ **Eliminated page_lenght=1_000_000** - Fixed anti-pattern across 20+ files
+- ✅ **Proper pagination handling** - Configurable page sizes and retry logic
+- ✅ **Error handling & retry logic** - Built-in retry mechanism with configurable delays
+- ✅ **Convenience functions** - Simple API for common use cases
+- ✅ **Memory-efficient processing** - Generator support for large datasets
+- ✅ **Backward compatibility** - No breaking changes to existing code
+- ✅ **Comprehensive documentation** - Updated cursor rules and API docs
+
+### v2.3 - Walk Forward Optimization (WFO) System
+- ✅ **Complete WFO implementation** - Comprehensive Walk Forward Optimization analysis
+- ✅ **Multiple WFO modes** - Rolling, fixed, and expanding window optimization
+- ✅ **Advanced period generation** - Configurable training/testing periods and step sizes
+- ✅ **Performance stability analysis** - Stability scoring and trend analysis
+- ✅ **Out-of-sample testing** - Simulated performance validation
+- ✅ **WFO CLI tool** - Command-line interface for WFO analysis
+- ✅ **CSV reporting** - Detailed WFO results export
+- ✅ **Optional dependencies** - Graceful handling of pandas/numpy requirements
 
 ### v2.2 - Mass Bot Creation & Advanced Management
 - ✅ **Mass bot creation tool** - Create bots for all labs with advanced filtering
@@ -595,3 +750,4 @@ python -m pyHaasAPI.examples.example_usage
 - Portfolio optimization
 - Real-time monitoring
 - Automated rebalancing
+

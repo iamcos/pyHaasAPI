@@ -41,9 +41,8 @@ def extract_balance_data(data: dict) -> tuple:
     peak_balance = 10000.0
     
     try:
-        # Try to extract from runtime data Reports section
-        runtime_data = data.get('runtime_data', {})
-        reports = runtime_data.get('Reports', {})
+        # Try to extract from Reports section (at top level in cached data)
+        reports = data.get('Reports', {})
         
         # Find the first report (there's usually only one)
         if reports:
@@ -103,65 +102,32 @@ def calculate_final_balance_from_trades(trades: list, starting_balance: float) -
 
 
 def load_cached_lab_data(lab_id: str, cache_manager: UnifiedCacheManager) -> list:
-    """Load all cached backtest data for a specific lab"""
+    """Load all cached backtest data for a specific lab using the proper analyzer"""
     
-    cache_dir = cache_manager.base_dir / "backtests"
-    backtests = []
-    
-    # Find all cached files for this lab
-    pattern = f"{lab_id}_*.json"
-    cached_files = list(cache_dir.glob(pattern))
-    
-    logger.info(f"Found {len(cached_files)} cached backtests for lab {lab_id}")
-    
-    for file_path in cached_files:
-        try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
+    try:
+        # Use the main analyzer which has proper extraction logic
+        from pyHaasAPI import HaasAnalyzer
+        
+        analyzer = HaasAnalyzer(cache_manager)
+        
+        # Connect to API (required for analyzer)
+        if not analyzer.connect():
+            logger.error("Failed to connect to API for analysis")
+            return []
+        
+        # Use the analyzer's analyze_lab method which properly extracts data
+        result = analyzer.analyze_lab(lab_id, top_count=1000)  # Get all backtests
+        
+        if result and result.top_backtests:
+            logger.info(f"Successfully analyzed {len(result.top_backtests)} backtests using main analyzer")
+            return result.top_backtests
+        else:
+            logger.warning(f"No backtests found for lab {lab_id}")
+            return []
             
-            # Extract backtest ID from filename
-            backtest_id = file_path.stem.split('_', 1)[1]
-            
-            # Create BacktestAnalysis object from cached data
-            roi_percentage = data.get('roi_percentage', 0.0)
-            calculated_roi_percentage = data.get('calculated_roi_percentage', roi_percentage)
-            roi_difference = calculated_roi_percentage - roi_percentage
-            
-            # Extract balance information from runtime data
-            starting_balance, final_balance, peak_balance = extract_balance_data(data)
-            
-            backtest_analysis = BacktestAnalysis(
-                backtest_id=backtest_id,
-                lab_id=lab_id,
-                generation_idx=data.get('generation_idx'),
-                population_idx=data.get('population_idx'),
-                market_tag=data.get('market_tag', 'UNKNOWN'),
-                script_id=data.get('script_id', ''),
-                script_name=data.get('script_name', 'Unknown Script'),
-                roi_percentage=roi_percentage,
-                calculated_roi_percentage=calculated_roi_percentage,
-                roi_difference=roi_difference,
-                win_rate=data.get('win_rate', 0.0),
-                total_trades=data.get('total_trades', 0),
-                max_drawdown=data.get('max_drawdown', 0.0),
-                realized_profits_usdt=data.get('realized_profits_usdt', 0.0),
-                pc_value=data.get('pc_value', 0.0),
-                avg_profit_per_trade=data.get('avg_profit_per_trade', 0.0),
-                profit_factor=data.get('profit_factor', 0.0),
-                sharpe_ratio=data.get('sharpe_ratio', 0.0),
-                starting_balance=starting_balance,
-                final_balance=final_balance,
-                peak_balance=peak_balance,
-                analysis_timestamp=datetime.now().isoformat()
-            )
-            
-            backtests.append(backtest_analysis)
-            
-        except Exception as e:
-            logger.warning(f"Failed to load cached data from {file_path}: {e}")
-            continue
-    
-    return backtests
+    except Exception as e:
+        logger.error(f"Error using main analyzer: {e}")
+        return []
 
 
 def get_available_lab_ids(cache_manager: UnifiedCacheManager) -> list:

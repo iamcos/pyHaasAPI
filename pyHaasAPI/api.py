@@ -266,8 +266,8 @@ class RequestsExecutor(Generic[State]):
             f"[{self.state.__class__.__name__}]: Requesting {url=} with {query_params=}"
         )
         #To debug uncomment these lines.
-        print(f"Request URL: {url}")
-        print(f"Request Params: {query_params}")
+        # print(f"Request URL: {url}")
+        # print(f"Request Params: {query_params}")
         
         # Determine if we need to use POST method
         use_post = query_params.pop("use_post", False) if query_params else False
@@ -608,6 +608,8 @@ def get_lab_details(
         query_params={
             "channel": "GET_LAB_DETAILS",
             "labid": lab_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
         },
     )
 
@@ -729,8 +731,8 @@ def update_lab_details(
         log.error(f"Error making POST request: {e}")
         return get_lab_details(executor, lab_details.lab_id)
 
-    if not response or not response.Success:
-        log.error(f"Failed to update lab details: {response.Error if response else 'No response'}")
+    if not response_data or not response_data.get('Success', False):
+        log.error(f"Failed to update lab details: {response_data.get('Error', 'No response') if response_data else 'No response'}")
         # Get current state after failed update
         return get_lab_details(executor, lab_details.lab_id)
 
@@ -759,6 +761,8 @@ def cancel_lab_execution(
         query_params={
             "channel": "CANCEL_LAB_EXECUTION",
             "labId": lab_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
         },
     )
 
@@ -786,6 +790,8 @@ def get_lab_execution_update(
         query_params={
             "channel": "GET_LAB_EXECUTION_UPDATE",
             "labId": lab_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
         },
     )
 
@@ -941,6 +947,8 @@ def get_backtest_runtime(executor: SyncExecutor[Authenticated], lab_id: str, bac
             "channel": "GET_BACKTEST_RUNTIME",
             "labid": lab_id,
             "backtestid": backtest_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
         },
     )
 
@@ -1018,6 +1026,8 @@ def get_backtest_chart(executor: SyncExecutor[Authenticated], lab_id: str, backt
             "channel": "GET_BACKTEST_CHART",
             "labid": lab_id,
             "backtestid": backtest_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
         },
     )
 
@@ -1044,8 +1054,391 @@ def get_backtest_log(executor: SyncExecutor[Authenticated], lab_id: str, backtes
             "channel": "GET_BACKTEST_LOG",
             "labid": lab_id,
             "backtestid": backtest_id,
+            "interfacekey": getattr(executor.state, 'interface_key', None),
+            "userid": getattr(executor.state, 'user_id', None),
         },
     )
+
+
+# Direct Backtest Execution API Functions
+def get_script_record(
+    executor: SyncExecutor[Authenticated], 
+    request: "GetScriptRecordRequest"
+) -> dict:
+    """
+    Get script record with parameters using GET_SCRIPT_RECORD channel
+    """
+    import requests
+    
+    interface_key = getattr(executor.state, 'interface_key', None)
+    user_id = getattr(executor.state, 'user_id', None)
+    
+    url = f"http://{executor.host}:{executor.port}/HaasScriptAPI.php?channel=GET_SCRIPT_RECORD"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,pl;q=0.6,de;q=0.5,fr;q=0.4',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': f'http://{executor.host}:{executor.port}',
+        'Referer': f'http://{executor.host}:{executor.port}/WebEditor/{request.script_id}',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+    
+    # Build form data
+    data = {
+        'scriptid': request.script_id,
+        'interfacekey': interface_key,
+        'userid': user_id
+    }
+    
+    # Convert to form-encoded string
+    form_data = '&'.join([f"{k}={v}" for k, v in data.items()])
+    
+    resp = requests.post(url, headers=headers, data=form_data)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def execute_backtest(
+    executor: SyncExecutor[Authenticated], 
+    request: "ExecuteBacktestRequest"
+) -> dict:
+    """
+    Execute a backtest with bot parameters using EXECUTE_BACKTEST channel
+    
+    This function creates and executes a new backtest with the exact bot parameters.
+    Requires: backtestid (can be new UUID), scriptid, settings JSON, start/end times.
+    """
+    import requests
+    import json
+    
+    interface_key = getattr(executor.state, 'interface_key', None)
+    user_id = getattr(executor.state, 'user_id', None)
+    
+    url = f"http://{executor.host}:{executor.port}/BacktestAPI.php?channel=EXECUTE_BACKTEST"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,pl;q=0.6,de;q=0.5,fr;q=0.4',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': f'http://{executor.host}:{executor.port}',
+        'Referer': f'http://{executor.host}:{executor.port}/WebEditor/{request.script_id}',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+    
+    # Build form data with all required parameters
+    data = {
+        'backtestid': request.backtest_id,
+        'scriptid': request.script_id,
+        'settings': json.dumps(request.settings),  # JSON string
+        'startunix': request.start_unix,
+        'endunix': request.end_unix,
+        'interfacekey': interface_key,
+        'userid': user_id
+    }
+    
+    # Convert to form-encoded string
+    form_data = '&'.join([f"{k}={v}" for k, v in data.items()])
+    
+    resp = requests.post(url, headers=headers, data=form_data)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def build_backtest_settings(
+    bot_data: dict,
+    script_record: dict
+) -> dict:
+    """
+    Build the settings JSON for EXECUTE_BACKTEST from bot data and script record
+    
+    Args:
+        bot_data: Bot data from get_bot() or get_all_bots()
+        script_record: Script record from get_script_record()
+    
+    Returns:
+        dict: Settings JSON for EXECUTE_BACKTEST
+    """
+    import json
+    
+    # Extract script parameters from script record
+    script_parameters = {}
+    if 'Data' in script_record and 'I' in script_record['Data']:
+        for param in script_record['Data']['I']:
+            if 'K' in param and 'V' in param:
+                script_parameters[param['K']] = param['V']
+    
+    # Build settings JSON with proper fallbacks
+    settings = {
+        "botId": bot_data.get('BotId', ''),
+        "botName": bot_data.get('BotName', ''),
+        "accountId": bot_data.get('AccountId', '') or bot_data.get('AccountId', ''),
+        "marketTag": bot_data.get('MarketTag', '') or bot_data.get('Market', ''),
+        "leverage": bot_data.get('Leverage', 0) or 20.0,  # Default to 20x leverage
+        "positionMode": bot_data.get('PositionMode', 0) or 1,  # Default to HEDGE mode
+        "marginMode": bot_data.get('MarginMode', 0) or 0,  # Default to CROSS margin
+        "interval": bot_data.get('Interval', 1) or 15,  # Default to 15 minutes
+        "chartStyle": bot_data.get('ChartStyle', 300) or 300,  # Default chart style
+        "tradeAmount": bot_data.get('TradeAmount', 0.005) or 2000.0,  # Default to $2000 USDT
+        "orderTemplate": bot_data.get('OrderTemplate', 500) or 500,  # Default order template
+        "scriptParameters": script_parameters
+    }
+    
+    return settings
+
+
+def create_backtest_via_lab(
+    executor: SyncExecutor[Authenticated],
+    script_id: str,
+    account_id: str,
+    market_tag: str,
+    start_unix: int,
+    end_unix: int,
+    trade_amount: float = 2000.0,
+    leverage: float = 20.0,
+    position_mode: int = 1,  # HEDGE
+    margin_mode: int = 0,    # CROSS
+    interval: int = 1,
+    send_email: bool = False,
+    tag: Optional[str] = None
+) -> dict:
+    """
+    Create and execute a backtest using temporary lab approach
+    
+    This is the working approach for creating new backtests since EXECUTE_BACKTEST
+    is only for re-executing existing backtests.
+    
+    Returns:
+        dict with lab_id, backtest_id, and execution status
+    """
+    try:
+        from pyHaasAPI.model import CloudMarket, CreateLabRequest, StartLabExecutionRequest
+        
+        # Parse market tag
+        market_parts = market_tag.split('_')
+        if len(market_parts) < 3:
+            raise ValueError(f"Invalid market tag format: {market_tag}")
+        
+        exchange_code = market_parts[0]
+        primary = market_parts[1]
+        secondary = market_parts[2]
+        
+        cloud_market = CloudMarket(
+            C="",  # category
+            PS=exchange_code,  # price_source
+            P=primary,  # primary
+            S=secondary  # secondary
+        )
+        
+        # Create temporary lab
+        lab_name = f"TEMP_BACKTEST_{script_id[:8]}_{primary}_{secondary}"
+        req = CreateLabRequest.with_generated_name(
+            script_id=script_id,
+            account_id=account_id,
+            market=cloud_market,
+            exchange_code=exchange_code,
+            interval=interval,
+            default_price_data_style="CandleStick"
+        )
+        
+        lab = api.create_lab(executor, req)
+        
+        # Execute backtest using the lab
+        execution_request = StartLabExecutionRequest(
+            lab_id=lab.lab_id,
+            start_unix=start_unix,
+            end_unix=end_unix,
+            send_email=send_email
+        )
+        
+        result = api.start_lab_execution(executor, execution_request)
+        
+        return {
+            'success': result.get('Success', False),
+            'error': result.get('Error', ''),
+            'lab_id': lab.lab_id,
+            'data': result.get('Data', {})
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'lab_id': None,
+            'data': {}
+        }
+
+
+def get_backtest_history(
+    executor: SyncExecutor[Authenticated], 
+    request: "BacktestHistoryRequest"
+) -> dict:
+    """
+    Get backtest history using the GET_BACKTEST_HISTORY channel
+    """
+    # Build query parameters
+    query_params = {
+        'channel': 'GET_BACKTEST_HISTORY',
+        'nextpageid': request.offset,  # Use offset as nextpageid
+        'pagelength': request.limit,   # Use limit as pagelength
+    }
+    
+    # Add optional filters
+    if request.script_id:
+        query_params['scriptid'] = request.script_id
+    if request.market_tag:
+        query_params['markettag'] = request.market_tag
+    if request.account_id:
+        query_params['accountid'] = request.account_id
+    if request.start_date:
+        query_params['startdate'] = request.start_date
+    if request.end_date:
+        query_params['enddate'] = request.end_date
+    
+    return executor.execute(
+        endpoint="Backtest",
+        response_type=dict,
+        query_params=query_params
+    )
+
+
+def get_history_status(executor: SyncExecutor[Authenticated]) -> dict:
+    """
+    Get history sync status for all markets
+    
+    Returns:
+        dict: Dictionary with market status information
+    """
+    return executor.execute(
+        endpoint="Backtest",
+        response_type=dict,
+        query_params={"channel": "GET_HISTORY_STATUS"}
+    )
+
+
+def set_history_depth(executor: SyncExecutor[Authenticated], market_tag: str, months: int) -> bool:
+    """
+    Set history depth for a specific market
+    
+    Args:
+        executor: Authenticated executor instance
+        market_tag: Market identifier
+        months: Number of months of history to maintain
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        result = executor.execute(
+            endpoint="Backtest",
+            response_type=dict,
+            query_params={
+                "channel": "SET_HISTORY_DEPTH",
+                "market": market_tag,
+                "months": months
+            }
+        )
+        return result.get('Success', False)
+    except Exception:
+        return False
+
+
+def edit_backtest_tag(
+    executor: SyncExecutor[Authenticated], 
+    request: "EditBacktestTagRequest"
+) -> dict:
+    """
+    Edit backtest tag using the EDIT_BACKTEST_TAG channel
+    """
+    import requests
+    
+    interface_key = getattr(executor.state, 'interface_key', None)
+    user_id = getattr(executor.state, 'user_id', None)
+    
+    url = f"http://{executor.host}:{executor.port}/BacktestAPI.php?channel=EDIT_BACKTEST_TAG"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,pl;q=0.6,de;q=0.5,fr;q=0.4',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': f'http://{executor.host}:{executor.port}',
+        'Referer': f'http://{executor.host}:{executor.port}/',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+    
+    data = {
+        'backtestid': request.backtest_id,
+        'backtesttag': request.tag,
+        'interfacekey': interface_key,
+        'userid': user_id
+    }
+    
+    form_data = '&'.join([f"{k}={v}" for k, v in data.items()])
+    
+    resp = requests.post(url, headers=headers, data=form_data)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def archive_backtest(
+    executor: SyncExecutor[Authenticated], 
+    request: "ArchiveBacktestRequest"
+) -> dict:
+    """
+    Archive backtest using the ARCHIVE_BACKTEST channel
+    """
+    import requests
+    
+    interface_key = getattr(executor.state, 'interface_key', None)
+    user_id = getattr(executor.state, 'user_id', None)
+    
+    url = f"http://{executor.host}:{executor.port}/BacktestAPI.php?channel=ARCHIVE_BACKTEST"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,pl;q=0.6,de;q=0.5,fr;q=0.4',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': f'http://{executor.host}:{executor.port}',
+        'Referer': f'http://{executor.host}:{executor.port}/',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+    
+    data = {
+        'backtestid': request.backtest_id,
+        'archiveresult': str(request.archive_result).lower(),
+        'interfacekey': interface_key,
+        'userid': user_id
+    }
+    
+    form_data = '&'.join([f"{k}={v}" for k, v in data.items()])
+    
+    resp = requests.post(url, headers=headers, data=form_data)
+    resp.raise_for_status()
+    return resp.json()
 
 
 def add_bot(executor: SyncExecutor[Authenticated], req: CreateBotRequest) -> HaasBot:
@@ -1691,8 +2084,6 @@ def get_account_data(executor: SyncExecutor[Authenticated], account_id: str) -> 
         query_params={
             "channel": "GET_ACCOUNT_DATA",
             "accountid": account_id,
-            "userid": getattr(executor.state, 'user_id', None),
-            "interfacekey": getattr(executor.state, 'interface_key', None),
         },
     )
 

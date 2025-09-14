@@ -25,6 +25,7 @@ from pyHaasAPI.model import (
     LabDetails,
     HaasScriptSettings
 )
+from pyHaasAPI.tools.utils import fetch_all_lab_backtests
 from pyHaasAPI.parameters import ParameterRange, ParameterType
 from loguru import logger as log
 
@@ -79,10 +80,15 @@ def backtest(
 
     wait_for_execution(executor, lab_id)
 
-    return api.get_backtest_result(
-        executor,
-        GetBacktestResultRequest(lab_id=lab_id, next_page_id=0, page_lenght=1_000_000),
-    )
+    # Use centralized fetcher instead of direct API call with wrong page_lenght
+    backtests = fetch_all_lab_backtests(executor, lab_id)
+    
+    # Create a PaginatedResponse-like object to maintain compatibility
+    class BacktestResponse:
+        def __init__(self, items):
+            self.items = items
+    
+    return BacktestResponse(backtests)
 
 
 @contextmanager
