@@ -743,6 +743,547 @@ executor = haas_api.authenticate(
 - ✅ **Bot trade amount management tools**
 - ✅ **Account cleanup and management**
 
+## CLI Tools Documentation (COMPREHENSIVE)
+
+### CLI Architecture Overview
+The pyHaasAPI CLI system provides 16 specialized tools for different aspects of trading bot management, analysis, and automation. All tools follow consistent patterns and can be accessed through the unified `main.py` interface or run independently.
+
+### CLI File Structure
+```
+pyHaasAPI/cli/
+├── __init__.py                    # CLI module exports
+├── main.py                        # Unified CLI entry point (254 lines)
+├── analyze_from_cache.py          # Cache analysis with filtering (1068 lines)
+├── mass_bot_creator.py            # Mass bot creation tool (563 lines)
+├── account_cleanup.py             # Account naming cleanup (223 lines)
+├── fix_bot_trade_amounts.py       # Trade amount management (458 lines)
+├── price_tracker.py               # Real-time price tracking (185 lines)
+├── wfo_analyzer.py                # Walk Forward Optimization (265 lines)
+├── simple_cli.py                  # Simplified analysis interface (138 lines)
+├── interactive_analyzer.py        # Interactive analysis tool (524 lines)
+├── cache_labs.py                  # Lab data caching (397 lines)
+├── backtest_manager.py            # Backtest management (395 lines)
+├── robustness_analyzer.py         # Strategy robustness analysis (304 lines)
+├── cached_robustness_analyzer.py  # Cached robustness analysis (459 lines)
+└── visualization_tool.py          # Chart generation (582 lines)
+```
+
+### Core CLI Tools
+
+#### 1. Main CLI Entry Point (`main.py`)
+**Purpose**: Unified command-line interface for all pyHaasAPI operations
+**Key Features**:
+- Single entry point for all CLI functionality
+- Subcommand architecture with argparse
+- Comprehensive help and examples
+- Integration with all specialized tools
+
+**Usage Patterns**:
+```bash
+# Main CLI interface
+python -m pyHaasAPI.cli analyze-cache --generate-lab-reports
+python -m pyHaasAPI.cli mass-bot-creator --top-count 5 --activate
+python -m pyHaasAPI.cli wfo-analyzer --lab-id lab123 --start-date 2022-01-01
+
+# Entry points (after poetry install)
+haas-analyze lab-id --create-count 3 --activate
+haas-cli list-labs
+haas-mass-bot-creator --top-count 5 --activate
+```
+
+**Commands Available**:
+- `analyze` - Analyze lab and create bots
+- `analyze-cache` - Analyze cached lab data with filtering
+- `mass-bot-creator` - Create bots from all qualifying labs
+- `wfo-analyzer` - Walk Forward Optimization analysis
+- `cache-labs` - Cache lab data for analysis
+- `interactive-analyze` - Interactive analysis interface
+- `visualize` - Generate charts and graphs
+- `create-bots-from-analysis` - Create bots from saved analysis
+- `list-labs` - List available labs
+- `complete-workflow` - Complete analysis and bot creation workflow
+
+#### 2. Cache Analysis Tool (`analyze_from_cache.py`) - PRIMARY
+**Purpose**: Analyze cached lab data with advanced filtering and reporting
+**Key Features**:
+- ✅ **Fixed filtering logic** - Realistic criteria (min_winrate=30, min_trades=5)
+- ✅ **Data distribution analysis** - Shows data ranges and statistics
+- ✅ **Script name extraction** - Properly extracts from runtime_data.ScriptName
+- ✅ **Win rate conversion** - Converts decimal to percentage format
+- ✅ **Comprehensive reporting** - JSON, CSV, Markdown output formats
+- ✅ **Cache-only mode** - Works without API connection
+
+**Core Classes**:
+```python
+class CacheAnalyzer:
+    def analyze_all_cached_labs()           # Analyze all cached labs
+    def analyze_cached_lab()                # Analyze single lab
+    def generate_lab_analysis_reports()     # Generate filtered reports
+    def analyze_data_distribution()         # Show data statistics
+    def print_lab_analysis_reports()        # Display results
+    def save_lab_analysis_reports()         # Save to files
+```
+
+**Usage Examples**:
+```bash
+# Show data distribution to understand your data
+python -m pyHaasAPI.cli.analyze_from_cache --show-data-distribution
+
+# Generate reports with realistic criteria
+python -m pyHaasAPI.cli.analyze_from_cache --generate-lab-reports --min-winrate 30 --min-trades 5
+
+# Analyze specific labs with custom criteria
+python -m pyHaasAPI.cli.analyze_from_cache --lab-ids lab1,lab2 --min-winrate 40 --max-trades 200
+
+# Save results for later bot creation
+python -m pyHaasAPI.cli.analyze_from_cache --save-results --sort-by roe
+```
+
+**Filtering Criteria**:
+- `--min-roe` / `--max-roe` - ROE percentage range (default: 0-∞)
+- `--min-winrate` / `--max-winrate` - Win rate percentage (default: 30-∞)
+- `--min-trades` / `--max-trades` - Number of trades (default: 5-∞)
+- `--sort-by` - Sort by roi, roe, winrate, profit, trades (default: roe)
+
+#### 3. Mass Bot Creator (`mass_bot_creator.py`) - PRIMARY
+**Purpose**: Create bots from all qualifying labs with advanced filtering
+**Key Features**:
+- **Lab filtering** - Include/exclude specific labs, minimum backtest requirements
+- **Win rate filtering** - Set minimum win rate thresholds
+- **Smart trade amounts** - Price-based calculation with intelligent precision
+- **Individual account assignment** - Each bot gets its own account
+- **Standardized configuration** - 20x leverage, HEDGE mode, CROSS margin
+- **Live activation** - Optional immediate activation for live trading
+
+**Core Classes**:
+```python
+class MassBotCreator:
+    def create_bots_from_all_labs()         # Create bots from all labs
+    def analyze_lab_and_create_bots()       # Analyze and create bots for single lab
+    def get_complete_labs()                 # Get labs with sufficient data
+    def create_bot_with_individual_account() # Create bot with account assignment
+```
+
+**Usage Examples**:
+```bash
+# Create top 5 bots from all labs with activation
+python -m pyHaasAPI.cli.mass_bot_creator --top-count 5 --activate
+
+# Advanced filtering - only labs with 100+ backtests and 60%+ win rate
+python -m pyHaasAPI.cli.mass_bot_creator --min-backtests 100 --min-winrate 0.6
+
+# Specific lab targeting
+python -m pyHaasAPI.cli.mass_bot_creator --lab-ids lab1,lab2 --exclude-lab-ids lab3
+
+# Dry run for testing
+python -m pyHaasAPI.cli.mass_bot_creator --dry-run --top-count 3
+```
+
+**Bot Configuration Standards**:
+- **Position Mode**: HEDGE (1) - Always use hedge mode for risk management
+- **Margin Mode**: CROSS (0) - Use cross margin for better capital efficiency
+- **Leverage**: 20x - Standard leverage for futures trading
+- **Trade Amount**: $2,000 USDT (20% of $10,000 account) - Risk management
+- **Account Assignment**: Individual accounts - Each bot gets its own account
+
+#### 4. Account Cleanup Tool (`account_cleanup.py`)
+**Purpose**: Clean up simulated account naming schemes
+**Key Features**:
+- **Pattern recognition** - Finds accounts with "4**-10k" naming pattern
+- **Sequential renaming** - Renames to proper format: [Sim] 4AA-10k, [Sim] 4AB-10k
+- **Preservation** - Maintains account order without deletion
+- **Batch processing** - Handles multiple accounts efficiently
+
+**Core Classes**:
+```python
+class AccountCleanupTool:
+    def cleanup_account_names()             # Main cleanup process
+    def find_accounts_to_rename()           # Find accounts matching pattern
+    def rename_accounts()                   # Perform renaming
+    def verify_cleanup()                    # Verify results
+```
+
+**Usage Examples**:
+```bash
+# Clean up all simulated accounts
+python -m pyHaasAPI.cli.account_cleanup
+
+# Dry run to see what would be renamed
+python -m pyHaasAPI.cli.account_cleanup --dry-run
+```
+
+#### 5. Bot Trade Amount Fixer (`fix_bot_trade_amounts.py`)
+**Purpose**: Update existing bots to use price-based trade amount calculation
+**Key Features**:
+- **Multiple calculation methods** - USDT amount, wallet percentage, price-based
+- **Real-time price data** - Uses current market prices for accurate calculations
+- **Intelligent precision** - Smart rounding for different currencies
+- **Batch processing** - Updates multiple bots efficiently
+- **Verification** - Confirms trade amounts are set correctly
+
+**Core Classes**:
+```python
+class BotTradeAmountFixer:
+    def fix_all_bot_trade_amounts()         # Fix all bots
+    def fix_bot_trade_amount()              # Fix single bot
+    def calculate_trade_amount()            # Calculate proper amount
+    def verify_trade_amounts()              # Verify settings
+```
+
+**Usage Examples**:
+```bash
+# Fix all bots to use $2000 USDT equivalent
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --method usdt --target-amount 2000
+
+# Fix bots to use 20% of wallet balance
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --method wallet --wallet-percentage 20
+
+# Price-based calculation with custom precision
+python -m pyHaasAPI.cli.fix_bot_trade_amounts --method price --target-usdt 2000 --precision 2
+```
+
+#### 6. Price Tracker (`price_tracker.py`)
+**Purpose**: Real-time price data tracking and demonstration
+**Key Features**:
+- **Real-time prices** - Current market prices for various trading pairs
+- **Multiple exchanges** - Supports different exchange formats
+- **Price data models** - Structured price information with bid/ask spreads
+- **Continuous monitoring** - Optional continuous price updates
+
+**Core Classes**:
+```python
+class PriceTracker:
+    def track_prices()                      # Track current prices
+    def get_price_data()                    # Get price for specific market
+    def monitor_prices()                    # Continuous monitoring
+    def display_price_data()                # Display formatted prices
+```
+
+**Usage Examples**:
+```bash
+# Track current prices for specific markets
+python -m pyHaasAPI.cli.price_tracker BTC_USDT_PERPETUAL ETH_USDT_PERPETUAL
+
+# Monitor prices continuously
+python -m pyHaasAPI.cli.price_tracker --continuous --interval 5
+```
+
+#### 7. Walk Forward Optimization (`wfo_analyzer.py`)
+**Purpose**: Walk Forward Optimization analysis for trading strategies
+**Key Features**:
+- **Multiple WFO modes** - Rolling, fixed, and expanding window optimization
+- **Configurable periods** - Training and testing period customization
+- **Performance stability** - Stability scoring and trend analysis
+- **Out-of-sample testing** - Simulated performance validation
+- **CSV reporting** - Detailed WFO results export
+
+**Core Classes**:
+```python
+class WFOAnalyzerCLI:
+    def analyze_lab_wfo()                   # Complete WFO analysis
+    def generate_wfo_periods()              # Generate WFO periods
+    def analyze_wfo_period()                # Analyze single period
+    def save_wfo_report()                   # Save results to CSV
+```
+
+**Usage Examples**:
+```bash
+# Basic WFO analysis
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31
+
+# Advanced WFO with custom periods
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --training-days 180 --testing-days 60
+
+# Fixed window mode with step size
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --mode fixed --step-days 45
+
+# Dry run to see periods
+python -m pyHaasAPI.cli.wfo_analyzer --lab-id lab123 --dry-run
+```
+
+#### 8. Simple CLI (`simple_cli.py`)
+**Purpose**: Simplified analysis interface using integrated pyHaasAPI functionality
+**Key Features**:
+- **Streamlined interface** - Simplified commands for common operations
+- **Integrated analysis** - Uses main analysis classes directly
+- **Quick bot creation** - Fast bot creation workflow
+- **Lab listing** - Simple lab discovery
+
+**Core Functions**:
+```python
+def analyze_lab()                           # Analyze single lab
+def list_labs()                             # List available labs
+def complete_workflow()                     # Complete analysis workflow
+```
+
+**Usage Examples**:
+```bash
+# Analyze lab and create bots
+python -m pyHaasAPI.cli.simple_cli analyze lab-id --create-count 3 --activate
+
+# List all labs
+python -m pyHaasAPI.cli.simple_cli list-labs
+
+# Complete workflow
+python -m pyHaasAPI.cli.simple_cli complete-workflow lab-id --create-count 2 --verify
+```
+
+#### 9. Interactive Analyzer (`interactive_analyzer.py`)
+**Purpose**: Interactive analysis and decision-making interface
+**Key Features**:
+- **Interactive selection** - Choose backtests for bot creation
+- **Detailed metrics** - Comprehensive performance analysis
+- **Visualization** - Charts and graphs for analysis
+- **Comparison tools** - Compare multiple backtests
+- **Selective creation** - Create bots from selected backtests only
+
+**Core Classes**:
+```python
+class InteractiveAnalyzer:
+    def start_interactive_session()         # Start interactive analysis
+    def display_backtest_details()          # Show detailed metrics
+    def compare_backtests()                 # Compare performance
+    def create_selected_bots()              # Create bots from selection
+```
+
+**Usage Examples**:
+```bash
+# Start interactive analysis session
+python -m pyHaasAPI.cli.interactive_analyzer
+
+# Interactive analysis with specific labs
+python -m pyHaasAPI.cli.interactive_analyzer --lab-ids lab1,lab2
+```
+
+#### 10. Cache Labs Tool (`cache_labs.py`)
+**Purpose**: Cache lab data without creating bots
+**Key Features**:
+- **Data collection** - Cache all lab data for analysis
+- **Batch processing** - Process multiple labs efficiently
+- **Refresh capability** - Update existing cache data
+- **Progress tracking** - Monitor caching progress
+
+**Core Classes**:
+```python
+class LabCacheManager:
+    def cache_all_labs()                    # Cache all labs
+    def cache_lab_data()                    # Cache single lab
+    def refresh_cache()                     # Refresh existing cache
+    def get_complete_labs()                 # Get labs with sufficient data
+```
+
+**Usage Examples**:
+```bash
+# Cache all lab data
+python -m pyHaasAPI.cli.cache_labs
+
+# Cache specific labs
+python -m pyHaasAPI.cli.cache_labs --lab-ids lab1,lab2
+
+# Refresh existing cache
+python -m pyHaasAPI.cli.cache_labs --refresh
+```
+
+#### 11. Backtest Manager (`backtest_manager.py`)
+**Purpose**: Comprehensive backtest management
+**Key Features**:
+- **Individual backtests** - Create single backtests for validation
+- **WFO lab creation** - Create labs with multiple time periods
+- **Job monitoring** - Track backtest execution status
+- **Result management** - Manage backtest results
+
+**Core Functions**:
+```python
+def create_individual_backtest()            # Create single backtest
+def create_wfo_lab()                        # Create WFO lab
+def monitor_job_status()                    # Monitor execution
+def manage_results()                        # Manage results
+```
+
+**Usage Examples**:
+```bash
+# Create individual backtest
+python -m pyHaasAPI.cli.backtest_manager create-backtest --script-id script123 --market BTC_USDT
+
+# Create WFO lab
+python -m pyHaasAPI.cli.backtest_manager create-wfo-lab --script-id script123 --periods 12
+
+# Monitor job status
+python -m pyHaasAPI.cli.backtest_manager monitor --job-id job123
+```
+
+#### 12. Robustness Analyzer (`robustness_analyzer.py`)
+**Purpose**: Strategy robustness analysis
+**Key Features**:
+- **Max drawdown analysis** - Wallet protection assessment
+- **Time-based consistency** - Performance stability over time
+- **Risk assessment** - Risk evaluation for bot creation
+- **Comprehensive metrics** - Detailed robustness scoring
+
+**Core Functions**:
+```python
+def analyze_lab_robustness()                # Analyze lab robustness
+def generate_robustness_report()            # Generate report
+def assess_risk_levels()                    # Assess risk levels
+```
+
+**Usage Examples**:
+```bash
+# Analyze lab robustness
+python -m pyHaasAPI.cli.robustness_analyzer --lab-id lab123 --top-count 10
+
+# Generate robustness report
+python -m pyHaasAPI.cli.robustness_analyzer --lab-id lab123 --output-file report.json
+```
+
+#### 13. Cached Robustness Analyzer (`cached_robustness_analyzer.py`)
+**Purpose**: Robustness analysis using cached data
+**Key Features**:
+- **Cache-only operation** - No API connection required
+- **Balance data extraction** - Extract balance information from cached data
+- **Robustness scoring** - Calculate robustness metrics
+- **Report generation** - Generate detailed reports
+
+**Core Functions**:
+```python
+def analyze_cached_lab_robustness()         # Analyze cached lab
+def extract_balance_data()                  # Extract balance data
+def calculate_robustness_metrics()          # Calculate metrics
+```
+
+**Usage Examples**:
+```bash
+# Analyze cached lab robustness
+python -m pyHaasAPI.cli.cached_robustness_analyzer --lab-id lab123
+
+# Generate report from cached data
+python -m pyHaasAPI.cli.cached_robustness_analyzer --lab-id lab123 --output-file report.json
+```
+
+#### 14. Visualization Tool (`visualization_tool.py`)
+**Purpose**: Generate charts and graphs for analysis
+**Key Features**:
+- **Equity curves** - Performance over time
+- **Drawdown charts** - Risk visualization
+- **Performance comparisons** - Compare multiple strategies
+- **Risk-return plots** - Risk vs return analysis
+- **Trade distributions** - Trade statistics visualization
+
+**Core Classes**:
+```python
+class VisualizationTool:
+    def generate_equity_curves()            # Generate equity curves
+    def create_drawdown_charts()            # Create drawdown charts
+    def plot_performance_comparison()       # Compare performance
+    def create_risk_return_plots()          # Risk vs return plots
+```
+
+**Usage Examples**:
+```bash
+# Generate equity curves for lab
+python -m pyHaasAPI.cli.visualization_tool --lab-id lab123 --chart-type equity
+
+# Create performance comparison
+python -m pyHaasAPI.cli.visualization_tool --lab-ids lab1,lab2 --chart-type comparison
+
+# Generate all charts
+python -m pyHaasAPI.cli.visualization_tool --lab-id lab123 --all-charts
+```
+
+### CLI Usage Patterns
+
+#### Primary Workflows
+```bash
+# 1. Complete Analysis and Bot Creation Workflow
+python -m pyHaasAPI.cli cache-labs                                    # Cache all lab data
+python -m pyHaasAPI.cli analyze-cache --show-data-distribution        # Understand your data
+python -m pyHaasAPI.cli analyze-cache --generate-lab-reports          # Generate reports
+python -m pyHaasAPI.cli mass-bot-creator --top-count 5 --activate    # Create and activate bots
+
+# 2. Quick Analysis Workflow
+python -m pyHaasAPI.cli analyze-cache --save-results                  # Analyze and save
+python -m pyHaasAPI.cli create-bots-from-analysis --top-count 3      # Create bots from saved results
+
+# 3. Individual Lab Analysis
+python -m pyHaasAPI.cli analyze lab-id --create-count 3 --activate   # Analyze single lab
+python -m pyHaasAPI.cli wfo-analyzer --lab-id lab-id                 # WFO analysis
+
+# 4. Bot Management
+python -m pyHaasAPI.cli fix-bot-trade-amounts --method usdt --target-amount 2000
+python -m pyHaasAPI.cli account-cleanup                              # Clean up accounts
+```
+
+#### Advanced Usage
+```bash
+# Mass bot creation with filtering
+python -m pyHaasAPI.cli mass-bot-creator --min-backtests 100 --min-winrate 0.6 --exclude-lab-ids lab1,lab2
+
+# WFO analysis with custom periods
+python -m pyHaasAPI.cli wfo-analyzer --lab-id lab123 --training-days 180 --testing-days 60 --mode rolling
+
+# Interactive analysis and selection
+python -m pyHaasAPI.cli interactive-analyzer --lab-ids lab1,lab2,lab3
+
+# Comprehensive visualization
+python -m pyHaasAPI.cli visualization-tool --lab-id lab123 --all-charts --output-dir charts/
+```
+
+### CLI Configuration
+
+#### Environment Variables
+All CLI tools use these environment variables:
+```bash
+API_EMAIL=your_email@example.com          # HaasOnline email
+API_PASSWORD=your_password                # HaasOnline password
+API_HOST=127.0.0.1                        # API host (default: 127.0.0.1)
+API_PORT=8090                             # API port (default: 8090)
+```
+
+#### Authentication Pattern (CRITICAL)
+**NEVER ask about authentication - it's always the same pattern:**
+```python
+# Standard authentication pattern for ALL pyHaasAPI CLI tools:
+from pyHaasAPI import api
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+# Create API connection
+haas_api = api.RequestsExecutor(
+    host='127.0.0.1',
+    port=8090,
+    state=api.Guest()
+)
+
+# Authenticate (handles email/password + OTC internally)
+executor = haas_api.authenticate(
+    os.getenv('API_EMAIL'), 
+    os.getenv('API_PASSWORD')
+)
+```
+
+### CLI Development Guidelines
+
+#### Code Organization
+- **Consistent structure** - All CLI tools follow the same pattern
+- **Error handling** - Comprehensive error handling and logging
+- **Progress tracking** - Show progress for long-running operations
+- **Dry run support** - Support for testing without making changes
+- **Configuration** - Use environment variables for configuration
+
+#### Testing
+- **Test with real data** - Always test with actual lab data
+- **Verify bot configuration** - Ensure bots are configured correctly
+- **Test account assignment** - Verify account assignment works
+- **Test activation workflows** - Ensure activation works properly
+
+#### Documentation
+- **Comprehensive help** - Provide detailed help for all commands
+- **Usage examples** - Include practical examples
+- **Error messages** - Clear, actionable error messages
+- **Progress indicators** - Show progress for long operations
+
 ## Future Enhancements
 - Multi-lab analysis capabilities
 - Advanced performance metrics
