@@ -1,0 +1,197 @@
+{
+  "e4616b35-8065-4095-966b-546de68fd493": {
+    "lab_id": "e4616b35-8065-4095-966b-546de68fd493",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years UNI - beta - Data Interval 20/30",
+    "total_qualifying_bots": 3,
+    "strategy_summaries": [
+      {
+        "strategy_name": "",
+        "trading_pair": "BINANCEFUTURES_UNI_USDT_PERPETUAL",
+        "roe_range": "137.6-174.3%",
+        "winrate_range": "62-72%",
+        "trades_range": "32-72",
+        "bot_count": 3
+      }
+    ]
+  },
+  "bc37e21d-ae13-47cc-859c-41954e15be5e": {
+    "lab_id": "bc37e21d-ae13-47cc-859c-41954e15be5e",
+    "lab_name": "0 - ADX BB STOCH Scalper - 2 years XRP - alpha test",
+    "total_qualifying_bots": 6,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_XRP_USDT_PERPETUAL",
+        "roe_range": "1.5-30.1%",
+        "winrate_range": "56-78%",
+        "trades_range": "5-21",
+        "bot_count": 6
+      }
+    ]
+  },
+  "d26e6ff3-a706-4ae1-89c9-d82d49274a5f": {
+    "lab_id": "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years GALA - beta - Data Interval 20 minute -",
+    "total_qualifying_bots": 4,
+    "strategy_summaries": [
+      {
+        "strategy_name": "",
+        "trading_pair": "BINANCEFUTURES_GALA_USDT_PERPETUAL",
+        "roe_range": "76.3-78.4%",
+        "winrate_range": "56-57%",
+        "trades_range": "272-274",
+        "bot_count": 4
+      }
+    ]
+  },
+  "895b1198-d074-4f49-8c83-654e118df8aa": {
+    "lab_id": "895b1198-d074-4f49-8c83-654e118df8aa",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.9 years BCH - beta - Data Interval 20 minute -",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_BCH_USDT_PERPETUAL",
+        "roe_range": "70.5-70.9%",
+        "winrate_range": "69-69%",
+        "trades_range": "75-77",
+        "bot_count": 10
+      }
+    ]
+  },
+  "972327cc-0c12-400d-a370-f34699917cb2": {
+    "lab_id": "972327cc-0c12-400d-a370-f34699917cb2",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years SOL - beta",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_SOL_USDT_PERPETUAL",
+        "roe_range": "30.4-32.4%",
+        "winrate_range": "100-100%",
+        "trades_range": "5-5",
+        "bot_count": 10
+      }
+    ]
+  },
+  "cf9c7894-8081-4179-8253-2ffa0982b468": {
+    "lab_id": "cf9c7894-8081-4179-8253-2ffa0982b468",
+    "lab_name": "0 - ADX BB STOCH Scalper - 3 years XRP - 1hr/3hr/3d",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_XRP_USDT_PERPETUAL",
+        "roe_range": "53.6-59.8%",
+        "winrate_range": "67-72%",
+        "trades_range": "39-42",
+        "bot_count": 10
+      }
+    ]
+  },
+  "acc505f4-c0ac-43f0-9f15-26081aceb9e2": {
+    "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years ADA - beta - Data Interval 20/20/4 -",
+    "total_qualifying_bots": 7,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ADA_USDT_PERPETUAL",
+        "roe_range": "81.8-83.1%",
+        "winrate_range": "55-63%",
+        "trades_range": "140-262",
+        "bot_count": 7
+      }
+    ]
+  },
+  "7a3e53ad-c116-49f2-8db3-0599d8ecee36": {
+    "lab_id": "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2 years BTC - beta - Data Interval 20 minute -",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_APT_USDT_PERPETUAL",
+        "roe_range": "79.7-81.8%",
+        "winrate_range": "55-57%",
+        "trades_range": "293-364",
+        "bot_count": 10
+      }
+    ]
+  },
+  "c97c0bbd-28f7-4dcd-8842-1cbd9448601e": {
+    "lab_id": "c97c0bbd-28f7-4dcd-8842-1cbd9448601e",
+    "lab_name": "1 - ADX BB STOCH Scalper -beta - 3 years ETH (1w/5min/4hrs)",
+    "total_qualifying_bots": 4,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ETH_USDT_PERPETUAL",
+        "roe_range": "69.9-72.8%",
+        "winrate_range": "55-57%",
+        "trades_range": "181-284",
+        "bot_count": 4
+      }
+    ]
+  },
+  "170d6fd2-35f8-4d40-81b6-956d987a59b8": {
+    "lab_id": "170d6fd2-35f8-4d40-81b6-956d987a59b8",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years Gala - alpha test - Data Interval 20 minute",
+    "total_qualifying_bots": 2,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_GALA_USDT_PERPETUAL",
+        "roe_range": "63.7-70.2%",
+        "winrate_range": "57-58%",
+        "trades_range": "136-163",
+        "bot_count": 2
+      }
+    ]
+  },
+  "6ca592b5-33b9-4ec3-a6c9-b306337d91a0": {
+    "lab_id": "6ca592b5-33b9-4ec3-a6c9-b306337d91a0",
+    "lab_name": "0 - ADX BB STOCH Scalper - 2 years BTC - alpha test - Data Interval 20 minute",
+    "total_qualifying_bots": 1,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_APT_USDT_PERPETUAL",
+        "roe_range": "57.5-57.5%",
+        "winrate_range": "57-57%",
+        "trades_range": "95-95",
+        "bot_count": 1
+      }
+    ]
+  },
+  "44f08a06-2a27-4015-910e-a7fd8cdb25b8": {
+    "lab_id": "44f08a06-2a27-4015-910e-a7fd8cdb25b8",
+    "lab_name": "Lab 44f08a06",
+    "total_qualifying_bots": 4,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_BCH_USDT_PERPETUAL",
+        "roe_range": "51.9-70.1%",
+        "winrate_range": "56-59%",
+        "trades_range": "59-154",
+        "bot_count": 4
+      }
+    ]
+  },
+  "3df1e8b3-5b37-4c40-9221-334047027c4c": {
+    "lab_id": "3df1e8b3-5b37-4c40-9221-334047027c4c",
+    "lab_name": "0 - ADX BB STOCH Scalper - 2 years ADA - alpha test - Data Interval 20 minute",
+    "total_qualifying_bots": 1,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ADA_USDT_PERPETUAL",
+        "roe_range": "63.1-63.1%",
+        "winrate_range": "55-55%",
+        "trades_range": "114-114",
+        "bot_count": 1
+      }
+    ]
+  }
+}

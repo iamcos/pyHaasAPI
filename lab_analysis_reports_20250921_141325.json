@@ -1,0 +1,17 @@
+{
+  "895b1198-d074-4f49-8c83-654e118df8aa": {
+    "lab_id": "895b1198-d074-4f49-8c83-654e118df8aa",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.9 years BCH - beta - Data Interval 20 minute -",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_BCH_USDT_PERPETUAL",
+        "roe_range": "70.5-70.9%",
+        "winrate_range": "69-69%",
+        "trades_range": "75-77",
+        "bot_count": 10
+      }
+    ]
+  }
+}

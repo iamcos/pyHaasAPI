@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Main CLI entry point for pyHaasAPI
+Enhanced Main CLI entry point for pyHaasAPI
 
 This provides a unified command-line interface for all pyHaasAPI operations.
+Now uses the refactored unified tools for better organization and consistency.
 """
 
 import sys
@@ -13,7 +14,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from pyHaasAPI import HaasAnalyzer, UnifiedCacheManager
-from pyHaasAPI.cli.simple_cli import main as simple_cli_main
 
 
 def main():
@@ -23,17 +23,28 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Complete analysis workflow
-  python -m pyHaasAPI.cli cache-labs
-  python -m pyHaasAPI.cli interactive-analyze
-  python -m pyHaasAPI.cli visualize --all-labs
-  python -m pyHaasAPI.cli create-bots-from-analysis --top-count 5 --activate
+  # NEW UNIFIED INTERFACES (RECOMMENDED):
+  # Analysis operations
+  python -m pyHaasAPI.cli analysis cache --show-data-distribution --generate-lab-reports
+  python -m pyHaasAPI.cli analysis interactive
+  python -m pyHaasAPI.cli analysis cache-labs
+  python -m pyHaasAPI.cli analysis wfo --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31
   
-  # Quick analysis and bot creation
-  python -m pyHaasAPI.cli analyze-cache --save-results
-  python -m pyHaasAPI.cli create-bots-from-analysis --top-count 5 --activate
+  # Bot management operations
+  python -m pyHaasAPI.cli bot create --top-count 5 --activate
+  python -m pyHaasAPI.cli bot fix-amounts --method usdt --target-amount 2000
+  python -m pyHaasAPI.cli bot cleanup-accounts
+  python -m pyHaasAPI.cli bot activate --bot-ids bot1,bot2
+  python -m pyHaasAPI.cli bot deactivate --exclude-bot-ids bot3,bot4
   
-  # Traditional workflow
+  # REFACTORED TOOLS (ALSO AVAILABLE):
+  python -m pyHaasAPI.cli analyze_from_cache_refactored --generate-lab-reports
+  python -m pyHaasAPI.cli mass_bot_creator_refactored --top-count 5 --activate
+  python -m pyHaasAPI.cli fix_bot_trade_amounts_refactored --method usdt --target-amount 2000
+  python -m pyHaasAPI.cli account_cleanup_refactored
+  python -m pyHaasAPI.cli price_tracker_refactored BTC_USDT_PERPETUAL
+  
+  # LEGACY TOOLS (STILL WORKING):
   python -m pyHaasAPI.cli analyze lab-id --create-count 3 --activate
   python -m pyHaasAPI.cli list-labs
   python -m pyHaasAPI.cli complete-workflow lab-id --create-count 2 --verify
@@ -42,6 +53,21 @@ Examples:
     
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
+    # NEW UNIFIED COMMANDS (RECOMMENDED)
+    # Analysis operations - these will be handled by the unified CLI directly
+    subparsers.add_parser('analysis', help='Unified analysis operations (cache, interactive, cache-labs, wfo)')
+    
+    # Bot management operations - these will be handled by the unified CLI directly  
+    subparsers.add_parser('bot', help='Unified bot management operations (create, fix-amounts, cleanup-accounts, activate, deactivate)')
+    
+    # REFACTORED TOOLS (ALSO AVAILABLE)
+    subparsers.add_parser('analyze_from_cache_refactored', help='Refactored cache analysis tool')
+    subparsers.add_parser('mass_bot_creator_refactored', help='Refactored mass bot creator')
+    subparsers.add_parser('fix_bot_trade_amounts_refactored', help='Refactored bot trade amount fixer')
+    subparsers.add_parser('account_cleanup_refactored', help='Refactored account cleanup tool')
+    subparsers.add_parser('price_tracker_refactored', help='Refactored price tracker')
+    
+    # LEGACY COMMANDS (STILL WORKING)
     # Analyze command
     analyze_parser = subparsers.add_parser('analyze', help='Analyze lab and create bots')
     analyze_parser.add_argument('lab_id', help='Lab ID to analyze')
@@ -74,6 +100,13 @@ Examples:
     cache_parser.add_argument('--analyze-count', type=int, default=100, help='Number of backtests to analyze per lab (default: 100)')
     cache_parser.add_argument('--refresh', action='store_true', help='Refresh existing cache data')
     
+    # Cache cleanup command
+    cleanup_parser = subparsers.add_parser('cache-cleanup', help='Clean up obsolete lab cache files')
+    cleanup_parser.add_argument('--dry-run', action='store_true', default=True,
+                               help='Show what would be removed without actually removing (default: True)')
+    cleanup_parser.add_argument('--force', action='store_true',
+                               help='Actually remove obsolete cache files (overrides --dry-run)')
+    
     # Analyze from cache command
     analyze_parser = subparsers.add_parser('analyze-cache', help='Analyze cached lab data with detailed results')
     analyze_parser.add_argument('--lab-ids', nargs='+', type=str, help='Analyze only specific lab IDs')
@@ -83,6 +116,8 @@ Examples:
     analyze_parser.add_argument('--generate-lab-reports', action='store_true', help='Generate lab analysis reports with qualifying bots')
     analyze_parser.add_argument('--concise-format', action='store_true', help='Use concise format for lab reports (Strategy, Trading Pair, ROE, WR, Trades, Bots)')
     analyze_parser.add_argument('--comprehensive-summary', action='store_true', help='Generate comprehensive lab summary with all cached labs and real lab names')
+    analyze_parser.add_argument('--strategy-grouped-reports', action='store_true', help='Print report grouped by strategy with lab IDs and stats')
+    analyze_parser.add_argument('--detailed-lab-reports', action='store_true', help='Print detailed per-lab reports incl. names, stats, ROI ranges, and top bots with UIDs')
     analyze_parser.add_argument('--show-data-distribution', action='store_true', help='Show data distribution analysis to help understand your data')
     analyze_parser.add_argument('--min-roe', type=float, default=0, help='Minimum ROE for qualifying bots (default: 0)')
     analyze_parser.add_argument('--max-roe', type=float, help='Maximum ROE for qualifying bots (no default limit)')
@@ -122,7 +157,77 @@ Examples:
         return
     
     try:
-        if args.command == 'analyze':
+        # NEW UNIFIED COMMANDS (RECOMMENDED)
+        if args.command == 'analysis':
+            # Route to unified analysis CLI
+            from pyHaasAPI.cli.analysis_cli import main as analysis_cli_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'analysis'
+            try:
+                return analysis_cli_main()
+            finally:
+                sys.argv = original_argv
+        elif args.command == 'bot':
+            # Route to unified bot management CLI
+            from pyHaasAPI.cli.bot_management_cli import main as bot_mgmt_cli_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'bot'
+            try:
+                return bot_mgmt_cli_main()
+            finally:
+                sys.argv = original_argv
+        
+        # REFACTORED TOOLS (ALSO AVAILABLE)
+        elif args.command == 'analyze_from_cache_refactored':
+            from pyHaasAPI.cli.analyze_from_cache_refactored import main as analyze_cache_refactored_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'analyze_from_cache_refactored'
+            try:
+                return analyze_cache_refactored_main()
+            finally:
+                sys.argv = original_argv
+        elif args.command == 'mass_bot_creator_refactored':
+            from pyHaasAPI.cli.mass_bot_creator_refactored import main as mass_bot_creator_refactored_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'mass_bot_creator_refactored'
+            try:
+                return mass_bot_creator_refactored_main()
+            finally:
+                sys.argv = original_argv
+        elif args.command == 'fix_bot_trade_amounts_refactored':
+            from pyHaasAPI.cli.fix_bot_trade_amounts_refactored import main as fix_bot_trade_amounts_refactored_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'fix_bot_trade_amounts_refactored'
+            try:
+                return fix_bot_trade_amounts_refactored_main()
+            finally:
+                sys.argv = original_argv
+        elif args.command == 'account_cleanup_refactored':
+            from pyHaasAPI.cli.account_cleanup_refactored import main as account_cleanup_refactored_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'account_cleanup_refactored'
+            try:
+                return account_cleanup_refactored_main()
+            finally:
+                sys.argv = original_argv
+        elif args.command == 'price_tracker_refactored':
+            from pyHaasAPI.cli.price_tracker_refactored import main as price_tracker_refactored_main
+            # Modify sys.argv to remove the main command and pass to the tool
+            original_argv = sys.argv[:]
+            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'price_tracker_refactored'
+            try:
+                return price_tracker_refactored_main()
+            finally:
+                sys.argv = original_argv
+        
+        # LEGACY COMMANDS (STILL WORKING)
+        elif args.command == 'analyze':
             simple_cli_main(['analyze', args.lab_id] + 
                           (['--create-count', str(args.create_count)] if args.create_count else []) +
                           (['--activate'] if args.activate else []) +
@@ -168,6 +273,15 @@ Examples:
             if args.refresh:
                 cache_args.append('--refresh')
             cache_labs_main(cache_args)
+        elif args.command == 'cache-cleanup':
+            # Import and run the cache cleanup tool
+            from pyHaasAPI.cli.cache_labs import main as cache_cleanup_main
+            cleanup_args = []
+            if args.force:
+                cleanup_args.append('--force')
+            elif args.dry_run:
+                cleanup_args.append('--dry-run')
+            cache_cleanup_main(cleanup_args)
         elif args.command == 'analyze-cache':
             # Import and run the analyze from cache tool
             from pyHaasAPI.cli.analyze_from_cache import main as analyze_cache_main
@@ -186,6 +300,10 @@ Examples:
                 analyze_args.append('--concise-format')
             if hasattr(args, 'comprehensive_summary') and args.comprehensive_summary:
                 analyze_args.append('--comprehensive-summary')
+            if hasattr(args, 'detailed_lab_reports') and args.detailed_lab_reports:
+                analyze_args.append('--detailed-lab-reports')
+            if hasattr(args, 'strategy_grouped_reports') and args.strategy_grouped_reports:
+                analyze_args.append('--strategy-grouped-reports')
             if hasattr(args, 'min_roe'):
                 analyze_args.extend(['--min-roe', str(args.min_roe)])
             if hasattr(args, 'max_roe') and args.max_roe is not None:
