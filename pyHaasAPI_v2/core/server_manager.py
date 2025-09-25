@@ -48,7 +48,7 @@ class ServerConfig:
 
 
 @dataclass
-class ServerStatus:
+class ServerConnectionStatus:
     """Current status of a server connection"""
     config: ServerConfig
     status: ServerStatus = ServerStatus.DISCONNECTED
@@ -76,7 +76,7 @@ class ServerManager:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.logger = get_logger("server_manager")
-        self.servers: Dict[str, ServerStatus] = {}
+        self.servers: Dict[str, ServerConnectionStatus] = {}
         self.active_server: Optional[str] = None
         self.monitoring_task: Optional[asyncio.Task] = None
         self.shutdown_event = asyncio.Event()
@@ -119,7 +119,7 @@ class ServerManager:
         
         # Initialize server statuses
         for name, config in default_servers.items():
-            self.servers[name] = ServerStatus(config=config)
+            self.servers[name] = ServerConnectionStatus(config=config)
         
         self.logger.info(f"Loaded {len(self.servers)} server configurations")
     

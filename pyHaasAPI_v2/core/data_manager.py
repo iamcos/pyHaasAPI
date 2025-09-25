@@ -21,7 +21,7 @@ from .server_manager import ServerManager
 from .client import AsyncHaasClient
 from .auth import AuthenticationManager
 from ..config.settings import Settings
-from ..exceptions import DataManagerError, ConnectionError
+from ..exceptions import ServerError, ConnectionError
 from ..core.logging import get_logger
 
 
