@@ -73,7 +73,17 @@ class HaasAnalyzer:
     def analyze_backtest(self, lab_id: str, backtest_obj) -> Optional[BacktestAnalysis]:
         """Analyze a single backtest with full data extraction"""
         try:
-            backtest_id = backtest_obj.backtest_id
+            # Handle different backtest object structures
+            if hasattr(backtest_obj, 'backtest_id'):
+                backtest_id = backtest_obj.backtest_id
+            elif hasattr(backtest_obj, 'ID'):
+                backtest_id = backtest_obj.ID
+            elif isinstance(backtest_obj, dict) and 'ID' in backtest_obj:
+                backtest_id = backtest_obj['ID']
+            else:
+                logger.error(f"❌ Error analyzing backtest: 'backtest_id'")
+                return None
+                
             logger.info(f"🔍 Analyzing backtest {backtest_id[:8]}...")
             
             # Check cache first
@@ -88,15 +98,25 @@ class HaasAnalyzer:
                 logger.warning(f"⚠️ Could not get runtime data for {backtest_id[:8]}")
                 return None
             
-            # Extract basic info
-            generation_idx = getattr(backtest_obj, 'generation_idx', None)
-            population_idx = getattr(backtest_obj, 'population_idx', None)
+            # Extract basic info - handle different object structures
+            if isinstance(backtest_obj, dict):
+                generation_idx = backtest_obj.get('GI', backtest_obj.get('generation_idx', None))
+                population_idx = backtest_obj.get('PI', backtest_obj.get('population_idx', None))
+                settings = backtest_obj.get('SE', backtest_obj.get('settings', {}))
+            else:
+                generation_idx = getattr(backtest_obj, 'generation_idx', getattr(backtest_obj, 'GI', None))
+                population_idx = getattr(backtest_obj, 'population_idx', getattr(backtest_obj, 'PI', None))
+                settings = getattr(backtest_obj, 'settings', getattr(backtest_obj, 'SE', None))
             
-            # Extract settings
-            settings = getattr(backtest_obj, 'settings', None)
-            market_tag = getattr(settings, 'market_tag', '') if settings else ''
-            script_id = getattr(settings, 'script_id', '') if settings else ''
-            script_name = getattr(settings, 'script_name', '') if settings else ''
+            # Extract settings - handle different structures
+            if isinstance(settings, dict):
+                market_tag = settings.get('market_tag', settings.get('MarketTag', ''))
+                script_id = settings.get('script_id', settings.get('ScriptId', ''))
+                script_name = settings.get('script_name', settings.get('ScriptName', ''))
+            else:
+                market_tag = getattr(settings, 'market_tag', getattr(settings, 'MarketTag', '')) if settings else ''
+                script_id = getattr(settings, 'script_id', getattr(settings, 'ScriptId', '')) if settings else ''
+                script_name = getattr(settings, 'script_name', getattr(settings, 'ScriptName', '')) if settings else ''
             
             # Initialize analysis
             analysis_data = {
@@ -211,6 +231,9 @@ class HaasAnalyzer:
         if 'runtime_data' in cached_data:
             balance_info = self._extract_balance_information(cached_data['runtime_data'])
         
+        # Extract parameter values from cached data
+        parameter_values = self._extract_parameter_values_from_cache(cached_data)
+        
         return BacktestAnalysis(
             backtest_id=cached_data['backtest_id'],
             lab_id=lab_id,
@@ -233,8 +256,33 @@ class HaasAnalyzer:
             starting_balance=balance_info['starting_balance'],
             final_balance=balance_info['final_balance'],
             peak_balance=balance_info['peak_balance'],
-            analysis_timestamp=cached_data['analysis_timestamp']
+            analysis_timestamp=cached_data['analysis_timestamp'],
+            parameter_values=parameter_values
         )
+    
+    def _extract_parameter_values_from_cache(self, cached_data: Dict[str, Any]) -> Dict[str, str]:
+        """Extract parameter values from cached backtest data"""
+        try:
+            input_fields = cached_data.get('InputFields', {})
+            parameters = {}
+            
+            # Extract key parameters (filter out non-optimizable ones)
+            for key, field in input_fields.items():
+                param_name = field.get('N', '')  # Parameter name
+                param_value = field.get('V', '')  # Parameter value
+                
+                # Skip system parameters and focus on optimizable ones
+                if param_name and param_value and not any(skip in param_name.lower() for skip in 
+                    ['trade amount', 'order size', 'entry order type', 'colldown', 'reset']):
+                    # Clean up parameter name
+                    clean_name = param_name.replace('TP ', 'Take Profit ').replace('SL ', 'Stop Loss ').replace('pct', '%')
+                    parameters[clean_name] = param_value
+            
+            return parameters
+            
+        except Exception as e:
+            logger.debug(f"Could not extract parameters from cache: {e}")
+            return {}
     
     def _calculate_roi_from_trades(self, runtime_data) -> float:
         """Calculate ROI from individual trades data"""

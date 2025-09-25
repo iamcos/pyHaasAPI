@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-09-24T17:44:24.158476",
+  "total_recommendations": 4,
+  "successful_creations": 4,
+  "failed_creations": 0,
+  "created_bots": [
+    {
+      "bot_id": "76013fe09f5d44d6b75945a69a810372",
+      "bot_name": "2 - RSI-VWAP Trading Bot for Deribit (port)  LTC - feb/23 - ADX BB STOCH Scalper - 24345.9% pop/gen 27%",
+      "backtest_id": "81a11568-34b7-409e-9b08-4b0c74d32c68",
+      "account_id": "23ae9c17-4e4d-446d-9fa1-35fe51b7a925",
+      "market_tag": "BINANCEFUTURES_LTC_USDT_PERPETUAL",
+      "roe": 24345.9335,
+      "win_rate": 27.16763,
+      "total_trades": 469
+    },
+    {
+      "bot_id": "31e7bcdf22164c88afd46b6f0edc132a",
+      "bot_name": "2 - RSI-VWAP Trading Bot for Deribit (port)  LTC - feb/23 - ADX BB STOCH Scalper - 24345.9% pop/gen 27%",
+      "backtest_id": "b90cbe95-eb3d-4ad1-998c-4c2de5ab456f",
+      "account_id": "2c44bce1-7cd9-437f-a783-ced9103faf9a",
+      "market_tag": "BINANCEFUTURES_LTC_USDT_PERPETUAL",
+      "roe": 24345.9335,
+      "win_rate": 27.16763,
+      "total_trades": 469
+    },
+    {
+      "bot_id": "b28d8dbdd7f0423c8f1f11df4b229429",
+      "bot_name": "2 - RSI-VWAP Trading Bot for Deribit (port)  BNB - 3 years - ADX BB STOCH Scalper - 4861.4% pop/gen 18%",
+      "backtest_id": "9f8e2d1c-9b7c-4074-96b5-034b10bd20ef",
+      "account_id": "2d901b98-b4b6-4f4a-acd8-9777532850db",
+      "market_tag": "BINANCEFUTURES_BNB_USDT_PERPETUAL",
+      "roe": 4861.4484,
+      "win_rate": 18.493151,
+      "total_trades": 367
+    },
+    {
+      "bot_id": "df0b7df4d4404377b2f7ef4254140ea2",
+      "bot_name": "2 - RSI-VWAP Trading Bot for Deribit (port)  BNB - 3 years - ADX BB STOCH Scalper - 4849.8% pop/gen 22%",
+      "backtest_id": "c5797d35-3b90-4a0f-a040-e47207dcf542",
+      "account_id": "302160fa-7351-4e93-a4e3-289c8a4d5dcb",
+      "market_tag": "BINANCEFUTURES_BNB_USDT_PERPETUAL",
+      "roe": 4849.8083,
+      "win_rate": 21.621622,
+      "total_trades": 365
+    }
+  ],
+  "failed_bots": []
+}

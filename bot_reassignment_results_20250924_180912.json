@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-09-24T18:09:12.377640",
+  "total_bots_to_reassign": 6,
+  "successful_reassignments": 6,
+  "failed_reassignments": [],
+  "reassigned_bots": [
+    {
+      "old_bot_id": "a17d6c6e2d494fca8faa8c9b0e336791",
+      "new_bot_id": "62211cc1a2784e81a28705f715d0c86e",
+      "bot_name": "2   RSI VWAP Trading Bot for Deribit (port)  LTC   feb/23 -  - 21444 38/20 29%",
+      "old_account_id": "0438ca7b-17e3-4e4a-8f9d-46e70cd4dca9",
+      "old_exchange": "BITGET",
+      "new_account_id": "30c23196-c18f-4f47-bc6b-a74589817916",
+      "new_exchange": "BINANCEFUTURES",
+      "market": "BINANCEFUTURES_LTC_USDT_PERPETUAL"
+    },
+    {
+      "old_bot_id": "068f2254b8d64df1a9606ec58ba2f13c",
+      "new_bot_id": "ed9cf01874bc4185a0c363dd57e9b18b",
+      "bot_name": "2   RSI VWAP Trading Bot for Deribit (port)  ETH   Dec/23 -  - 14813 25/20 18%",
+      "old_account_id": "0d67edae-b7cb-4c73-ac5a-cdcb30097afb",
+      "old_exchange": "KUCOINFUTURES",
+      "new_account_id": "38d4de5d-ca18-4304-9171-4bd603fe6be4",
+      "new_exchange": "BINANCEFUTURES",
+      "market": "BINANCEFUTURES_ETH_USDT_QUARTERLY"
+    },
+    {
+      "old_bot_id": "2a074b6fe49745c7bd2642614907efba",
+      "new_bot_id": "3232910b0d5a4e8c931989f5de1cc6db",
+      "bot_name": "2   RSI VWAP Trading Bot for Deribit (port)  ETH   Dec/23 -  - 13120 7/19 22%",
+      "old_account_id": "0e7f5b26-51c2-4966-8c50-febc7657e65b",
+      "old_exchange": "BIT2ME",
+      "new_account_id": "3a097c8c-2148-41b2-a836-c5d5b1b52873",
+      "new_exchange": "BINANCEFUTURES",
+      "market": "BINANCEFUTURES_ETH_USDT_QUARTERLY"
+    },
+    {
+      "old_bot_id": "4afdc137d5064bbea5a3fe373a4e2d25",
+      "new_bot_id": "0992d9105e184607804e9654dee302ea",
+      "bot_name": "2   RSI VWAP Trading Bot for Deribit (port)  UNI   3 years (december) -  - 59873 7/19 9%",
+      "old_account_id": "15353bf4-8709-4222-beb7-6a704e39774a",
+      "old_exchange": "OKCOINFUTURES",
+      "new_account_id": "3ad22137-db39-490d-9659-4c4ec84da449",
+      "new_exchange": "BINANCEFUTURES",
+      "market": "BINANCEFUTURES_UNI_USDT_PERPETUAL"
+    },
+    {
+      "old_bot_id": "c7504e57273747928a81aaba9783ba56",
+      "new_bot_id": "d130d0173e444e9f866d95e25a470fea",
+      "bot_name": "2   RSI VWAP Trading Bot for Deribit (port)  UNI   3 years (december) -  - 59137 31/20 14%",
+      "old_account_id": "155f4597-268d-487c-8e28-806cbd5a490a",
+      "old_exchange": "PHEMEXCONTRACTS",
+      "new_account_id": "3ae50d91-2e9c-4eba-b87f-3ab94b871831",
+      "new_exchange": "BINANCEFUTURES",
+      "market": "BINANCEFUTURES_UNI_USDT_PERPETUAL"
+    },
+    {
+      "old_bot_id": "1afd081a7106486b8f10701802520592",
+      "new_bot_id": "6462a3f9a7d6437cb4f5c7093ea1f098",
+      "bot_name": "2   RSI VWAP Trading Bot for Deribit (port)  SOL  3 years -  - 16 52/18 17%",
+      "old_account_id": "2002e536-f072-4e5d-bea1-771b1a9f6696",
+      "old_exchange": "BYBITUSDT",
+      "new_account_id": "3af9d0d0-549e-4e94-9e9e-c71219a27678",
+      "new_exchange": "BINANCEFUTURES",
+      "market": "BINANCEFUTURES_SOL_USDT_PERPETUAL"
+    }
+  ]
+}

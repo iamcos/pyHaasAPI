@@ -1,0 +1,362 @@
+{
+  "e4616b35-8065-4095-966b-546de68fd493": {
+    "lab_id": "e4616b35-8065-4095-966b-546de68fd493",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years UNI - beta - Data Interval 20/30",
+    "total_qualifying_bots": 3,
+    "strategy_summaries": [
+      {
+        "strategy_name": "",
+        "trading_pair": "BINANCEFUTURES_UNI_USDT_PERPETUAL",
+        "roe_range": "137.6-174.3%",
+        "winrate_range": "62-72%",
+        "trades_range": "32-72",
+        "bot_count": 3
+      }
+    ]
+  },
+  "bc37e21d-ae13-47cc-859c-41954e15be5e": {
+    "lab_id": "bc37e21d-ae13-47cc-859c-41954e15be5e",
+    "lab_name": "Lab bc37e21d",
+    "total_qualifying_bots": 8,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_XRP_USDT_PERPETUAL",
+        "roe_range": "1.5-30.1%",
+        "winrate_range": "47-78%",
+        "trades_range": "5-197",
+        "bot_count": 8
+      }
+    ]
+  },
+  "272bbb66-f2b3-4eae-8c32-714747dcb827": {
+    "lab_id": "272bbb66-f2b3-4eae-8c32-714747dcb827",
+    "lab_name": "Lab 272bbb66",
+    "total_qualifying_bots": 3,
+    "strategy_summaries": [
+      {
+        "strategy_name": "[pshaiBot] RSI-VWAP Trading Bot for Deribit (port)",
+        "trading_pair": "BINANCEFUTURES_LTC_USDT_PERPETUAL",
+        "roe_range": "29.3-30.3%",
+        "winrate_range": "31-36%",
+        "trades_range": "224-232",
+        "bot_count": 3
+      }
+    ]
+  },
+  "6b380157-cfd3-44c1-9056-95377aae7667": {
+    "lab_id": "6b380157-cfd3-44c1-9056-95377aae7667",
+    "lab_name": "Lab 6b380157",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "Simple RSING VWAP Strategy",
+        "trading_pair": "BINANCEFUTURES_SOL_USDT_PERPETUAL",
+        "roe_range": "50.2-58.8%",
+        "winrate_range": "40-47%",
+        "trades_range": "291-624",
+        "bot_count": 10
+      }
+    ]
+  },
+  "d26e6ff3-a706-4ae1-89c9-d82d49274a5f": {
+    "lab_id": "d26e6ff3-a706-4ae1-89c9-d82d49274a5f",
+    "lab_name": "1 - ADX BB STOCH Scalper - 2.7 years GALA - beta - Data Interval 20 minute -",
+    "total_qualifying_bots": 5,
+    "strategy_summaries": [
+      {
+        "strategy_name": "",
+        "trading_pair": "BINANCEFUTURES_GALA_USDT_PERPETUAL",
+        "roe_range": "74.5-78.4%",
+        "winrate_range": "54-57%",
+        "trades_range": "272-284",
+        "bot_count": 5
+      }
+    ]
+  },
+  "058c6c5a-549a-4828-9169-a79b0a317229": {
+    "lab_id": "058c6c5a-549a-4828-9169-a79b0a317229",
+    "lab_name": "Lab 058c6c5a",
+    "total_qualifying_bots": 4,
+    "strategy_summaries": [
+      {
+        "strategy_name": "Simple RSING VWAP Strategy",
+        "trading_pair": "BINANCEFUTURES_XRP_USDT_PERPETUAL",
+        "roe_range": "10.9-12.1%",
+        "winrate_range": "32-38%",
+        "trades_range": "291-595",
+        "bot_count": 4
+      }
+    ]
+  },
+  "895b1198-d074-4f49-8c83-654e118df8aa": {
+    "lab_id": "895b1198-d074-4f49-8c83-654e118df8aa",
+    "lab_name": "Lab 895b1198",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_BCH_USDT_PERPETUAL",
+        "roe_range": "70.5-70.9%",
+        "winrate_range": "69-69%",
+        "trades_range": "75-77",
+        "bot_count": 10
+      }
+    ]
+  },
+  "972327cc-0c12-400d-a370-f34699917cb2": {
+    "lab_id": "972327cc-0c12-400d-a370-f34699917cb2",
+    "lab_name": "Lab 972327cc",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_SOL_USDT_PERPETUAL",
+        "roe_range": "30.4-32.4%",
+        "winrate_range": "100-100%",
+        "trades_range": "5-5",
+        "bot_count": 10
+      }
+    ]
+  },
+  "9653fe9a-3614-4591-b4e3-e9a457b10325": {
+    "lab_id": "9653fe9a-3614-4591-b4e3-e9a457b10325",
+    "lab_name": "Lab 9653fe9a",
+    "total_qualifying_bots": 1,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_UNI_USDT_PERPETUAL",
+        "roe_range": "1.9-1.9%",
+        "winrate_range": "47-47%",
+        "trades_range": "114-114",
+        "bot_count": 1
+      }
+    ]
+  },
+  "c758b7af-bf9a-49e1-83a3-dc0ad7e4f71a": {
+    "lab_id": "c758b7af-bf9a-49e1-83a3-dc0ad7e4f71a",
+    "lab_name": "Lab c758b7af",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_BNB_USDT_PERPETUAL",
+        "roe_range": "65.3-65.3%",
+        "winrate_range": "48-48%",
+        "trades_range": "547-547",
+        "bot_count": 10
+      }
+    ]
+  },
+  "caed4df4-bcf9-4d4c-a8af-a51af6b7982e": {
+    "lab_id": "caed4df4-bcf9-4d4c-a8af-a51af6b7982e",
+    "lab_name": "Lab caed4df4",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "Simple RSING VWAP Strategy",
+        "trading_pair": "BINANCEFUTURES_BCH_USDT_PERPETUAL",
+        "roe_range": "18.1-22.5%",
+        "winrate_range": "32-39%",
+        "trades_range": "240-457",
+        "bot_count": 10
+      }
+    ]
+  },
+  "6fe2213c-00bd-41d8-b4de-73adf1eac0e8": {
+    "lab_id": "6fe2213c-00bd-41d8-b4de-73adf1eac0e8",
+    "lab_name": "Lab 6fe2213c",
+    "total_qualifying_bots": 1,
+    "strategy_summaries": [
+      {
+        "strategy_name": "[pshaiBot] RSI-VWAP Trading Bot for Deribit (port)",
+        "trading_pair": "BINANCEFUTURES_BNB_USDT_PERPETUAL",
+        "roe_range": "58.4-58.4%",
+        "winrate_range": "35-35%",
+        "trades_range": "46-46",
+        "bot_count": 1
+      }
+    ]
+  },
+  "5bf547a7-eb4e-471b-b65d-a1e6f9d9b11b": {
+    "lab_id": "5bf547a7-eb4e-471b-b65d-a1e6f9d9b11b",
+    "lab_name": "Lab 5bf547a7",
+    "total_qualifying_bots": 8,
+    "strategy_summaries": [
+      {
+        "strategy_name": "Simple RSING VWAP Strategy",
+        "trading_pair": "BINANCEFUTURES_BNB_USDT_PERPETUAL",
+        "roe_range": "67.9-69.8%",
+        "winrate_range": "30-36%",
+        "trades_range": "110-144",
+        "bot_count": 8
+      }
+    ]
+  },
+  "091b0fc3-e3a8-4743-851a-e12847a9510b": {
+    "lab_id": "091b0fc3-e3a8-4743-851a-e12847a9510b",
+    "lab_name": "Lab 091b0fc3",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "Simple RSING VWAP Strategy",
+        "trading_pair": "BINANCEFUTURES_APT_USDT_PERPETUAL",
+        "roe_range": "39.4-41.1%",
+        "winrate_range": "38-46%",
+        "trades_range": "99-308",
+        "bot_count": 10
+      }
+    ]
+  },
+  "fd4b1daf-7b3e-43c8-a3e2-d09368bb0ebc": {
+    "lab_id": "fd4b1daf-7b3e-43c8-a3e2-d09368bb0ebc",
+    "lab_name": "Lab fd4b1daf",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "Simple RSING VWAP Strategy",
+        "trading_pair": "BINANCEFUTURES_LTC_USDT_PERPETUAL",
+        "roe_range": "2.9-4.8%",
+        "winrate_range": "33-40%",
+        "trades_range": "64-158",
+        "bot_count": 10
+      }
+    ]
+  },
+  "cf9c7894-8081-4179-8253-2ffa0982b468": {
+    "lab_id": "cf9c7894-8081-4179-8253-2ffa0982b468",
+    "lab_name": "Lab cf9c7894",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_XRP_USDT_PERPETUAL",
+        "roe_range": "53.6-59.8%",
+        "winrate_range": "67-72%",
+        "trades_range": "39-42",
+        "bot_count": 10
+      }
+    ]
+  },
+  "acc505f4-c0ac-43f0-9f15-26081aceb9e2": {
+    "lab_id": "acc505f4-c0ac-43f0-9f15-26081aceb9e2",
+    "lab_name": "Lab acc505f4",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ADA_USDT_PERPETUAL",
+        "roe_range": "81.8-84.3%",
+        "winrate_range": "54-63%",
+        "trades_range": "140-271",
+        "bot_count": 10
+      }
+    ]
+  },
+  "7a3e53ad-c116-49f2-8db3-0599d8ecee36": {
+    "lab_id": "7a3e53ad-c116-49f2-8db3-0599d8ecee36",
+    "lab_name": "Lab 7a3e53ad",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_APT_USDT_PERPETUAL",
+        "roe_range": "79.7-81.8%",
+        "winrate_range": "55-57%",
+        "trades_range": "293-364",
+        "bot_count": 10
+      }
+    ]
+  },
+  "c97c0bbd-28f7-4dcd-8842-1cbd9448601e": {
+    "lab_id": "c97c0bbd-28f7-4dcd-8842-1cbd9448601e",
+    "lab_name": "Lab c97c0bbd",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ETH_USDT_PERPETUAL",
+        "roe_range": "69.7-72.8%",
+        "winrate_range": "51-57%",
+        "trades_range": "181-287",
+        "bot_count": 10
+      }
+    ]
+  },
+  "170d6fd2-35f8-4d40-81b6-956d987a59b8": {
+    "lab_id": "170d6fd2-35f8-4d40-81b6-956d987a59b8",
+    "lab_name": "Lab 170d6fd2",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_GALA_USDT_PERPETUAL",
+        "roe_range": "34.5-70.2%",
+        "winrate_range": "48-58%",
+        "trades_range": "68-417",
+        "bot_count": 10
+      }
+    ]
+  },
+  "6ca592b5-33b9-4ec3-a6c9-b306337d91a0": {
+    "lab_id": "6ca592b5-33b9-4ec3-a6c9-b306337d91a0",
+    "lab_name": "Lab 6ca592b5",
+    "total_qualifying_bots": 2,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_APT_USDT_PERPETUAL",
+        "roe_range": "10.8-57.5%",
+        "winrate_range": "54-57%",
+        "trades_range": "13-95",
+        "bot_count": 2
+      }
+    ]
+  },
+  "55b45ee4-9cc5-42f7-8556-4c3aa2b13a44": {
+    "lab_id": "55b45ee4-9cc5-42f7-8556-4c3aa2b13a44",
+    "lab_name": "Lab 55b45ee4",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ETH_USDT_PERPETUAL",
+        "roe_range": "44.6-54.4%",
+        "winrate_range": "49-53%",
+        "trades_range": "109-157",
+        "bot_count": 10
+      }
+    ]
+  },
+  "44f08a06-2a27-4015-910e-a7fd8cdb25b8": {
+    "lab_id": "44f08a06-2a27-4015-910e-a7fd8cdb25b8",
+    "lab_name": "Lab 44f08a06",
+    "total_qualifying_bots": 10,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_BCH_USDT_PERPETUAL",
+        "roe_range": "47.8-70.6%",
+        "winrate_range": "44-59%",
+        "trades_range": "59-362",
+        "bot_count": 10
+      }
+    ]
+  },
+  "3df1e8b3-5b37-4c40-9221-334047027c4c": {
+    "lab_id": "3df1e8b3-5b37-4c40-9221-334047027c4c",
+    "lab_name": "Lab 3df1e8b3",
+    "total_qualifying_bots": 2,
+    "strategy_summaries": [
+      {
+        "strategy_name": "ADX BB STOCH Scalper",
+        "trading_pair": "BINANCEFUTURES_ADA_USDT_PERPETUAL",
+        "roe_range": "1.7-63.1%",
+        "winrate_range": "47-55%",
+        "trades_range": "114-181",
+        "bot_count": 2
+      }
+    ]
+  }
+}

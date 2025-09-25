@@ -125,6 +125,11 @@ pyHaasAPI/                         # Repository root
 
 ## Key Classes and Functions
 
+### CRITICAL: Performance Metrics - ROE Only
+**IMPORTANT**: This project uses **ROE (Return on Equity)** as the primary performance metric, NOT ROI (Return on Investment). All analysis, sorting, and reporting should use ROE. This is a fundamental requirement for the pyHaasAPI library.
+
+**Performance Calculation**: All performance metrics (ROE, win rate, drawdown, profit factor) must be calculated manually from raw trade data, not from pre-calculated values. Use the `Reports[report_key]['T']` (trades), `Reports[report_key]['P']` (positions), `Reports[report_key]['O']` (orders) sections of cache files.
+
 ### Core Analysis Classes (NEW - Integrated)
 ```python
 # Main analyzer class

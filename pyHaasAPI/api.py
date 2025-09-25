@@ -312,9 +312,9 @@ class RequestsExecutor(Generic[State]):
                     data_parts.append(f"{urllib.parse.quote_plus(k)}={urllib.parse.quote_plus(json.dumps(v, default=self._custom_encoder(by_alias=True)))}")
 
             data = "&".join(data_parts)
-            resp = requests.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+            resp = requests.post(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=30)
         else:
-            resp = requests.get(url, params=query_params)
+            resp = requests.get(url, params=query_params, timeout=30)
             
         resp.raise_for_status()
         # Uncomment for api Response

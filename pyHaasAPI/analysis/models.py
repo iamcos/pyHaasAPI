@@ -6,7 +6,7 @@ bot creation results, and lab analysis results.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 
 
@@ -72,6 +72,7 @@ class BacktestAnalysis:
     # Optional fields (must be at the end)
     drawdown_analysis: Optional[DrawdownAnalysis] = None
     backtest_timestamp: Optional[str] = None
+    parameter_values: Optional[Dict[str, str]] = None
 
 
 @dataclass
