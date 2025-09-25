@@ -140,7 +140,7 @@ class BotService:
                     wr = metrics.get('winrate_pct', 0.0)
                     bot_name = f"{script_name} - {market_tag} - ROE {roe:.1f}% WR {wr:.1f}%"
                 else:
-                    bot_name = self._generate_bot_name(backtest_runtime)
+                bot_name = self._generate_bot_name(backtest_runtime)
 
             # Create bot from lab backtest
             bot_details = await self.bot_api.create_bot_from_lab(
@@ -292,9 +292,9 @@ class BotService:
                 used_accounts = set()
             else:
                 accounts = await self.account_api.get_accounts()
-                if not accounts:
-                    raise BotCreationError("No accounts available for bot creation")
-                account_index = 0
+            if not accounts:
+                raise BotCreationError("No accounts available for bot creation")
+            account_index = 0
 
             for lab_id in lab_ids:
                 try:

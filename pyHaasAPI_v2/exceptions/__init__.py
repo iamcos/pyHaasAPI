@@ -22,6 +22,7 @@ from .data_dumper import DataDumperError, DataDumperConfigurationError, DataDump
 from .testing import TestingError, TestingConfigurationError, TestingExecutionError, TestingValidationError
 from .bot import BotError, BotCreationError, BotConfigurationError, BotNotFoundError, BotActivationError, BotDeactivationError, BotParameterError
 from .lab import LabError, LabNotFoundError, LabExecutionError, LabConfigurationError, LabScriptError, LabParameterError
+from .server import ServerError, ServerConnectionError, ServerAuthenticationError, ServerTimeoutError, ServerUnavailableError, ServerConfigurationError
 
 __all__ = [
     "HaasAPIError",
@@ -33,7 +34,7 @@ __all__ = [
     "APIRequestError",
     "APIResponseError", 
     "APIRateLimitError",
-    "APITimeoutError",
+    "APITimeoutError", 
     "APIServerError",
     "APIClientError",
     "ValidationError",
@@ -92,4 +93,10 @@ __all__ = [
     "LabConfigurationError",
     "LabScriptError",
     "LabParameterError",
+    "ServerError",
+    "ServerConnectionError",
+    "ServerAuthenticationError",
+    "ServerTimeoutError",
+    "ServerUnavailableError",
+    "ServerConfigurationError",
 ]
