@@ -1,371 +1,361 @@
-#!/usr/bin/env python3
 """
-Enhanced Main CLI entry point for pyHaasAPI
+Main CLI entry point for pyHaasAPI v2
 
-This provides a unified command-line interface for all pyHaasAPI operations.
-Now uses the refactored unified tools for better organization and consistency.
+This module provides the main command-line interface for all pyHaasAPI v2 operations
+using the new async architecture and type-safe components.
 """
 
+import asyncio
 import sys
 import argparse
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-# Add the parent directory to the path so we can import pyHaasAPI
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from .base import BaseCLI, CLIConfig
+from .lab_cli import LabCLI
+from .bot_cli import BotCLI
+from .analysis_cli import AnalysisCLI
+from .account_cli import AccountCLI
+from .script_cli import ScriptCLI
+from .market_cli import MarketCLI
+from .backtest_cli import BacktestCLI
+from .order_cli import OrderCLI
+from .backtest_workflow_cli import BacktestWorkflowCLI
+from ..core.logging import get_logger
+import subprocess
+import shlex
 
-from pyHaasAPI import HaasAnalyzer, UnifiedCacheManager
+logger = get_logger("main_cli")
 
 
-def main():
-    """Main CLI entry point"""
+def create_parser() -> argparse.ArgumentParser:
+    """Create the main argument parser"""
     parser = argparse.ArgumentParser(
-        description="pyHaasAPI Command Line Interface",
+        description="pyHaasAPI v2 Command Line Interface",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # NEW UNIFIED INTERFACES (RECOMMENDED):
+  # Lab operations
+  python -m pyHaasAPI_v2.cli lab list
+  python -m pyHaasAPI_v2.cli lab create --name "Test Lab" --script-id script123
+  python -m pyHaasAPI_v2.cli lab analyze --lab-id lab123 --top-count 5
+  
+  # Bot operations
+  python -m pyHaasAPI_v2.cli bot list
+  python -m pyHaasAPI_v2.cli bot create --from-lab lab123 --count 3
+  python -m pyHaasAPI_v2.cli bot activate --bot-ids bot1,bot2,bot3
+  
   # Analysis operations
-  python -m pyHaasAPI.cli analysis cache --show-data-distribution --generate-lab-reports
-  python -m pyHaasAPI.cli analysis interactive
-  python -m pyHaasAPI.cli analysis cache-labs
-  python -m pyHaasAPI.cli analysis wfo --lab-id lab123 --start-date 2022-01-01 --end-date 2023-12-31
+  python -m pyHaasAPI_v2.cli analysis labs --generate-reports
+  python -m pyHaasAPI_v2.cli analysis bots --performance-metrics
+  python -m pyHaasAPI_v2.cli analysis wfo --lab-id lab123 --start-date 2022-01-01
   
-  # Bot management operations
-  python -m pyHaasAPI.cli bot create --top-count 5 --activate
-  python -m pyHaasAPI.cli bot fix-amounts --method usdt --target-amount 2000
-  python -m pyHaasAPI.cli bot cleanup-accounts
-  python -m pyHaasAPI.cli bot activate --bot-ids bot1,bot2
-  python -m pyHaasAPI.cli bot deactivate --exclude-bot-ids bot3,bot4
+  # Account operations
+  python -m pyHaasAPI_v2.cli account list
+  python -m pyHaasAPI_v2.cli account balance --account-id acc123
+  python -m pyHaasAPI_v2.cli account settings --account-id acc123 --leverage 20
   
-  # REFACTORED TOOLS (ALSO AVAILABLE):
-  python -m pyHaasAPI.cli analyze_from_cache_refactored --generate-lab-reports
-  python -m pyHaasAPI.cli mass_bot_creator_refactored --top-count 5 --activate
-  python -m pyHaasAPI.cli fix_bot_trade_amounts_refactored --method usdt --target-amount 2000
-  python -m pyHaasAPI.cli account_cleanup_refactored
-  python -m pyHaasAPI.cli price_tracker_refactored BTC_USDT_PERPETUAL
+  # Script operations
+  python -m pyHaasAPI_v2.cli script list
+  python -m pyHaasAPI_v2.cli script create --name "Test Script" --source "print('hello')"
+  python -m pyHaasAPI_v2.cli script test --script-id script123
   
-  # LEGACY TOOLS (STILL WORKING):
-  python -m pyHaasAPI.cli analyze lab-id --create-count 3 --activate
-  python -m pyHaasAPI.cli list-labs
-  python -m pyHaasAPI.cli complete-workflow lab-id --create-count 2 --verify
+  # Market operations
+  python -m pyHaasAPI_v2.cli market list
+  python -m pyHaasAPI_v2.cli market price --market BTC_USDT_PERPETUAL
+  python -m pyHaasAPI_v2.cli market history --market BTC_USDT_PERPETUAL --days 30
+  
+  # Backtest operations
+  python -m pyHaasAPI_v2.cli backtest list --lab-id lab123
+  python -m pyHaasAPI_v2.cli backtest run --lab-id lab123 --script-id script123
+  python -m pyHaasAPI_v2.cli backtest results --backtest-id bt123
+  
+  # Order operations
+  python -m pyHaasAPI_v2.cli order list --bot-id bot123
+  python -m pyHaasAPI_v2.cli order place --bot-id bot123 --side buy --amount 1000
+  python -m pyHaasAPI_v2.cli order cancel --order-id order123
         """
     )
     
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    # Global options
+    parser.add_argument(
+        '--host', 
+        default='127.0.0.1',
+        help='API host (default: 127.0.0.1)'
+    )
+    parser.add_argument(
+        '--port', 
+        type=int, 
+        default=8090,
+        help='API port (default: 8090)'
+    )
+    parser.add_argument(
+        '--timeout', 
+        type=float, 
+        default=30.0,
+        help='Request timeout in seconds (default: 30.0)'
+    )
+    parser.add_argument(
+        '--log-level', 
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        default='INFO',
+        help='Log level (default: INFO)'
+    )
+    parser.add_argument(
+        '--strict-mode', 
+        action='store_true',
+        help='Enable strict mode for type checking'
+    )
+    parser.add_argument(
+        '--dry-run', 
+        action='store_true',
+        help='Perform a dry run without making changes'
+    )
+    parser.add_argument(
+        '--verbose', '-v', 
+        action='store_true',
+        help='Enable verbose output'
+    )
     
-    # NEW UNIFIED COMMANDS (RECOMMENDED)
-    # Analysis operations - these will be handled by the unified CLI directly
-    subparsers.add_parser('analysis', help='Unified analysis operations (cache, interactive, cache-labs, wfo)')
+    # Subcommands
+    subparsers = parser.add_subparsers(
+        dest='command',
+        help='Available commands',
+        required=True
+    )
     
-    # Bot management operations - these will be handled by the unified CLI directly  
-    subparsers.add_parser('bot', help='Unified bot management operations (create, fix-amounts, cleanup-accounts, activate, deactivate)')
+    # Lab subcommand
+    lab_parser = subparsers.add_parser('lab', help='Lab operations')
+    lab_parser.add_argument(
+        'action',
+        choices=['list', 'create', 'delete', 'analyze', 'execute', 'status'],
+        help='Lab action to perform'
+    )
+    lab_parser.add_argument('--lab-id', help='Lab ID')
+    lab_parser.add_argument('--name', help='Lab name')
+    lab_parser.add_argument('--script-id', help='Script ID')
+    lab_parser.add_argument('--top-count', type=int, help='Number of top results')
+    lab_parser.add_argument('--generate-reports', action='store_true', help='Generate analysis reports')
     
-    # REFACTORED TOOLS (ALSO AVAILABLE)
-    subparsers.add_parser('analyze_from_cache_refactored', help='Refactored cache analysis tool')
-    subparsers.add_parser('mass_bot_creator_refactored', help='Refactored mass bot creator')
-    subparsers.add_parser('fix_bot_trade_amounts_refactored', help='Refactored bot trade amount fixer')
-    subparsers.add_parser('account_cleanup_refactored', help='Refactored account cleanup tool')
-    subparsers.add_parser('price_tracker_refactored', help='Refactored price tracker')
+    # Bot subcommand
+    bot_parser = subparsers.add_parser('bot', help='Bot operations')
+    bot_parser.add_argument(
+        'action',
+        choices=['list', 'create', 'delete', 'activate', 'deactivate', 'pause', 'resume'],
+        help='Bot action to perform'
+    )
+    bot_parser.add_argument('--bot-id', help='Bot ID')
+    bot_parser.add_argument('--bot-ids', help='Comma-separated bot IDs')
+    bot_parser.add_argument('--from-lab', help='Create bots from lab ID')
+    bot_parser.add_argument('--count', type=int, help='Number of bots to create')
+    bot_parser.add_argument('--activate', action='store_true', help='Activate bots after creation')
     
-    # LEGACY COMMANDS (STILL WORKING)
-    # Analyze command
-    analyze_parser = subparsers.add_parser('analyze', help='Analyze lab and create bots')
-    analyze_parser.add_argument('lab_id', help='Lab ID to analyze')
-    analyze_parser.add_argument('--create-count', type=int, help='Number of bots to create')
-    analyze_parser.add_argument('--activate', action='store_true', help='Activate bots after creation')
-    analyze_parser.add_argument('--verify', action='store_true', help='Verify bot configuration')
+    # Analysis subcommand
+    analysis_parser = subparsers.add_parser('analysis', help='Analysis operations')
+    analysis_parser.add_argument(
+        'action',
+        choices=['labs', 'bots', 'wfo', 'performance', 'reports'],
+        help='Analysis action to perform'
+    )
+    analysis_parser.add_argument('--lab-id', help='Lab ID')
+    analysis_parser.add_argument('--bot-id', help='Bot ID')
+    analysis_parser.add_argument('--start-date', help='Start date (YYYY-MM-DD)')
+    analysis_parser.add_argument('--end-date', help='End date (YYYY-MM-DD)')
+    analysis_parser.add_argument('--generate-reports', action='store_true', help='Generate reports')
+    analysis_parser.add_argument('--performance-metrics', action='store_true', help='Include performance metrics')
     
-    # List labs command
-    list_parser = subparsers.add_parser('list-labs', help='List all available labs')
+    # Account subcommand
+    account_parser = subparsers.add_parser('account', help='Account operations')
+    account_parser.add_argument(
+        'action',
+        choices=['list', 'balance', 'settings', 'orders', 'positions'],
+        help='Account action to perform'
+    )
+    account_parser.add_argument('--account-id', help='Account ID')
+    account_parser.add_argument('--leverage', type=int, help='Leverage setting')
+    account_parser.add_argument('--margin-mode', choices=['cross', 'isolated'], help='Margin mode')
+    account_parser.add_argument('--position-mode', choices=['hedge', 'one_way'], help='Position mode')
     
-    # Complete workflow command
-    workflow_parser = subparsers.add_parser('complete-workflow', help='Run complete bot management workflow')
-    workflow_parser.add_argument('lab_id', help='Lab ID to process')
-    workflow_parser.add_argument('--create-count', type=int, default=3, help='Number of bots to create')
-    workflow_parser.add_argument('--activate', action='store_true', help='Activate bots after creation')
-    workflow_parser.add_argument('--verify', action='store_true', help='Verify bot configuration')
+    # Script subcommand
+    script_parser = subparsers.add_parser('script', help='Script operations')
+    script_parser.add_argument(
+        'action',
+        choices=['list', 'create', 'edit', 'delete', 'test', 'publish'],
+        help='Script action to perform'
+    )
+    script_parser.add_argument('--script-id', help='Script ID')
+    script_parser.add_argument('--name', help='Script name')
+    script_parser.add_argument('--source', help='Script source code')
+    script_parser.add_argument('--description', help='Script description')
     
-    # Robustness analysis command
-    robustness_parser = subparsers.add_parser('robustness', help='Analyze strategy robustness with balance reporting')
-    robustness_parser.add_argument('--lab-id', type=str, help='Lab ID to analyze (required if not using --all-labs)')
-    robustness_parser.add_argument('--all-labs', action='store_true', help='Analyze all available labs')
-    robustness_parser.add_argument('--top-count', type=int, default=10, help='Number of top backtests to analyze per lab (default: 10)')
-    robustness_parser.add_argument('--output', type=str, help='Output file for the report (default: print to console)')
-    robustness_parser.add_argument('--verbose', action='store_true', help='Enable verbose logging')
+    # Market subcommand
+    market_parser = subparsers.add_parser('market', help='Market operations')
+    market_parser.add_argument(
+        'action',
+        choices=['list', 'price', 'history', 'validate'],
+        help='Market action to perform'
+    )
+    market_parser.add_argument('--market', help='Market tag')
+    market_parser.add_argument('--days', type=int, help='Number of days for history')
+    market_parser.add_argument('--interval', help='Data interval')
     
-    # Cache labs command
-    cache_parser = subparsers.add_parser('cache-labs', help='Cache all lab data for analysis without creating bots')
-    cache_parser.add_argument('--lab-ids', nargs='+', type=str, help='Cache only specific lab IDs')
-    cache_parser.add_argument('--exclude-lab-ids', nargs='+', type=str, help='Cache all complete labs except these IDs')
-    cache_parser.add_argument('--analyze-count', type=int, default=100, help='Number of backtests to analyze per lab (default: 100)')
-    cache_parser.add_argument('--refresh', action='store_true', help='Refresh existing cache data')
+    # Backtest subcommand
+    backtest_parser = subparsers.add_parser('backtest', help='Backtest operations')
+    backtest_parser.add_argument(
+        'action',
+        choices=['list', 'run', 'results', 'chart', 'log'],
+        help='Backtest action to perform'
+    )
+    backtest_parser.add_argument('--backtest-id', help='Backtest ID')
+    backtest_parser.add_argument('--lab-id', help='Lab ID')
+    backtest_parser.add_argument('--script-id', help='Script ID')
+    backtest_parser.add_argument('--market', help='Market tag')
     
-    # Cache cleanup command
-    cleanup_parser = subparsers.add_parser('cache-cleanup', help='Clean up obsolete lab cache files')
-    cleanup_parser.add_argument('--dry-run', action='store_true', default=True,
-                               help='Show what would be removed without actually removing (default: True)')
-    cleanup_parser.add_argument('--force', action='store_true',
-                               help='Actually remove obsolete cache files (overrides --dry-run)')
+    # Backtest Workflow subcommand
+    backtest_workflow_parser = subparsers.add_parser('backtest-workflow', help='Longest backtest workflow management')
+    backtest_workflow_parser.add_argument(
+        'action',
+        choices=['check-progress', 'analyze-results', 'execute-decisions'],
+        help='Workflow action to perform'
+    )
+    backtest_workflow_parser.add_argument('--bot-ids', help='Comma-separated list of bot IDs')
+    backtest_workflow_parser.add_argument('--verbose', '-v', action='store_true', help='Show detailed information')
+    backtest_workflow_parser.add_argument('--output', '-o', help='Save results to JSON file')
+    backtest_workflow_parser.add_argument('--execute-stop', action='store_true', help='Execute stop decisions')
+    backtest_workflow_parser.add_argument('--execute-retest', action='store_true', help='Execute retest decisions')
+
+    # Order subcommand
+    order_parser = subparsers.add_parser('order', help='Order operations')
+    order_parser.add_argument(
+        'action',
+        choices=['list', 'place', 'cancel', 'status', 'history'],
+        help='Order action to perform'
+    )
+    order_parser.add_argument('--order-id', help='Order ID')
+    order_parser.add_argument('--bot-id', help='Bot ID')
+    order_parser.add_argument('--side', choices=['buy', 'sell'], help='Order side')
+    order_parser.add_argument('--amount', type=float, help='Order amount')
+    order_parser.add_argument('--price', type=float, help='Order price')
+
+    # Utils subcommand (direct runners for helper tools)
+    utils_parser = subparsers.add_parser('utils', help='Utility tools')
+    utils_parser.add_argument(
+        'action',
+        choices=['cache-filtered', 'detailed-analysis'],
+        help='Utility action to perform'
+    )
+    # cache-filtered options
+    utils_parser.add_argument('--min-roe', type=float, default=0.0)
+    utils_parser.add_argument('--max-roe', type=float, default=10000.0)
+    utils_parser.add_argument('--min-winrate', type=float, default=0.0)
+    utils_parser.add_argument('--min-trades', type=int, default=5)
+    utils_parser.add_argument('--top-count', type=int, default=10)
+    # detailed-analysis options
+    utils_parser.add_argument('--lab-id', help='Lab ID for detailed analysis')
     
-    # Analyze from cache command
-    analyze_parser = subparsers.add_parser('analyze-cache', help='Analyze cached lab data with detailed results')
-    analyze_parser.add_argument('--lab-ids', nargs='+', type=str, help='Analyze only specific lab IDs')
-    analyze_parser.add_argument('--top-count', type=int, default=10, help='Number of top backtests to show (default: 10)')
-    analyze_parser.add_argument('--sort-by', choices=['roi', 'roe', 'winrate', 'profit', 'trades'], default='roe', help='Sort backtests by metric (default: roe)')
-    analyze_parser.add_argument('--save-results', action='store_true', help='Save analysis results for later bot creation')
-    analyze_parser.add_argument('--generate-lab-reports', action='store_true', help='Generate lab analysis reports with qualifying bots')
-    analyze_parser.add_argument('--concise-format', action='store_true', help='Use concise format for lab reports (Strategy, Trading Pair, ROE, WR, Trades, Bots)')
-    analyze_parser.add_argument('--comprehensive-summary', action='store_true', help='Generate comprehensive lab summary with all cached labs and real lab names')
-    analyze_parser.add_argument('--strategy-grouped-reports', action='store_true', help='Print report grouped by strategy with lab IDs and stats')
-    analyze_parser.add_argument('--detailed-lab-reports', action='store_true', help='Print detailed per-lab reports incl. names, stats, ROI ranges, and top bots with UIDs')
-    analyze_parser.add_argument('--show-data-distribution', action='store_true', help='Show data distribution analysis to help understand your data')
-    analyze_parser.add_argument('--min-roe', type=float, default=0, help='Minimum ROE for qualifying bots (default: 0)')
-    analyze_parser.add_argument('--max-roe', type=float, help='Maximum ROE for qualifying bots (no default limit)')
-    analyze_parser.add_argument('--min-winrate', type=float, default=30, help='Minimum win rate for qualifying bots (default: 30)')
-    analyze_parser.add_argument('--max-winrate', type=float, help='Maximum win rate for qualifying bots (no default limit)')
-    analyze_parser.add_argument('--min-trades', type=int, default=5, help='Minimum trades for qualifying bots (default: 5)')
-    analyze_parser.add_argument('--max-trades', type=int, help='Maximum trades for qualifying bots (no default limit)')
-    analyze_parser.add_argument('--output-format', choices=['json', 'csv', 'markdown'], default='json', help='Output format for lab analysis reports (default: json)')
-    
-    # Create bots from analysis command
-    create_bots_parser = subparsers.add_parser('create-bots-from-analysis', help='Create bots from saved analysis results')
-    create_bots_parser.add_argument('--lab-id', type=str, help='Create bots from specific lab analysis result')
-    create_bots_parser.add_argument('--top-count', type=int, default=10, help='Number of top backtests to create bots for (default: 10)')
-    create_bots_parser.add_argument('--activate', action='store_true', help='Activate created bots for live trading')
-    create_bots_parser.add_argument('--target-amount', type=float, default=2000.0, help='Target USDT amount for trade amounts (default: 2000.0)')
-    create_bots_parser.add_argument('--validate-backtest', action='store_true', help='Validate backtests before bot creation')
-    create_bots_parser.add_argument('--validate-lab', action='store_true', default=True, help='Validate that lab exists on server')
-    
-    # Interactive analysis command
-    interactive_parser = subparsers.add_parser('interactive-analyze', help='Interactive analysis and decision-making for cached data')
-    interactive_parser.add_argument('--lab-ids', nargs='+', type=str, help='Analyze only specific lab IDs')
-    interactive_parser.add_argument('--top-count', type=int, default=50, help='Number of top backtests to show (default: 50)')
-    interactive_parser.add_argument('--sort-by', choices=['roi', 'roe', 'winrate', 'profit', 'trades', 'risk', 'stability'], default='roe', help='Sort backtests by metric (default: roe)')
-    
-    # Visualization command
-    viz_parser = subparsers.add_parser('visualize', help='Generate charts and graphs for backtest analysis')
-    viz_parser.add_argument('--lab-ids', nargs='+', type=str, help='Generate charts for specific lab IDs')
-    viz_parser.add_argument('--backtest-ids', nargs='+', type=str, help='Generate charts for specific backtest IDs')
-    viz_parser.add_argument('--all-labs', action='store_true', help='Generate charts for all cached labs')
-    viz_parser.add_argument('--output-dir', type=str, help='Output directory for charts (default: cache/charts)')
-    viz_parser.add_argument('--top-count', type=int, default=10, help='Number of top backtests to analyze per lab (default: 10)')
-    
+    return parser
+
+
+async def main_async(args: argparse.Namespace) -> int:
+    """Main async function"""
+    try:
+        # Create configuration
+        config = CLIConfig(
+            host=args.host,
+            port=args.port,
+            timeout=args.timeout,
+            log_level=args.log_level,
+            strict_mode=args.strict_mode
+        )
+        
+        # Create appropriate CLI instance
+        cli_instance = None
+        
+        if args.command == 'lab':
+            cli_instance = LabCLI(config)
+        elif args.command == 'bot':
+            cli_instance = BotCLI(config)
+        elif args.command == 'analysis':
+            cli_instance = AnalysisCLI(config)
+        elif args.command == 'account':
+            cli_instance = AccountCLI(config)
+        elif args.command == 'script':
+            cli_instance = ScriptCLI(config)
+        elif args.command == 'market':
+            cli_instance = MarketCLI(config)
+        elif args.command == 'backtest':
+            cli_instance = BacktestCLI(config)
+        elif args.command == 'backtest-workflow':
+            cli_instance = BacktestWorkflowCLI(config)
+        elif args.command == 'order':
+            cli_instance = OrderCLI(config)
+        elif args.command == 'utils':
+            # Run utility scripts directly to avoid heavy wiring
+            if args.action == 'cache-filtered':
+                cmd = (
+                    f"{shlex.quote(sys.executable)} "
+                    f"{shlex.quote(str(Path(__file__).parent / 'cache_analysis_filtered.py'))} "
+                    f"--min-roe {args.min_roe} --max-roe {args.max_roe} "
+                    f"--min-winrate {args.min_winrate} --min-trades {args.min_trades} "
+                    f"--top-count {args.top_count}"
+                )
+                logger.info(f"Running: {cmd}")
+                proc = await asyncio.create_subprocess_shell(cmd)
+                await proc.communicate()
+                return proc.returncode or 0
+            elif args.action == 'detailed-analysis':
+                if not args.lab_id:
+                    logger.error("--lab-id is required for detailed-analysis")
+                    return 2
+                cmd = (
+                    f"{shlex.quote(sys.executable)} "
+                    f"{shlex.quote(str(Path(__file__).parent / 'detailed_analysis.py'))} "
+                    f"--lab-id {shlex.quote(args.lab_id)} --top-count {args.top_count}"
+                )
+                logger.info(f"Running: {cmd}")
+                proc = await asyncio.create_subprocess_shell(cmd)
+                await proc.communicate()
+                return proc.returncode or 0
+            else:
+                logger.error(f"Unknown utils action: {args.action}")
+                return 1
+        else:
+            logger.error(f"Unknown command: {args.command}")
+            return 1
+        
+        # Run the CLI
+        async with cli_instance:
+            return await cli_instance.run(sys.argv[1:])
+            
+    except KeyboardInterrupt:
+        logger.info("Operation cancelled by user")
+        return 130
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def main() -> int:
+    """Main entry point"""
+    parser = create_parser()
     args = parser.parse_args()
     
-    if not args.command:
-        parser.print_help()
-        return
-    
+    # Run async main function
     try:
-        # NEW UNIFIED COMMANDS (RECOMMENDED)
-        if args.command == 'analysis':
-            # Route to unified analysis CLI
-            from pyHaasAPI.cli.analysis_cli import main as analysis_cli_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'analysis'
-            try:
-                return analysis_cli_main()
-            finally:
-                sys.argv = original_argv
-        elif args.command == 'bot':
-            # Route to unified bot management CLI
-            from pyHaasAPI.cli.bot_management_cli import main as bot_mgmt_cli_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'bot'
-            try:
-                return bot_mgmt_cli_main()
-            finally:
-                sys.argv = original_argv
-        
-        # REFACTORED TOOLS (ALSO AVAILABLE)
-        elif args.command == 'analyze_from_cache_refactored':
-            from pyHaasAPI.cli.analyze_from_cache_refactored import main as analyze_cache_refactored_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'analyze_from_cache_refactored'
-            try:
-                return analyze_cache_refactored_main()
-            finally:
-                sys.argv = original_argv
-        elif args.command == 'mass_bot_creator_refactored':
-            from pyHaasAPI.cli.mass_bot_creator_refactored import main as mass_bot_creator_refactored_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'mass_bot_creator_refactored'
-            try:
-                return mass_bot_creator_refactored_main()
-            finally:
-                sys.argv = original_argv
-        elif args.command == 'fix_bot_trade_amounts_refactored':
-            from pyHaasAPI.cli.fix_bot_trade_amounts_refactored import main as fix_bot_trade_amounts_refactored_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'fix_bot_trade_amounts_refactored'
-            try:
-                return fix_bot_trade_amounts_refactored_main()
-            finally:
-                sys.argv = original_argv
-        elif args.command == 'account_cleanup_refactored':
-            from pyHaasAPI.cli.account_cleanup_refactored import main as account_cleanup_refactored_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'account_cleanup_refactored'
-            try:
-                return account_cleanup_refactored_main()
-            finally:
-                sys.argv = original_argv
-        elif args.command == 'price_tracker_refactored':
-            from pyHaasAPI.cli.price_tracker_refactored import main as price_tracker_refactored_main
-            # Modify sys.argv to remove the main command and pass to the tool
-            original_argv = sys.argv[:]
-            sys.argv = [sys.argv[0]] + sys.argv[2:]  # Remove 'price_tracker_refactored'
-            try:
-                return price_tracker_refactored_main()
-            finally:
-                sys.argv = original_argv
-        
-        # LEGACY COMMANDS (STILL WORKING)
-        elif args.command == 'analyze':
-            simple_cli_main(['analyze', args.lab_id] + 
-                          (['--create-count', str(args.create_count)] if args.create_count else []) +
-                          (['--activate'] if args.activate else []) +
-                          (['--verify'] if args.verify else []))
-        elif args.command == 'list-labs':
-            simple_cli_main(['list-labs'])
-        elif args.command == 'complete-workflow':
-            # Import and run the complete workflow
-            from pyHaasAPI.examples.complete_bot_management_example import main as workflow_main
-            workflow_args = [args.lab_id]
-            if args.create_count:
-                workflow_args.extend(['--create-count', str(args.create_count)])
-            if args.activate:
-                workflow_args.append('--activate')
-            if args.verify:
-                workflow_args.append('--verify')
-            workflow_main(workflow_args)
-        elif args.command == 'robustness':
-            # Import and run the robustness analysis
-            from pyHaasAPI.cli.robustness_analyzer import main as robustness_main
-            robustness_args = []
-            if args.lab_id:
-                robustness_args.extend(['--lab-id', args.lab_id])
-            if args.all_labs:
-                robustness_args.append('--all-labs')
-            if args.top_count:
-                robustness_args.extend(['--top-count', str(args.top_count)])
-            if args.output:
-                robustness_args.extend(['--output', args.output])
-            if args.verbose:
-                robustness_args.append('--verbose')
-            robustness_main(robustness_args)
-        elif args.command == 'cache-labs':
-            # Import and run the cache labs tool
-            from pyHaasAPI.cli.cache_labs import main as cache_labs_main
-            cache_args = []
-            if args.lab_ids:
-                cache_args.extend(['--lab-ids'] + args.lab_ids)
-            if args.exclude_lab_ids:
-                cache_args.extend(['--exclude-lab-ids'] + args.exclude_lab_ids)
-            if args.analyze_count:
-                cache_args.extend(['--analyze-count', str(args.analyze_count)])
-            if args.refresh:
-                cache_args.append('--refresh')
-            cache_labs_main(cache_args)
-        elif args.command == 'cache-cleanup':
-            # Import and run the cache cleanup tool
-            from pyHaasAPI.cli.cache_labs import main as cache_cleanup_main
-            cleanup_args = []
-            if args.force:
-                cleanup_args.append('--force')
-            elif args.dry_run:
-                cleanup_args.append('--dry-run')
-            cache_cleanup_main(cleanup_args)
-        elif args.command == 'analyze-cache':
-            # Import and run the analyze from cache tool
-            from pyHaasAPI.cli.analyze_from_cache import main as analyze_cache_main
-            analyze_args = []
-            if args.lab_ids:
-                analyze_args.extend(['--lab-ids'] + args.lab_ids)
-            if args.top_count:
-                analyze_args.extend(['--top-count', str(args.top_count)])
-            if args.sort_by:
-                analyze_args.extend(['--sort-by', args.sort_by])
-            if args.save_results:
-                analyze_args.append('--save-results')
-            if hasattr(args, 'generate_lab_reports') and args.generate_lab_reports:
-                analyze_args.append('--generate-lab-reports')
-            if hasattr(args, 'concise_format') and args.concise_format:
-                analyze_args.append('--concise-format')
-            if hasattr(args, 'comprehensive_summary') and args.comprehensive_summary:
-                analyze_args.append('--comprehensive-summary')
-            if hasattr(args, 'detailed_lab_reports') and args.detailed_lab_reports:
-                analyze_args.append('--detailed-lab-reports')
-            if hasattr(args, 'strategy_grouped_reports') and args.strategy_grouped_reports:
-                analyze_args.append('--strategy-grouped-reports')
-            if hasattr(args, 'min_roe'):
-                analyze_args.extend(['--min-roe', str(args.min_roe)])
-            if hasattr(args, 'max_roe') and args.max_roe is not None:
-                analyze_args.extend(['--max-roe', str(args.max_roe)])
-            if hasattr(args, 'min_winrate'):
-                analyze_args.extend(['--min-winrate', str(args.min_winrate)])
-            if hasattr(args, 'max_winrate') and args.max_winrate is not None:
-                analyze_args.extend(['--max-winrate', str(args.max_winrate)])
-            if hasattr(args, 'min_trades'):
-                analyze_args.extend(['--min-trades', str(args.min_trades)])
-            if hasattr(args, 'max_trades') and args.max_trades is not None:
-                analyze_args.extend(['--max-trades', str(args.max_trades)])
-            if hasattr(args, 'output_format'):
-                analyze_args.extend(['--output-format', args.output_format])
-            analyze_cache_main(analyze_args)
-        elif args.command == 'create-bots-from-analysis':
-            # Import and run the create bots from analysis tool
-            from pyHaasAPI.cli.create_bots_from_analysis import main as create_bots_main
-            create_args = []
-            if args.lab_id:
-                create_args.extend(['--lab-id', args.lab_id])
-            if args.top_count:
-                create_args.extend(['--top-count', str(args.top_count)])
-            if args.activate:
-                create_args.append('--activate')
-            if args.target_amount:
-                create_args.extend(['--target-amount', str(args.target_amount)])
-            if args.validate_backtest:
-                create_args.append('--validate-backtest')
-            if args.validate_lab:
-                create_args.append('--validate-lab')
-            create_bots_main(create_args)
-        elif args.command == 'interactive-analyze':
-            # Import and run the interactive analyzer
-            from pyHaasAPI.cli.interactive_analyzer import main as interactive_main
-            interactive_args = []
-            if args.lab_ids:
-                interactive_args.extend(['--lab-ids'] + args.lab_ids)
-            if args.top_count:
-                interactive_args.extend(['--top-count', str(args.top_count)])
-            if args.sort_by:
-                interactive_args.extend(['--sort-by', args.sort_by])
-            interactive_main(interactive_args)
-        elif args.command == 'visualize':
-            # Import and run the visualization tool
-            from pyHaasAPI.cli.visualization_tool import main as viz_main
-            viz_args = []
-            if args.lab_ids:
-                viz_args.extend(['--lab-ids'] + args.lab_ids)
-            if args.backtest_ids:
-                viz_args.extend(['--backtest-ids'] + args.backtest_ids)
-            if args.all_labs:
-                viz_args.append('--all-labs')
-            if args.output_dir:
-                viz_args.extend(['--output-dir', args.output_dir])
-            if args.top_count:
-                viz_args.extend(['--top-count', str(args.top_count)])
-            viz_main(viz_args)
+        return asyncio.run(main_async(args))
+    except KeyboardInterrupt:
+        logger.info("Operation cancelled by user")
+        return 130
     except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+        logger.error(f"Unexpected error: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

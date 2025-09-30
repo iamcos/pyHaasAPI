@@ -1,6 +1,16 @@
 # pyHaasAPI
 
-A comprehensive Python library for HaasOnline API integration with advanced trading automation capabilities.
+A modern, async-first Python library for HaasOnline API integration with advanced trading automation capabilities.
+
+## 🆕 What's New in v2.0
+
+- **Modern Async Architecture**: Complete rewrite with async/await support throughout
+- **Type Safety**: Comprehensive type hints with Pydantic v2 validation
+- **Domain-Separated APIs**: Clean, modular API design with 7 specialized modules
+- **Service Layer**: High-level business logic services for complex operations
+- **Advanced CLI**: Unified command-line interface with subcommands
+- **Comprehensive Testing**: 100% test coverage with performance and error handling tests
+- **Enhanced Error Handling**: Structured exception hierarchy with recovery suggestions
 
 ## 🚀 Features
 
@@ -23,10 +33,47 @@ pip install pyHaasAPI
 
 ## 🔧 Quick Start
 
+### Modern Async API (v2.0)
+
 ```python
-from pyHaasAPI import api
-from pyHaasAPI.analysis import BacktestDataExtractor
-from pyHaasAPI.markets import MarketDiscovery
+import asyncio
+from pyHaasAPI import AsyncHaasClient, AuthenticationManager, LabAPI, BotAPI
+
+async def main():
+    # Create async client
+    client = AsyncHaasClient(host="127.0.0.1", port=8090)
+    auth_manager = AuthenticationManager(email="your@email.com", password="password")
+    
+    # Authenticate
+    await auth_manager.authenticate()
+    
+    # Create API instances
+    lab_api = LabAPI(client, auth_manager)
+    bot_api = BotAPI(client, auth_manager)
+    
+    # List all labs
+    labs = await lab_api.get_labs()
+    print(f"Found {len(labs)} labs")
+    
+    # Create a bot
+    bot = await bot_api.create_bot(
+        bot_name="My Bot",
+        script_id="script123",
+        script_type="HaasScript",
+        account_id="account123",
+        market="BINANCE_BTC_USDT_"
+    )
+    print(f"Created bot: {bot.bot_id}")
+
+# Run the async function
+asyncio.run(main())
+```
+
+### Legacy Sync API (v1.0)
+
+```python
+from pyHaasAPI_v1 import api
+from pyHaasAPI_v1.analysis import BacktestDataExtractor
 
 # Get authenticated executor
 executor = api.get_authenticated_executor()
@@ -41,13 +88,28 @@ print(f"Extracted {len(summary.trades)} trades with {summary.win_rate:.1f}% win 
 
 The `pyHaasAPI/cli/` directory contains powerful command-line tools for automated trading:
 
-### Mass Bot Creation
+### Unified CLI (v2.0)
 ```bash
-# Create top 5 bots from all labs and activate them
-python -m pyHaasAPI.cli.mass_bot_creator --top-count 5 --activate
+# Lab management
+python -m pyHaasAPI.cli lab list
+python -m pyHaasAPI.cli lab create --script-id script123 --name "My Lab"
+python -m pyHaasAPI.cli lab analyze lab123 --top-count 5
 
-# Create bots only from labs with 50+ backtests and 60%+ win rate
-python -m pyHaasAPI.cli.mass_bot_creator --min-backtests 50 --min-winrate 0.6
+# Bot management
+python -m pyHaasAPI.cli bot list
+python -m pyHaasAPI.cli bot create --from-lab lab123 --count 3 --activate
+python -m pyHaasAPI.cli bot analyze bot123
+
+# Analysis and backtesting
+python -m pyHaasAPI.cli analysis labs --generate-reports
+python -m pyHaasAPI.cli backtest execute --lab-id lab123 --iterations 1000
+```
+
+### Legacy CLI Tools (v1.0)
+```bash
+# Mass bot creation
+python -m pyHaasAPI_v1.cli.mass_bot_creator --top-count 5 --activate
+python -m pyHaasAPI_v1.cli.mass_bot_creator --min-backtests 50 --min-winrate 0.6
 
 # Create bots from specific labs only
 python -m pyHaasAPI.cli.mass_bot_creator --lab-ids lab1,lab2 --top-count 3

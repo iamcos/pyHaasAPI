@@ -615,14 +615,14 @@ python -m pyHaasAPI.examples.example_usage
 ### CRITICAL: KNOWN SERVER ISSUES
 **IMPORTANT: The v2 API authentication is currently failing because servers are returning HTML instead of JSON, causing "missing user data" errors. This is a KNOWN SERVER-SIDE ISSUE, not a code problem. The servers are reachable but returning malformed responses. This affects v2 authentication but v1 API works fine through SSH tunnels.**
 
-## pyHaasAPI v2 Architecture (COMPREHENSIVE)
+## pyHaasAPI Architecture (COMPREHENSIVE)
 
 ### Core Philosophy
-**pyHaasAPI v2 is a modern, async-first, type-safe Python library for HaasOnline trading platform. It's a complete rewrite with focus on performance, reliability, and developer experience. NEVER use v1 API - use v2 as the primary interface.**
+**pyHaasAPI is a modern, async-first, type-safe Python library for HaasOnline trading platform. It's a complete rewrite with focus on performance, reliability, and developer experience. The legacy v1 API is preserved in pyHaasAPI_v1 for backward compatibility.**
 
 ### Architecture Overview
 ```
-pyHaasAPI_v2/
+pyHaasAPI/
 ├── core/                    # Core functionality
 │   ├── client.py            # AsyncHaasClient - Low-level async HTTP client
 │   ├── auth.py              # AuthenticationManager - Handles auth and tokens
