@@ -606,6 +606,464 @@ python -m pyHaasAPI.examples.example_usage
 - Cache expensive operations (backtest data fetching)
 - Provide both programmatic and CLI interfaces
 
+### CRITICAL: NO MOCK FUNCTIONALITY
+**NEVER create mock, fake, or simulated functionality. This project uses REAL data and REAL API connections only. All functionality must work with actual HaasOnline servers and real data. No mock implementations, no fake data, no simulated responses.**
+
+### CRITICAL: SERVERS ARE ALWAYS AVAILABLE
+**The servers (srv01, srv02, srv03) are always available and accessible. SSH tunnels work properly. If there are connection issues, it's a configuration problem, not a server availability problem. Always assume servers are online and working.**
+
+### CRITICAL: KNOWN SERVER ISSUES
+**IMPORTANT: The v2 API authentication is currently failing because servers are returning HTML instead of JSON, causing "missing user data" errors. This is a KNOWN SERVER-SIDE ISSUE, not a code problem. The servers are reachable but returning malformed responses. This affects v2 authentication but v1 API works fine through SSH tunnels.**
+
+## pyHaasAPI v2 Architecture (COMPREHENSIVE)
+
+### Core Philosophy
+**pyHaasAPI v2 is a modern, async-first, type-safe Python library for HaasOnline trading platform. It's a complete rewrite with focus on performance, reliability, and developer experience. NEVER use v1 API - use v2 as the primary interface.**
+
+### Architecture Overview
+```
+pyHaasAPI_v2/
+├── core/                    # Core functionality
+│   ├── client.py            # AsyncHaasClient - Low-level async HTTP client
+│   ├── auth.py              # AuthenticationManager - Handles auth and tokens
+│   ├── server_manager.py    # ServerManager - SSH tunnel orchestration
+│   ├── data_manager.py      # ComprehensiveDataManager - Multi-server management
+│   └── logging.py           # Comprehensive logging system
+├── api/                     # API modules (async-first)
+│   ├── lab/lab_api.py       # LabAPI - Lab management operations
+│   ├── bot/bot_api.py       # BotAPI - Bot management operations
+│   ├── account/account_api.py # AccountAPI - Account management
+│   ├── backtest/backtest_api.py # BacktestAPI - Backtest operations
+│   ├── market/market_api.py # MarketAPI - Market data operations
+│   ├── script/script_api.py # ScriptAPI - Script management
+│   └── order/order_api.py   # OrderAPI - Order management
+├── services/                # High-level business logic
+│   ├── lab/lab_service.py   # LabService - High-level lab management
+│   ├── bot/bot_service.py   # BotService - High-level bot management
+│   ├── analysis/analysis_service.py # AnalysisService - Analysis and reporting
+│   └── reporting/reporting_service.py # ReportingService - Report generation
+├── models/                  # Pydantic data models
+│   ├── lab.py              # Lab models (LabDetails, LabRecord, LabConfig)
+│   ├── bot.py              # Bot models (BotDetails, BotRecord)
+│   ├── backtest.py         # Backtest models (BacktestResult, BacktestAnalysis)
+│   ├── account.py          # Account models
+│   └── common.py           # Common models
+├── cli/                     # Command-line interface
+│   ├── main.py             # Main CLI entry point
+│   ├── base.py             # BaseCLI - Common CLI functionality
+│   ├── lab_cli.py          # Lab CLI commands
+│   ├── bot_cli.py          # Bot CLI commands
+│   ├── analysis_cli.py     # Analysis CLI commands
+│   └── backtest_workflow_cli.py # Backtest workflow CLI
+├── exceptions/              # Custom exception hierarchy
+│   ├── base.py             # Base exceptions
+│   ├── auth.py             # Authentication exceptions
+│   ├── lab.py              # Lab-specific exceptions
+│   ├── bot.py              # Bot-specific exceptions
+│   └── server.py           # Server-specific exceptions
+└── config/                  # Configuration management
+    ├── settings.py         # Main settings
+    ├── api_config.py      # API configuration
+    └── logging_config.py   # Logging configuration
+```
+
+### Key Components
+
+#### 1. AsyncHaasClient (core/client.py)
+- **Purpose**: Low-level async HTTP client with aiohttp
+- **Features**: Connection pooling, retry logic, rate limiting, comprehensive logging
+- **Usage**: `client = AsyncHaasClient(host="127.0.0.1", port=8090)`
+
+#### 2. AuthenticationManager (core/auth.py)
+- **Purpose**: Handles email/password authentication, OTC processing, session management
+- **Features**: Session tracking, token management, automatic re-authentication
+- **Usage**: `auth_manager = AuthenticationManager(email, password)`
+
+#### 3. ServerManager (core/server_manager.py)
+- **Purpose**: SSH tunnel orchestration to multiple HaasOnline servers
+- **Features**: Multi-server support, automatic reconnection, health monitoring
+- **Usage**: `server_manager = ServerManager(settings)`
+
+#### 4. ComprehensiveDataManager (core/data_manager.py)
+- **Purpose**: Multi-server data management with intelligent fetching
+- **Features**: Rate limiting, connection pooling, background updates, caching
+- **Usage**: `data_manager = ComprehensiveDataManager()`
+
+### API Modules (All Async)
+
+#### LabAPI (api/lab/lab_api.py)
+```python
+# Key methods:
+await lab_api.create_lab(script_id, name, account_id, market, ...)
+await lab_api.get_lab_details(lab_id)
+await lab_api.update_lab_details(lab_id, lab_details)
+await lab_api.clone_lab(source_lab_id, new_lab_name)
+await lab_api.start_lab_execution(lab_id)
+await lab_api.get_lab_execution_status(lab_id)
+await lab_api.cancel_lab_execution(lab_id)
+```
+
+#### BotAPI (api/bot/bot_api.py)
+```python
+# Key methods:
+await bot_api.create_bot(script_id, name, account_id, market, ...)
+await bot_api.get_bot_details(bot_id)
+await bot_api.update_bot_parameters(bot_id, parameters)
+await bot_api.activate_bot(bot_id)
+await bot_api.deactivate_bot(bot_id)
+await bot_api.get_bot_runtime_data(bot_id)
+```
+
+#### BacktestAPI (api/backtest/backtest_api.py)
+```python
+# Key methods:
+await backtest_api.get_lab_backtests(lab_id)
+await backtest_api.get_backtest_result(backtest_id)
+await backtest_api.get_backtest_runtime_data(backtest_id)
+await backtest_api.execute_backtest(script_id, market, settings)
+```
+
+### Service Layer (High-Level Business Logic)
+
+#### LabService (services/lab/lab_service.py)
+```python
+# High-level lab operations:
+await lab_service.create_optimized_lab(source_lab_id, target_lab_id, coin_symbol)
+await lab_service.configure_lab_parameters(lab_id, best_params)
+await lab_service.run_longest_backtest(lab_id, cutoff_date)
+await lab_service.monitor_lab_progress(lab_id, job_id)
+```
+
+#### BotService (services/bot/bot_service.py)
+```python
+# High-level bot operations:
+await bot_service.create_bots_from_lab(lab_id, count, activate=True)
+await bot_service.analyze_bot_performance(bot_id)
+await bot_service.manage_bot_lifecycle(bot_id)
+```
+
+#### AnalysisService (services/analysis/analysis_service.py)
+```python
+# High-level analysis operations:
+await analysis_service.analyze_lab_comprehensive(lab_id, top_count=5)
+await analysis_service.extract_best_parameters(lab_id)
+await analysis_service.generate_analysis_report(lab_id)
+```
+
+### CLI Interface
+
+#### Main CLI (cli/main.py)
+```bash
+# Lab operations
+python -m pyHaasAPI_v2.cli lab list
+python -m pyHaasAPI_v2.cli lab create --script-id script123 --name "My Lab"
+python -m pyHaasAPI_v2.cli lab analyze lab123 --top-count 5
+
+# Bot operations
+python -m pyHaasAPI_v2.cli bot list
+python -m pyHaasAPI_v2.cli bot create --from-lab lab123 --count 3 --activate
+python -m pyHaasAPI_v2.cli bot analyze bot123
+
+# Analysis operations
+python -m pyHaasAPI_v2.cli analysis labs --generate-reports
+python -m pyHaasAPI_v2.cli analysis comprehensive --lab-ids lab1,lab2
+```
+
+### Data Models (Pydantic)
+
+#### Lab Models (models/lab.py)
+```python
+class LabDetails(BaseModel):
+    lab_id: str
+    lab_name: str
+    script_id: str
+    market_tag: str
+    settings: LabSettings
+    parameters: List[LabParameter]
+    status: LabStatus
+
+class LabConfig(BaseModel):
+    max_parallel: int
+    max_generations: int
+    max_epochs: int
+    max_runtime: int
+    auto_restart: bool
+```
+
+#### Bot Models (models/bot.py)
+```python
+class BotDetails(BaseModel):
+    bot_id: str
+    bot_name: str
+    script_id: str
+    market_tag: str
+    account_id: str
+    settings: BotSettings
+    performance: BotPerformance
+    status: BotStatus
+```
+
+### Exception Hierarchy
+
+#### Base Exceptions (exceptions/base.py)
+```python
+class HaasAPIError(Exception): pass
+class AuthenticationError(HaasAPIError): pass
+class APIError(HaasAPIError): pass
+class NetworkError(HaasAPIError): pass
+class ValidationError(HaasAPIError): pass
+```
+
+#### Specific Exceptions
+```python
+class LabError(APIError): pass
+class BotError(APIError): pass
+class BacktestError(APIError): pass
+class ServerError(APIError): pass
+```
+
+### Configuration
+
+#### Settings (config/settings.py)
+```python
+class Settings(BaseSettings):
+    email: str
+    password: str
+    host: str = "127.0.0.1"
+    port: int = 8090
+    timeout: float = 30.0
+    strict_mode: bool = False
+```
+
+### Usage Patterns
+
+#### 1. Basic Usage
+```python
+import asyncio
+from pyHaasAPI_v2 import AsyncHaasClient, AuthenticationManager
+
+async def main():
+    client = AsyncHaasClient(host="127.0.0.1", port=8090)
+    auth_manager = AuthenticationManager(email, password)
+    await auth_manager.authenticate()
+    
+    # Use client directly
+    labs = await client.get_labs()
+```
+
+#### 2. Service Layer Usage
+```python
+from pyHaasAPI_v2.services import LabService, BotService, AnalysisService
+
+async def main():
+    # Setup
+    client = AsyncHaasClient(host="127.0.0.1", port=8090)
+    auth_manager = AuthenticationManager(email, password)
+    await auth_manager.authenticate()
+    
+    # Create services
+    lab_service = LabService(client, auth_manager)
+    bot_service = BotService(client, auth_manager)
+    analysis_service = AnalysisService(client, auth_manager)
+    
+    # Use services
+    analysis_result = await analysis_service.analyze_lab_comprehensive("lab_123")
+    bot_result = await bot_service.create_bots_from_lab("lab_123", count=3)
+```
+
+#### 3. Multi-Server Usage
+```python
+from pyHaasAPI_v2.core.data_manager import ComprehensiveDataManager
+
+async def main():
+    data_manager = ComprehensiveDataManager()
+    await data_manager.initialize()
+    
+    # Connect to multiple servers
+    await data_manager.connect_to_server("srv01")
+    await data_manager.connect_to_server("srv02")
+    
+    # Fetch data from all servers
+    all_data = await data_manager.fetch_all_data()
+```
+
+### Key Features
+
+#### 1. Async-First Architecture
+- All operations are async/await
+- Non-blocking I/O for better performance
+- Concurrent operations support
+
+#### 2. Type Safety
+- Comprehensive type hints
+- Runtime type validation with Pydantic
+- IDE support and autocompletion
+
+#### 3. Error Handling
+- Custom exception hierarchy
+- Structured error codes and messages
+- Recovery suggestions
+
+#### 4. Performance
+- Connection pooling
+- Rate limiting
+- Intelligent caching
+- Batch processing
+
+#### 5. Monitoring
+- Comprehensive logging
+- Performance metrics
+- Health monitoring
+- Progress tracking
+
+### Migration from v1
+
+#### v1 vs v2 Differences
+```python
+# v1 (synchronous)
+labs = api.get_labs(executor)
+
+# v2 (asynchronous)
+labs = await client.get_labs()
+```
+
+#### v1 Compatibility
+- v1 API is available as reference only
+- Use v2 for all new development
+- v1 can be used for fallback if v2 doesn't have a specific function
+
+### Development Guidelines
+
+#### 1. Always Use v2
+- Never use v1 API for new development
+- Use v1 only as reference if v2 doesn't have a function
+- All new features must be implemented in v2
+
+#### 2. Async Patterns
+- All functions must be async
+- Use proper error handling
+- Implement proper cleanup
+
+#### 3. Type Safety
+- Use type hints everywhere
+- Validate inputs with Pydantic
+- Handle type errors gracefully
+
+#### 4. Error Handling
+- Use custom exceptions
+- Provide recovery suggestions
+- Log errors appropriately
+
+#### 5. Testing
+- Write comprehensive tests
+- Test async functions properly
+- Mock external dependencies
+
+### Common Patterns
+
+#### 1. Authentication
+```python
+async def authenticate():
+    client = AsyncHaasClient(host="127.0.0.1", port=8090)
+    auth_manager = AuthenticationManager(email, password)
+    await auth_manager.authenticate()
+    return client, auth_manager
+```
+
+#### 2. Lab Analysis
+```python
+async def analyze_lab(lab_id: str):
+    lab_api = LabAPI(client, auth_manager)
+    analysis = await lab_api.get_lab_backtests(lab_id)
+    best_params = extract_best_parameters(analysis)
+    return best_params
+```
+
+#### 3. Bot Creation
+```python
+async def create_bots_from_analysis(lab_id: str, count: int):
+    bot_api = BotAPI(client, auth_manager)
+    analysis = await analyze_lab(lab_id)
+    bots = []
+    for i in range(count):
+        bot = await bot_api.create_bot_from_lab(lab_id, analysis[i])
+        bots.append(bot)
+    return bots
+```
+
+### Performance Considerations
+
+#### 1. Connection Management
+- Use connection pooling
+- Implement proper cleanup
+- Handle connection errors
+
+#### 2. Rate Limiting
+- Respect API rate limits
+- Implement exponential backoff
+- Use batch operations when possible
+
+#### 3. Caching
+- Cache frequently accessed data
+- Implement cache invalidation
+- Use appropriate cache TTL
+
+#### 4. Monitoring
+- Log performance metrics
+- Monitor resource usage
+- Implement health checks
+
+### Security
+
+#### 1. Authentication
+- Secure credential storage
+- Token-based authentication
+- Session management
+
+#### 2. Input Validation
+- Validate all inputs
+- Sanitize user data
+- Handle edge cases
+
+#### 3. Error Handling
+- Don't expose sensitive information
+- Log errors securely
+- Implement proper cleanup
+
+### Testing
+
+#### 1. Unit Tests
+- Test individual functions
+- Mock external dependencies
+- Test error conditions
+
+#### 2. Integration Tests
+- Test API interactions
+- Test service layer
+- Test CLI commands
+
+#### 3. Performance Tests
+- Test async operations
+- Test concurrent operations
+- Test resource usage
+
+### Documentation
+
+#### 1. API Documentation
+- Document all functions
+- Provide usage examples
+- Include error conditions
+
+#### 2. CLI Documentation
+- Document all commands
+- Provide examples
+- Include help text
+
+#### 3. Examples
+- Provide working examples
+- Show common patterns
+- Include best practices
+
 ### Authentication Pattern (CRITICAL)
 **NEVER ask about authentication - it's always the same pattern:**
 
