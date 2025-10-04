@@ -333,3 +333,4 @@ class TestAuthenticationManager:
         assert headers["Authorization"] == "Bearer newkey789"
         mock_client.post.assert_called()
 
+

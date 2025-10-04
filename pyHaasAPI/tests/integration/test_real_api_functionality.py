@@ -320,3 +320,4 @@ class TestRealAPIFunctionality:
             print(f"Historical data for {market_tag}: {len(historical_data)} data points")
         except Exception as e:
             print(f"Could not get historical data: {e}")
+

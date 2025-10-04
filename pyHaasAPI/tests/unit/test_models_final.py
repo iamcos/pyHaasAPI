@@ -491,3 +491,4 @@ class TestModelValidation:
         with pytest.raises(ValueError):
             BotConfiguration(margin_mode=5)  # Should be 0 or 1
 
+

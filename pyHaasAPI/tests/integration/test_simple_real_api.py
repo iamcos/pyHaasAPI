@@ -105,3 +105,4 @@ class TestSimpleRealAPI:
         assert version.minor >= 8, "Python 3.8+ required"
         
         print("✅ Python version is compatible")
+

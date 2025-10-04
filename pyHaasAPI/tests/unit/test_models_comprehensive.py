@@ -527,3 +527,4 @@ class TestModelSerialization:
         assert settings.interval == 1
         assert settings.trade_amount == 100.0
 
+

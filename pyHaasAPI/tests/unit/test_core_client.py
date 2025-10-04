@@ -275,3 +275,4 @@ class TestAsyncHaasClient:
         session3 = await client._get_session()
         assert session3 is not session
 
+

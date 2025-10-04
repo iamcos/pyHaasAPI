@@ -488,3 +488,4 @@ class TestMemoryPerformance:
         # Performance assertion
         assert duration < 0.1  # Should be very fast
 
+

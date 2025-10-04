@@ -175,3 +175,4 @@ class TestAsyncHaasClient:
         # Additional logging assertions would go here
 
 
+

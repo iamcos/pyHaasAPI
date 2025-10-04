@@ -448,3 +448,4 @@ class TestLabAPI:
         with pytest.raises(Exception):
             await lab_api.get_lab_details("lab123")
 
+
