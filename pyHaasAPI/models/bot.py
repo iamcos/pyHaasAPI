@@ -6,7 +6,7 @@ Provides comprehensive data models for bot management operations.
 
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from .common import BaseEntityModel
 
 
@@ -20,36 +20,36 @@ class BotConfiguration(BaseModel):
     chart_style: int = Field(alias="chartStyle", default=300, description="Chart style ID")
     order_template: int = Field(alias="orderTemplate", default=500, description="Order template ID")
     
-    @validator("leverage")
-    def validate_leverage(cls, v):
+    @field_validator("leverage")
+    def validate_leverage(cls, v, info):
         """Validate leverage value"""
         if v <= 0:
             raise ValueError("Leverage must be positive")
         return v
     
-    @validator("position_mode")
-    def validate_position_mode(cls, v):
+    @field_validator("position_mode")
+    def validate_position_mode(cls, v, info):
         """Validate position mode"""
         if v not in [0, 1]:
             raise ValueError("Position mode must be 0 (ONE_WAY) or 1 (HEDGE)")
         return v
     
-    @validator("margin_mode")
-    def validate_margin_mode(cls, v):
+    @field_validator("margin_mode")
+    def validate_margin_mode(cls, v, info):
         """Validate margin mode"""
         if v not in [0, 1]:
             raise ValueError("Margin mode must be 0 (CROSS) or 1 (ISOLATED)")
         return v
     
-    @validator("trade_amount")
-    def validate_trade_amount(cls, v):
+    @field_validator("trade_amount")
+    def validate_trade_amount(cls, v, info):
         """Validate trade amount"""
         if v <= 0:
             raise ValueError("Trade amount must be positive")
         return v
     
-    @validator("interval", "chart_style", "order_template")
-    def validate_positive_integers(cls, v):
+    @field_validator("interval", "chart_style", "order_template")
+    def validate_positive_integers(cls, v, info):
         """Validate positive integer values"""
         if v <= 0:
             raise ValueError("Value must be positive")
@@ -79,8 +79,8 @@ class BotRecord(BaseModel):
     created_at: Optional[datetime] = Field(alias="createdAt", default=None, description="Creation timestamp")
     updated_at: Optional[datetime] = Field(alias="updatedAt", default=None, description="Last update timestamp")
     
-    @validator("status")
-    def validate_status(cls, v):
+    @field_validator("status")
+    def validate_status(cls, v, info):
         """Validate bot status"""
         valid_statuses = ["ACTIVE", "INACTIVE", "PAUSED", "ERROR", "STOPPED"]
         if v.upper() not in valid_statuses:
@@ -103,8 +103,8 @@ class BotDetails(BaseModel):
     created_at: Optional[datetime] = Field(alias="createdAt", default=None, description="Creation timestamp")
     updated_at: Optional[datetime] = Field(alias="updatedAt", default=None, description="Last update timestamp")
     
-    @validator("status")
-    def validate_status(cls, v):
+    @field_validator("status")
+    def validate_status(cls, v, info):
         """Validate bot status"""
         valid_statuses = ["ACTIVE", "INACTIVE", "PAUSED", "ERROR", "STOPPED"]
         if v.upper() not in valid_statuses:
@@ -120,8 +120,8 @@ class CreateBotRequest(BaseModel):
     market_tag: str = Field(alias="marketTag", description="Market tag")
     configuration: BotConfiguration = Field(description="Bot configuration")
     
-    @validator("bot_name")
-    def validate_bot_name(cls, v):
+    @field_validator("bot_name")
+    def validate_bot_name(cls, v, info):
         """Validate bot name"""
         if not v or not isinstance(v, str):
             raise ValueError("Bot name must be a non-empty string")
@@ -136,8 +136,8 @@ class CreateBotFromLabRequest(BaseModel):
     account_id: str = Field(alias="accountId", description="Account ID")
     configuration: Optional[BotConfiguration] = Field(default=None, description="Bot configuration (optional)")
     
-    @validator("bot_name")
-    def validate_bot_name(cls, v):
+    @field_validator("bot_name")
+    def validate_bot_name(cls, v, info):
         """Validate bot name"""
         if not v or not isinstance(v, str):
             raise ValueError("Bot name must be a non-empty string")
@@ -157,30 +157,30 @@ class BotOrder(BaseModel):
     created_at: Optional[datetime] = Field(alias="createdAt", default=None, description="Creation timestamp")
     updated_at: Optional[datetime] = Field(alias="updatedAt", default=None, description="Last update timestamp")
     
-    @validator("side")
-    def validate_side(cls, v):
+    @field_validator("side")
+    def validate_side(cls, v, info):
         """Validate order side"""
         if v.upper() not in ["BUY", "SELL"]:
             raise ValueError("Order side must be BUY or SELL")
         return v.upper()
     
-    @validator("order_type")
-    def validate_order_type(cls, v):
+    @field_validator("order_type")
+    def validate_order_type(cls, v, info):
         """Validate order type"""
         valid_types = ["MARKET", "LIMIT", "STOP", "STOP_LIMIT"]
         if v.upper() not in valid_types:
             raise ValueError(f"Order type must be one of: {valid_types}")
         return v.upper()
     
-    @validator("quantity")
-    def validate_quantity(cls, v):
+    @field_validator("quantity")
+    def validate_quantity(cls, v, info):
         """Validate quantity"""
         if v <= 0:
             raise ValueError("Quantity must be positive")
         return v
     
-    @validator("price")
-    def validate_price(cls, v):
+    @field_validator("price")
+    def validate_price(cls, v, info):
         """Validate price"""
         if v is not None and v <= 0:
             raise ValueError("Price must be positive")
@@ -201,29 +201,29 @@ class BotPosition(BaseModel):
     created_at: Optional[datetime] = Field(alias="createdAt", default=None, description="Creation timestamp")
     updated_at: Optional[datetime] = Field(alias="updatedAt", default=None, description="Last update timestamp")
     
-    @validator("side")
-    def validate_side(cls, v):
+    @field_validator("side")
+    def validate_side(cls, v, info):
         """Validate position side"""
         if v.upper() not in ["LONG", "SHORT"]:
             raise ValueError("Position side must be LONG or SHORT")
         return v.upper()
     
-    @validator("size")
-    def validate_size(cls, v):
+    @field_validator("size")
+    def validate_size(cls, v, info):
         """Validate position size"""
         if v <= 0:
             raise ValueError("Position size must be positive")
         return v
     
-    @validator("entry_price")
-    def validate_entry_price(cls, v):
+    @field_validator("entry_price")
+    def validate_entry_price(cls, v, info):
         """Validate entry price"""
         if v <= 0:
             raise ValueError("Entry price must be positive")
         return v
     
-    @validator("current_price")
-    def validate_current_price(cls, v):
+    @field_validator("current_price")
+    def validate_current_price(cls, v, info):
         """Validate current price"""
         if v is not None and v <= 0:
             raise ValueError("Current price must be positive")
@@ -241,8 +241,8 @@ class BotRuntimeData(BaseModel):
     positions: List[BotPosition] = Field(default_factory=list, description="Bot positions")
     last_update: Optional[datetime] = Field(alias="lastUpdate", default=None, description="Last update timestamp")
     
-    @validator("status")
-    def validate_status(cls, v):
+    @field_validator("status")
+    def validate_status(cls, v, info):
         """Validate bot status"""
         valid_statuses = ["ACTIVE", "INACTIVE", "PAUSED", "ERROR", "STOPPED"]
         if v.upper() not in valid_statuses:
@@ -280,8 +280,8 @@ class BotActivationRequest(BaseModel):
     bot_id: str = Field(alias="botId", description="Bot ID")
     clean_reports: bool = Field(alias="cleanReports", default=False, description="Whether to clean reports")
     
-    @validator("bot_id")
-    def validate_bot_id(cls, v):
+    @field_validator("bot_id")
+    def validate_bot_id(cls, v, info):
         """Validate bot ID"""
         if not v or not isinstance(v, str):
             raise ValueError("Bot ID must be a non-empty string")
@@ -293,8 +293,8 @@ class BotDeactivationRequest(BaseModel):
     bot_id: str = Field(alias="botId", description="Bot ID")
     cancel_orders: bool = Field(alias="cancelOrders", default=False, description="Whether to cancel orders")
     
-    @validator("bot_id")
-    def validate_bot_id(cls, v):
+    @field_validator("bot_id")
+    def validate_bot_id(cls, v, info):
         """Validate bot ID"""
         if not v or not isinstance(v, str):
             raise ValueError("Bot ID must be a non-empty string")
@@ -307,15 +307,15 @@ class BotParameterUpdate(BaseModel):
     parameter_name: str = Field(alias="parameterName", description="Parameter name")
     parameter_value: Union[str, int, float, bool] = Field(alias="parameterValue", description="Parameter value")
     
-    @validator("bot_id")
-    def validate_bot_id(cls, v):
+    @field_validator("bot_id")
+    def validate_bot_id(cls, v, info):
         """Validate bot ID"""
         if not v or not isinstance(v, str):
             raise ValueError("Bot ID must be a non-empty string")
         return v
     
-    @validator("parameter_name")
-    def validate_parameter_name(cls, v):
+    @field_validator("parameter_name")
+    def validate_parameter_name(cls, v, info):
         """Validate parameter name"""
         if not v or not isinstance(v, str):
             raise ValueError("Parameter name must be a non-empty string")
@@ -327,15 +327,15 @@ class BotAccountMigration(BaseModel):
     bot_id: str = Field(alias="botId", description="Bot ID")
     new_account_id: str = Field(alias="newAccountId", description="New account ID")
     
-    @validator("bot_id")
-    def validate_bot_id(cls, v):
+    @field_validator("bot_id")
+    def validate_bot_id(cls, v, info):
         """Validate bot ID"""
         if not v or not isinstance(v, str):
             raise ValueError("Bot ID must be a non-empty string")
         return v
     
-    @validator("new_account_id")
-    def validate_new_account_id(cls, v):
+    @field_validator("new_account_id")
+    def validate_new_account_id(cls, v, info):
         """Validate new account ID"""
         if not v or not isinstance(v, str):
             raise ValueError("New account ID must be a non-empty string")

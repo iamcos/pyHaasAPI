@@ -21,6 +21,8 @@ from .market_cli import MarketCLI
 from .backtest_cli import BacktestCLI
 from .order_cli import OrderCLI
 from .backtest_workflow_cli import BacktestWorkflowCLI
+# Google Sheets integration moved to gdocs/ folder
+# from .google_sheets_integration import GoogleSheetsIntegration
 from ..core.logging import get_logger
 import subprocess
 import shlex
@@ -128,7 +130,7 @@ Examples:
     lab_parser = subparsers.add_parser('lab', help='Lab operations')
     lab_parser.add_argument(
         'action',
-        choices=['list', 'create', 'delete', 'analyze', 'execute', 'status'],
+        choices=['list', 'create', 'delete', 'analyze', 'execute', 'status', 'longest-backtest'],
         help='Lab action to perform'
     )
     lab_parser.add_argument('--lab-id', help='Lab ID')
@@ -136,6 +138,12 @@ Examples:
     lab_parser.add_argument('--script-id', help='Script ID')
     lab_parser.add_argument('--top-count', type=int, help='Number of top results')
     lab_parser.add_argument('--generate-reports', action='store_true', help='Generate analysis reports')
+    # Longest backtest specific arguments
+    lab_parser.add_argument('--lab-ids', help='Comma-separated list of lab IDs for longest backtest')
+    lab_parser.add_argument('--max-iterations', type=int, default=1500, help='Maximum iterations for longest backtest')
+    lab_parser.add_argument('--start-date', help='Start date (YYYY-MM-DD) for longest backtest')
+    lab_parser.add_argument('--dry-run', action='store_true', help='Perform dry run for longest backtest')
+    lab_parser.add_argument('--output', help='Save longest backtest results to JSON file')
     
     # Bot subcommand
     bot_parser = subparsers.add_parser('bot', help='Bot operations')
@@ -215,7 +223,7 @@ Examples:
     backtest_workflow_parser = subparsers.add_parser('backtest-workflow', help='Longest backtest workflow management')
     backtest_workflow_parser.add_argument(
         'action',
-        choices=['check-progress', 'analyze-results', 'execute-decisions'],
+        choices=['check-progress', 'analyze-results', 'execute-decisions', 'longest'],
         help='Workflow action to perform'
     )
     backtest_workflow_parser.add_argument('--bot-ids', help='Comma-separated list of bot IDs')
@@ -223,6 +231,10 @@ Examples:
     backtest_workflow_parser.add_argument('--output', '-o', help='Save results to JSON file')
     backtest_workflow_parser.add_argument('--execute-stop', action='store_true', help='Execute stop decisions')
     backtest_workflow_parser.add_argument('--execute-retest', action='store_true', help='Execute retest decisions')
+    # longest options
+    backtest_workflow_parser.add_argument('--lab-ids', help='Comma-separated list of lab IDs (for longest)')
+    backtest_workflow_parser.add_argument('--max-iterations', type=int, help='Max iterations (for longest)')
+    backtest_workflow_parser.add_argument('--start-date', help='Explicit start date YYYY-MM-DD (for longest)')
 
     # Order subcommand
     order_parser = subparsers.add_parser('order', help='Order operations')
@@ -287,6 +299,11 @@ async def main_async(args: argparse.Namespace) -> int:
             cli_instance = BacktestCLI(config)
         elif args.command == 'backtest-workflow':
             cli_instance = BacktestWorkflowCLI(config)
+            # Pass host/port from global args to the workflow CLI
+            if hasattr(args, 'host'):
+                cli_instance.config.host = args.host
+            if hasattr(args, 'port'):
+                cli_instance.config.port = args.port
         elif args.command == 'order':
             cli_instance = OrderCLI(config)
         elif args.command == 'utils':
@@ -319,6 +336,58 @@ async def main_async(args: argparse.Namespace) -> int:
             else:
                 logger.error(f"Unknown utils action: {args.action}")
                 return 1
+        elif args.command == 'lab' and args.action == 'longest-backtest':
+            # Handle longest backtest using unified service
+            from ..services.backtest import BacktestService
+            from ..api.lab.lab_api import LabAPI
+            from ..api.backtest.backtest_api import BacktestAPI
+            from ..core.auth import AuthenticationManager
+            
+            # Create authentication manager
+            auth_manager = AuthenticationManager(
+                email=os.getenv('API_EMAIL'),
+                password=os.getenv('API_PASSWORD')
+            )
+            await auth_manager.authenticate()
+            
+            # Create API instances
+            lab_api = LabAPI(auth_manager, config)
+            backtest_api = BacktestAPI(auth_manager, config)
+            
+            # Create backtest service
+            backtest_service = BacktestService(lab_api, backtest_api)
+            
+            # Parse lab IDs
+            lab_ids = [lab_id.strip() for lab_id in (args.lab_ids or '').split(',') if lab_id.strip()]
+            if not lab_ids:
+                logger.error("No lab IDs provided. Use --lab-ids id1,id2")
+                return 1
+            
+            # Run comprehensive longest backtest
+            results = await backtest_service.run_comprehensive_longest_backtest(
+                lab_ids=lab_ids,
+                max_iterations=args.max_iterations,
+                start_date=args.start_date,
+                dry_run=args.dry_run
+            )
+            
+            # Print summary
+            print("\n📋 Longest Backtest Summary")
+            for lab_id, result in results.items():
+                if 'error' in result:
+                    print(f"  {lab_id}: ❌ {result['error']}")
+                else:
+                    status_icon = "🔄" if result['status'] == 'running' else "⏳" if result['status'] == 'queued' else "✅"
+                    print(f"  {lab_id}: {status_icon} {result['status']} | {result.get('start_date', 'N/A')} → {result.get('end_date', 'N/A')} | {result.get('period_days', 0)} days")
+            
+            # Save results if requested
+            if args.output:
+                import json
+                with open(args.output, 'w') as f:
+                    json.dump(results, f, indent=2)
+                print(f"\n💾 Results saved to {args.output}")
+            
+            return 0
         else:
             logger.error(f"Unknown command: {args.command}")
             return 1

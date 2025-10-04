@@ -9,6 +9,9 @@ class AuthenticationError(NonRetryableError):
     """Raised when authentication fails"""
     
     def __init__(self, message: str = "Authentication failed", **kwargs):
+        # Remove error_code and recovery_suggestion from kwargs if they exist to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="AUTH_FAILED",
@@ -21,6 +24,9 @@ class InvalidCredentialsError(AuthenticationError):
     """Raised when credentials are invalid"""
     
     def __init__(self, message: str = "Invalid credentials provided", **kwargs):
+        # Remove error_code and recovery_suggestion from kwargs if they exist to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="INVALID_CREDENTIALS",
@@ -45,6 +51,9 @@ class OneTimeCodeError(AuthenticationError):
     """Raised when one-time code authentication fails"""
     
     def __init__(self, message: str = "One-time code authentication failed", **kwargs):
+        # Remove error_code and recovery_suggestion from kwargs if they exist to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="OTC_FAILED",

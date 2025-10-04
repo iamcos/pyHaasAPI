@@ -9,6 +9,9 @@ class APIError(RetryableError):
     """Base class for API-related errors"""
     
     def __init__(self, message: str, status_code: int = None, **kwargs):
+        # Remove error_code and recovery_suggestion from kwargs if they exist to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="API_ERROR",
@@ -34,6 +37,9 @@ class APIResponseError(APIError):
     """Raised when API response is invalid"""
     
     def __init__(self, message: str = "Invalid API response", **kwargs):
+        # Remove error_code and recovery_suggestion from kwargs if they exist to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="API_RESPONSE_ERROR",
@@ -60,6 +66,8 @@ class APITimeoutError(APIError):
     """Raised when API request times out"""
     
     def __init__(self, message: str = "API request timed out", **kwargs):
+        # Remove error_code from kwargs if it exists to avoid duplicate
+        kwargs.pop('error_code', None)
         super().__init__(
             message=message,
             error_code="API_TIMEOUT",

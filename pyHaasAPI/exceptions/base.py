@@ -18,7 +18,8 @@ class HaasAPIError(Exception):
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
         recovery_suggestion: Optional[str] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
+        **kwargs
     ):
         super().__init__(message)
         self.message = message

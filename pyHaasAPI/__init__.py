@@ -117,6 +117,9 @@ from .cli import (
     LabCLI, BotCLI, AnalysisCLI, AccountCLI, ScriptCLI, MarketCLI, BacktestCLI, OrderCLI
 )
 
+# MCP Server - Temporarily disabled due to missing dependency
+# from .mcp import CursorPyHaasAPIMCPServer, cursor_mcp_server_instance
+
 # Main client class
 from .core.client import HaasClient
 
@@ -209,6 +212,9 @@ __all__ = [
     # CLI
     "BaseCLI", "AsyncBaseCLI", "main", "create_parser",
     "LabCLI", "BotCLI", "AnalysisCLI", "AccountCLI", "ScriptCLI", "MarketCLI", "BacktestCLI", "OrderCLI",
+    
+    # MCP Server - Temporarily disabled
+    # "CursorPyHaasAPIMCPServer", "cursor_mcp_server_instance",
     
     # Exceptions
     "HaasAPIError",

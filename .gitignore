@@ -66,6 +66,11 @@ experiments/
 .env
 env.example
 
+# Google Sheets integration credentials
+gdocs/*.json
+gdocs/token.pickle
+gdocs/google_credentials.json
+*.json
 # Build and distribution
 *.log
 *.txt

@@ -45,12 +45,19 @@ class ScriptAPI:
         try:
             self.logger.debug("Retrieving all scripts")
             
-            # Use the proven v1 implementation pattern
-            response = await self.client.execute_request(
+            # Use the correct client method
+            response = await self.client.get_json(
                 endpoint="HaasScript",
-                response_type=List[ScriptItem],
-                query_params={"channel": "GET_ALL_SCRIPT_ITEMS"}
+                params={"channel": "GET_ALL_SCRIPT_ITEMS"}
             )
+            
+            # Parse response data
+            if not response.get("Success", False):
+                raise ScriptError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            
+            # Convert to ScriptItem objects
+            scripts_data = response.get("Data", [])
+            response = [ScriptItem(**script_data) for script_data in scripts_data]
             
             self.logger.debug(f"Retrieved {len(response)} scripts")
             return response

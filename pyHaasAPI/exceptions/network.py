@@ -9,6 +9,9 @@ class NetworkError(RetryableError):
     """Base class for network-related errors"""
     
     def __init__(self, message: str = "Network error occurred", **kwargs):
+        # Remove error_code from kwargs if it exists to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="NETWORK_ERROR",
@@ -21,6 +24,9 @@ class ConnectionError(NetworkError):
     """Raised when connection fails"""
     
     def __init__(self, message: str = "Connection failed", **kwargs):
+        # Remove error_code and recovery_suggestion from kwargs if they exist to avoid duplicates
+        kwargs.pop('error_code', None)
+        kwargs.pop('recovery_suggestion', None)
         super().__init__(
             message=message,
             error_code="CONNECTION_ERROR",

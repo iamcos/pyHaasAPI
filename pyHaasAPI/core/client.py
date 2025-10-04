@@ -264,11 +264,11 @@ class AsyncHaasClient:
                     return response
                     
             except asyncio.TimeoutError:
-                raise APITimeoutError(f"Request to {url} timed out")
+                raise APITimeoutError(message=f"Request to {url} timed out")
             except ClientConnectorError as e:
-                raise ConnectionError(f"Connection error to {url}: {e}")
+                raise ConnectionError(message=f"Connection error to {url}: {e}")
             except Exception as e:
-                raise APIError(f"Request to {url} failed: {e}")
+                raise APIError(message=f"Request to {url} failed: {e}")
         
         return await self.retry_handler.execute_with_retry(_request, f"{method} {endpoint}")
     

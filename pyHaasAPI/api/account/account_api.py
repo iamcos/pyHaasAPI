@@ -44,12 +44,19 @@ class AccountAPI:
         try:
             self.logger.debug("Retrieving all accounts")
             
-            # Use the proven v1 implementation pattern
-            response = await self.client.execute_request(
+            # Use the correct client method
+            response = await self.client.get_json(
                 endpoint="Account",
-                response_type=List[AccountDetails],
-                query_params={"channel": "GET_ACCOUNTS"}
+                params={"channel": "GET_ACCOUNTS"}
             )
+            
+            # Parse response data
+            if not response.get("Success", False):
+                raise AccountError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            
+            # Convert to AccountDetails objects
+            accounts_data = response.get("Data", [])
+            response = [AccountDetails(**account_data) for account_data in accounts_data]
             
             self.logger.debug(f"Retrieved {len(response)} accounts")
             return response

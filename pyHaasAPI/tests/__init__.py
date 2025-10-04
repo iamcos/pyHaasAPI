@@ -1,50 +1,10 @@
 """
-Test suite for pyHaasAPI v2
+pyHaasAPI Test Suite
 
-This module provides comprehensive testing for all pyHaasAPI v2 components
-including unit tests, integration tests, and performance tests.
+This module provides comprehensive testing for the pyHaasAPI library.
 """
 
-from .conftest import *
-from .test_core import *
-from .test_api import *
-from .test_services import *
-from .test_tools import *
-from .test_cli import *
+__version__ = "1.0.0"
+__author__ = "pyHaasAPI Team"
 
-__all__ = [
-    # Test configuration
-    "pytest_configure",
-    "pytest_collection_modifyitems",
-    
-    # Core tests
-    "TestAsyncClient",
-    "TestAuthenticationManager", 
-    "TestTypeValidation",
-    "TestAsyncUtils",
-    
-    # API tests
-    "TestLabAPI",
-    "TestBotAPI",
-    "TestAccountAPI",
-    "TestScriptAPI",
-    "TestMarketAPI",
-    "TestBacktestAPI",
-    "TestOrderAPI",
-    
-    # Service tests
-    "TestLabService",
-    "TestBotService",
-    "TestAnalysisService",
-    "TestReportingService",
-    
-    # Tools tests
-    "TestDataDumper",
-    "TestTestingManager",
-    
-    # CLI tests
-    "TestBaseCLI",
-    "TestLabCLI",
-    "TestBotCLI",
-    "TestAnalysisCLI",
-]
+

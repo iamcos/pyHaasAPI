@@ -93,7 +93,7 @@ class LabAPI:
             
             if not response.get("Success", False):
                 error_msg = response.get("Error", "Lab creation failed")
-                raise LabError(f"Failed to create lab: {error_msg}")
+                raise LabError(message=f"Failed to create lab: {error_msg}")
             
             lab_data = response.get("Data", {})
             lab_details = LabDetails(**lab_data)
@@ -106,7 +106,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Lab creation failed: {e}")
+                raise LabError(message=f"Lab creation failed: {e}")
     
     async def get_labs(self) -> List[LabRecord]:
         """
@@ -125,19 +125,23 @@ class LabAPI:
             
             self.logger.info("Fetching all labs")
             
-            # Use the proven v1 implementation pattern
-            response = await self.client.execute_request(
-                endpoint="Labs",
-                response_type=List[LabRecord],
-                query_params={"channel": "GET_LABS"}
-            )
+            # Use the correct client method
+            response = await self.client.get_json("Labs", params={"channel": "GET_LABS"})
+            
+            # Parse response data
+            if not response.get("Success", False):
+                raise LabError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            
+            # Convert to LabRecord objects
+            labs_data = response.get("Data", [])
+            response = [LabRecord(**lab_data) for lab_data in labs_data]
             
             self.logger.info(f"Successfully fetched {len(response)} labs")
             return response
             
         except Exception as e:
             self.logger.error(f"Error fetching labs: {e}")
-            raise LabError(f"Failed to fetch labs: {e}")
+            raise LabError(message=f"Failed to fetch labs: {e}")
     
     async def get_lab_details(self, lab_id: str) -> LabDetails:
         """
@@ -171,7 +175,7 @@ class LabAPI:
                 if "not found" in error_msg.lower():
                     raise LabNotFoundError(lab_id)
                 else:
-                    raise LabError(f"Failed to get lab details: {error_msg}")
+                    raise LabError(message=f"Failed to get lab details: {error_msg}")
             
             lab_data = response.get("Data", {})
             lab_details = LabDetails(**lab_data)
@@ -186,7 +190,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to get lab details: {e}")
+                raise LabError(message=f"Failed to get lab details: {e}")
     
     async def update_lab_details(self, lab_details: LabDetails) -> LabDetails:
         """
@@ -230,7 +234,7 @@ class LabAPI:
             
             if not response.get("Success", False):
                 error_msg = response.get("Error", "Failed to update lab details")
-                raise LabError(f"Failed to update lab details: {error_msg}")
+                raise LabError(message=f"Failed to update lab details: {error_msg}")
             
             updated_data = response.get("Data", {})
             updated_lab = LabDetails(**updated_data)
@@ -243,7 +247,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to update lab details: {e}")
+                raise LabError(message=f"Failed to update lab details: {e}")
     
     async def delete_lab(self, lab_id: str) -> bool:
         """
@@ -277,7 +281,7 @@ class LabAPI:
                 if "not found" in error_msg.lower():
                     raise LabNotFoundError(lab_id)
                 else:
-                    raise LabError(f"Failed to delete lab: {error_msg}")
+                    raise LabError(message=f"Failed to delete lab: {error_msg}")
             
             self.logger.info(f"Lab deleted successfully: {lab_id}")
             return True
@@ -289,7 +293,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to delete lab: {e}")
+                raise LabError(message=f"Failed to delete lab: {e}")
     
     async def clone_lab(self, lab_id: str, new_name: Optional[str] = None) -> LabDetails:
         """
@@ -329,7 +333,7 @@ class LabAPI:
             
             if not response.get("Success", False):
                 error_msg = response.get("Error", "Failed to clone lab")
-                raise LabError(f"Failed to clone lab: {error_msg}")
+                raise LabError(message=f"Failed to clone lab: {error_msg}")
             
             cloned_data = response.get("Data", {})
             cloned_lab = LabDetails(**cloned_data)
@@ -344,7 +348,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to clone lab: {e}")
+                raise LabError(message=f"Failed to clone lab: {e}")
     
     async def change_lab_script(self, lab_id: str, script_id: str) -> LabDetails:
         """
@@ -380,7 +384,7 @@ class LabAPI:
                 if "not found" in error_msg.lower():
                     raise LabNotFoundError(lab_id)
                 else:
-                    raise LabError(f"Failed to change lab script: {error_msg}")
+                    raise LabError(message=f"Failed to change lab script: {error_msg}")
             
             updated_data = response.get("Data", {})
             updated_lab = LabDetails(**updated_data)
@@ -395,7 +399,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to change lab script: {e}")
+                raise LabError(message=f"Failed to change lab script: {e}")
     
     async def start_lab_execution(
         self,
@@ -487,7 +491,7 @@ class LabAPI:
             
             if not response.get("Success", False):
                 error_msg = response.get("Error", "Failed to cancel lab execution")
-                raise LabError(f"Failed to cancel lab execution: {error_msg}")
+                raise LabError(message=f"Failed to cancel lab execution: {error_msg}")
             
             self.logger.info(f"Lab execution cancelled successfully: {lab_id}")
             return True
@@ -497,7 +501,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to cancel lab execution: {e}")
+                raise LabError(message=f"Failed to cancel lab execution: {e}")
     
     async def get_lab_execution_status(self, lab_id: str) -> LabExecutionUpdate:
         """
@@ -525,7 +529,7 @@ class LabAPI:
             
             if not response.get("Success", False):
                 error_msg = response.get("Error", "Failed to get lab execution status")
-                raise LabError(f"Failed to get lab execution status: {error_msg}")
+                raise LabError(message=f"Failed to get lab execution status: {error_msg}")
             
             status_data = response.get("Data", {})
             execution_update = LabExecutionUpdate(**status_data)
@@ -537,7 +541,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to get lab execution status: {e}")
+                raise LabError(message=f"Failed to get lab execution status: {e}")
     
     async def ensure_lab_config_parameters(
         self,
@@ -621,7 +625,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to get complete labs: {e}")
+                raise LabError(message=f"Failed to get complete labs: {e}")
     
     async def get_labs_by_script(self, script_id: str) -> List[LabRecord]:
         """
@@ -648,7 +652,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to get labs by script: {e}")
+                raise LabError(message=f"Failed to get labs by script: {e}")
     
     async def get_labs_by_market(self, market_tag: str) -> List[LabRecord]:
         """
@@ -675,7 +679,7 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to get labs by market: {e}")
+                raise LabError(message=f"Failed to get labs by market: {e}")
     
     async def validate_lab_configuration(self, lab_id: str) -> bool:
         """
@@ -719,4 +723,4 @@ class LabAPI:
             if isinstance(e, LabError):
                 raise
             else:
-                raise LabError(f"Failed to validate lab configuration: {e}")
+                raise LabError(message=f"Failed to validate lab configuration: {e}")

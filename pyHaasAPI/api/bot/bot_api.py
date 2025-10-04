@@ -62,9 +62,9 @@ class BotAPI:
         try:
             self.logger.info(f"Creating bot: {bot_name}")
             
-            response = await self.client.post(
+            response = await self.client.post_json(
                 endpoint="Bot",
-                data={
+                json_data={
                     "channel": "ADD_BOT",
                     "botname": bot_name,
                     "scriptid": script_id,
@@ -165,7 +165,7 @@ class BotAPI:
             
         except Exception as e:
             self.logger.error(f"Failed to delete bot {bot_id}: {e}")
-            raise BotError(f"Failed to delete bot: {e}") from e
+            raise BotError(message=f"Failed to delete bot: {e}") from e
     
     async def get_all_bots(self) -> List[BotDetails]:
         """
@@ -182,19 +182,26 @@ class BotAPI:
         try:
             self.logger.debug("Retrieving all bots")
             
-            # Use the proven v1 implementation pattern
-            response = await self.client.execute_request(
+            # Use the correct client method
+            response = await self.client.get_json(
                 endpoint="Bot",
-                response_type=List[BotDetails],
-                query_params={"channel": "GET_BOTS"}
+                params={"channel": "GET_BOTS"}
             )
+            
+            # Parse response data
+            if not response.get("Success", False):
+                raise BotError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            
+            # Convert to BotDetails objects
+            bots_data = response.get("Data", [])
+            response = [BotDetails(**bot_data) for bot_data in bots_data]
             
             self.logger.debug(f"Retrieved {len(response)} bots")
             return response
             
         except Exception as e:
             self.logger.error(f"Failed to retrieve bots: {e}")
-            raise BotError(f"Failed to retrieve bots: {e}") from e
+            raise BotError(message=f"Failed to retrieve bots: {e}") from e
     
     async def get_bot_details(self, bot_id: str) -> BotDetails:
         """
@@ -281,14 +288,14 @@ class BotAPI:
                 # If response is True, fetch the updated bot details
                 bot_details = await self.get_bot_details(bot_id)
             else:
-                raise BotError(f"Unexpected response from ACTIVATE_BOT: {response}")
+                raise BotError(message=f"Unexpected response from ACTIVATE_BOT: {response}")
             
             self.logger.info(f"Successfully activated bot: {bot_id}")
             return bot_details
             
         except Exception as e:
             self.logger.error(f"Failed to activate bot {bot_id}: {e}")
-            raise BotError(f"Failed to activate bot: {e}") from e
+            raise BotError(message=f"Failed to activate bot: {e}") from e
     
     async def deactivate_bot(self, bot_id: str, cancel_orders: bool = False) -> BotDetails:
         """
@@ -324,14 +331,14 @@ class BotAPI:
                 # If response is True, fetch the updated bot details
                 bot_details = await self.get_bot_details(bot_id)
             else:
-                raise BotError(f"Unexpected response from DEACTIVATE_BOT: {response}")
+                raise BotError(message=f"Unexpected response from DEACTIVATE_BOT: {response}")
             
             self.logger.info(f"Successfully deactivated bot: {bot_id}")
             return bot_details
             
         except Exception as e:
             self.logger.error(f"Failed to deactivate bot {bot_id}: {e}")
-            raise BotError(f"Failed to deactivate bot: {e}") from e
+            raise BotError(message=f"Failed to deactivate bot: {e}") from e
     
     async def pause_bot(self, bot_id: str) -> BotDetails:
         """
@@ -365,14 +372,14 @@ class BotAPI:
                 # If response is True, fetch the updated bot details
                 bot_details = await self.get_bot_details(bot_id)
             else:
-                raise BotError(f"Unexpected response from PAUSE_BOT: {response}")
+                raise BotError(message=f"Unexpected response from PAUSE_BOT: {response}")
             
             self.logger.info(f"Successfully paused bot: {bot_id}")
             return bot_details
             
         except Exception as e:
             self.logger.error(f"Failed to pause bot {bot_id}: {e}")
-            raise BotError(f"Failed to pause bot: {e}") from e
+            raise BotError(message=f"Failed to pause bot: {e}") from e
     
     async def resume_bot(self, bot_id: str) -> BotDetails:
         """
@@ -406,14 +413,14 @@ class BotAPI:
                 # If response is True, fetch the updated bot details
                 bot_details = await self.get_bot_details(bot_id)
             else:
-                raise BotError(f"Unexpected response from RESUME_BOT: {response}")
+                raise BotError(message=f"Unexpected response from RESUME_BOT: {response}")
             
             self.logger.info(f"Successfully resumed bot: {bot_id}")
             return bot_details
             
         except Exception as e:
             self.logger.error(f"Failed to resume bot {bot_id}: {e}")
-            raise BotError(f"Failed to resume bot: {e}") from e
+            raise BotError(message=f"Failed to resume bot: {e}") from e
     
     async def deactivate_all_bots(self) -> List[BotDetails]:
         """
@@ -441,7 +448,7 @@ class BotAPI:
             
         except Exception as e:
             self.logger.error(f"Failed to deactivate all bots: {e}")
-            raise BotError(f"Failed to deactivate all bots: {e}") from e
+            raise BotError(message=f"Failed to deactivate all bots: {e}") from e
     
     async def edit_bot_parameter(self, bot: BotDetails) -> BotDetails:
         """
@@ -508,7 +515,7 @@ class BotAPI:
             
         except Exception as e:
             self.logger.error(f"Failed to retrieve orders for bot {bot_id}: {e}")
-            raise BotError(f"Failed to retrieve bot orders: {e}") from e
+            raise BotError(message=f"Failed to retrieve bot orders: {e}") from e
     
     async def get_bot_positions(self, bot_id: str) -> List[Dict[str, Any]]:
         """
@@ -540,7 +547,7 @@ class BotAPI:
             
         except Exception as e:
             self.logger.error(f"Failed to retrieve positions for bot {bot_id}: {e}")
-            raise BotError(f"Failed to retrieve bot positions: {e}") from e
+            raise BotError(message=f"Failed to retrieve bot positions: {e}") from e
 
     async def change_bot_notes(self, bot_id: str, notes: str) -> Dict[str, Any]:
         """
@@ -571,7 +578,7 @@ class BotAPI:
             return response
         except Exception as e:
             self.logger.error(f"Failed to change notes for bot {bot_id}: {e}")
-            raise BotError(f"Failed to change bot notes: {e}") from e
+            raise BotError(message=f"Failed to change bot notes: {e}") from e
     
     async def cancel_bot_order(self, bot_id: str, order_id: str) -> Dict[str, Any]:
         """
@@ -605,7 +612,7 @@ class BotAPI:
             
         except Exception as e:
             self.logger.error(f"Failed to cancel order {order_id} for bot {bot_id}: {e}")
-            raise BotError(f"Failed to cancel bot order: {e}") from e
+            raise BotError(message=f"Failed to cancel bot order: {e}") from e
     
     async def cancel_all_bot_orders(self, bot_id: str) -> Dict[str, Any]:
         """
@@ -637,7 +644,7 @@ class BotAPI:
             
         except Exception as e:
             self.logger.error(f"Failed to cancel all orders for bot {bot_id}: {e}")
-            raise BotError(f"Failed to cancel all bot orders: {e}") from e
+            raise BotError(message=f"Failed to cancel all bot orders: {e}") from e
     
     # Additional utility methods
     

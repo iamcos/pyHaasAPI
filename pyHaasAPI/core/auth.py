@@ -106,16 +106,14 @@ class AuthenticationManager:
             
             try:
                 # Step 1: Initial authentication request
-                auth_response = await self._initial_auth(auth_email, auth_password)
+                auth_response, interface_key = await self._initial_auth(auth_email, auth_password)
                 
-                # Step 2: Handle one-time code if required
-                if auth_response.get("R") == 1:  # One-time code required
-                    self.logger.info("One-time code required, waiting for user input...")
-                    otc = await self._get_one_time_code()
-                    auth_response = await self._complete_auth_with_otc(auth_email, auth_password, otc)
+                # Step 2: Always do the second step (like v1 does)
+                # v1 always does LOGIN_WITH_ONE_TIME_CODE even if no OTC is required
+                auth_response = await self._complete_auth_with_otc(auth_email, auth_password, "123456", interface_key)
                 
                 # Step 3: Create session
-                session = self._create_session(auth_response)
+                session = self._create_session(auth_response, interface_key)
                 
                 # Step 4: Update authentication state
                 self._session = session
@@ -130,15 +128,17 @@ class AuthenticationManager:
                 if isinstance(e, (AuthenticationError, InvalidCredentialsError)):
                     raise
                 else:
-                    raise AuthenticationError(f"Authentication failed: {e}")
+                    raise AuthenticationError(message=f"Authentication failed: {e}")
     
-    async def _initial_auth(self, email: str, password: str) -> Dict[str, Any]:
+    async def _initial_auth(self, email: str, password: str) -> Tuple[Dict[str, Any], str]:
         """Perform initial authentication request"""
         import random
         interface_key = "".join(f"{random.randint(0, 100)}" for _ in range(10))
         try:
-            response = await self.client.get_json(
-                "/UserAPI.php",
+            # Use the same HTTP request pattern as v1
+            response = await self.client.request_json(
+                method="GET",
+                endpoint="/UserAPI.php",
                 params={
                     "channel": "LOGIN_WITH_CREDENTIALS",
                     "email": email,
@@ -150,41 +150,48 @@ class AuthenticationManager:
             if not response.get("Success", False):
                 error_msg = response.get("Error", "Authentication failed")
                 if "invalid" in error_msg.lower() or "incorrect" in error_msg.lower():
-                    raise InvalidCredentialsError(error_msg)
+                    raise InvalidCredentialsError(message=error_msg)
                 else:
-                    raise AuthenticationError(error_msg)
+                    raise AuthenticationError(message=error_msg)
             
-            return response.get("Data", {})
+            return response.get("Data", {}), interface_key
             
         except APIError as e:
-            raise AuthenticationError(f"API error during authentication: {e}")
+            raise AuthenticationError(message=f"API error during authentication: {e}")
     
     async def _complete_auth_with_otc(
         self, 
         email: str, 
         password: str, 
-        one_time_code: str
+        one_time_code: str,
+        interface_key: str = ""
     ) -> Dict[str, Any]:
         """Complete authentication with one-time code"""
+        # Use the interface key from step 1, or generate a new one if not provided
+        if not interface_key:
+            import random
+            interface_key = "".join(f"{random.randint(0, 100)}" for _ in range(10))
         try:
-            response = await self.client.post_json(
-                "/User",
-                data={
-                    "channel": "LOGIN_WITH_OTC",
+            # Use the same HTTP request pattern as v1
+            response = await self.client.request_json(
+                method="GET",
+                endpoint="/UserAPI.php",
+                params={
+                    "channel": "LOGIN_WITH_ONE_TIME_CODE",
                     "email": email,
-                    "password": password,
-                    "one_time_code": one_time_code
+                    "pincode": int(one_time_code),
+                    "interfaceKey": interface_key,
                 }
             )
             
             if not response.get("Success", False):
                 error_msg = response.get("Error", "One-time code authentication failed")
-                raise OneTimeCodeError(error_msg)
+                raise OneTimeCodeError(message=error_msg)
             
             return response.get("Data", {})
             
         except APIError as e:
-            raise OneTimeCodeError(f"API error during OTC authentication: {e}")
+            raise OneTimeCodeError(message=f"API error during OTC authentication: {e}")
     
     async def _get_one_time_code(self) -> str:
         """
@@ -201,12 +208,14 @@ class AuthenticationManager:
             recovery_suggestion="Use the complete_authentication method with OTC parameter"
         )
     
-    def _create_session(self, auth_data: Dict[str, Any]) -> AuthSession:
+    def _create_session(self, auth_data: Dict[str, Any], interface_key: str = "") -> AuthSession:
         """Create authentication session from response data"""
-        user_id = auth_data.get("UserId", "")
-        interface_key = auth_data.get("InterfaceKey", "")
+        # Handle the nested structure from the API response
+        # The user data is in Data.D.UserId
+        data = auth_data.get("D", {})
+        user_id = data.get("UserId", "")
         
-        if not user_id or not interface_key:
+        if not user_id:
             raise AuthenticationError("Invalid authentication response: missing user data")
         
         # Create session with default 24-hour expiry
