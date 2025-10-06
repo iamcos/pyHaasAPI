@@ -6,10 +6,15 @@ using the new async architecture and type-safe components.
 """
 
 import asyncio
+import os
 import sys
 import argparse
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from .base import BaseCLI, CLIConfig
 from .lab_cli import LabCLI
@@ -79,18 +84,7 @@ Examples:
         """
     )
     
-    # Global options
-    parser.add_argument(
-        '--host', 
-        default='127.0.0.1',
-        help='API host (default: 127.0.0.1)'
-    )
-    parser.add_argument(
-        '--port', 
-        type=int, 
-        default=8090,
-        help='API port (default: 8090)'
-    )
+    # Global options (host/port flags removed; tunnel enforced via ServerManager)
     parser.add_argument(
         '--timeout', 
         type=float, 
@@ -271,10 +265,8 @@ Examples:
 async def main_async(args: argparse.Namespace) -> int:
     """Main async function"""
     try:
-        # Create configuration
+        # Create configuration (host/port removed - using mandated tunnel via environment)
         config = CLIConfig(
-            host=args.host,
-            port=args.port,
             timeout=args.timeout,
             log_level=args.log_level,
             strict_mode=args.strict_mode
@@ -283,7 +275,114 @@ async def main_async(args: argparse.Namespace) -> int:
         # Create appropriate CLI instance
         cli_instance = None
         
-        if args.command == 'lab':
+        # Check for longest-backtest first (before general lab handler)
+        if args.command == 'lab' and hasattr(args, 'action') and args.action == 'longest-backtest':
+            # Handle longest backtest using unified service
+            from pyHaasAPI.services.backtest import BacktestService
+            from pyHaasAPI.api.lab.lab_api import LabAPI
+            from pyHaasAPI.api.backtest.backtest_api import BacktestAPI
+            from pyHaasAPI.core.auth import AuthenticationManager
+            from pyHaasAPI.core.server_manager import ServerManager
+            from pyHaasAPI.config.settings import Settings
+            from pyHaasAPI.core.client import AsyncHaasClient
+            from pyHaasAPI.config.api_config import APIConfig
+            
+            # Preflight: enforce mandated SSH tunnel availability
+            sm = ServerManager(Settings())
+            ok = await sm.preflight_check()
+            if not ok:
+                logger.error("Tunnel preflight failed. Start the mandated SSH tunnel: ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv0*")
+                return 2
+            
+            # Create config and client
+            client_config = APIConfig()
+            client = AsyncHaasClient(client_config)
+            
+            # Create authentication manager
+            auth_manager = AuthenticationManager(client, client_config)
+            await auth_manager.authenticate()
+            
+            # Create API instances
+            lab_api = LabAPI(client, auth_manager)
+            backtest_api = BacktestAPI(client, auth_manager)
+            
+            # Create backtest service
+            backtest_service = BacktestService(lab_api, backtest_api)
+            
+            # Parse lab IDs
+            lab_ids = [lab_id.strip() for lab_id in (args.lab_ids or '').split(',') if lab_id.strip()]
+            if not lab_ids:
+                logger.error("No lab IDs provided. Use --lab-ids id1,id2")
+                return 1
+            
+            # Run comprehensive longest backtest
+            results = await backtest_service.run_comprehensive_longest_backtest(
+                lab_ids=lab_ids,
+                max_iterations=args.max_iterations,
+                start_date=args.start_date,
+                dry_run=args.dry_run
+            )
+            
+            # Print machine-parseable JSON summary
+            import json
+            import time
+            from datetime import datetime
+            
+            # Create comprehensive summary with metrics
+            summary = {
+                "timestamp": datetime.now().isoformat(),
+                "total_labs": len(lab_ids),
+                "successful": sum(1 for r in results.values() if r.get('status') == 'success'),
+                "failed": sum(1 for r in results.values() if 'error' in r),
+                "results": {}
+            }
+            
+            for lab_id, result in results.items():
+                if 'error' in result:
+                    summary["results"][lab_id] = {
+                        "status": "error",
+                        "error": result['error'],
+                        "earliest_start": None,
+                        "end": None,
+                        "attempts": [],
+                        "total_attempts": 0,
+                        "total_elapsed_seconds": 0,
+                        "notes": "Error occurred"
+                    }
+                    print(f"  {lab_id}: ❌ {result['error']}")
+                else:
+                    # Extract metrics from result
+                    attempts = result.get('attempts', [])
+                    earliest_start = result.get('approx_start_date')
+                    end_date = result.get('end_date')
+                    
+                    summary["results"][lab_id] = {
+                        "status": result.get('status', 'unknown'),
+                        "earliest_start": earliest_start,
+                        "end": end_date,
+                        "attempts": attempts,
+                        "total_attempts": len(attempts),
+                        "total_elapsed_seconds": result.get('elapsed_seconds', 0),
+                        "notes": result.get('notes', '')
+                    }
+                    
+                    status_icon = "🔄" if result['status'] == 'running' else "⏳" if result['status'] == 'queued' else "✅"
+                    print(f"  {lab_id}: {status_icon} {result['status']} | {earliest_start or 'N/A'} → {end_date or 'N/A'} | {len(attempts)} attempts")
+            
+            # Print JSON summary to stdout
+            print("\n" + "="*50)
+            print("JSON SUMMARY:")
+            print(json.dumps(summary, indent=2))
+            print("="*50)
+            
+            # Save results if requested
+            if args.output:
+                with open(args.output, 'w') as f:
+                    json.dump(summary, f, indent=2)
+                print(f"\n💾 Results saved to {args.output}")
+            
+            return 0
+        elif args.command == 'lab':
             cli_instance = LabCLI(config)
         elif args.command == 'bot':
             cli_instance = BotCLI(config)
@@ -299,11 +398,6 @@ async def main_async(args: argparse.Namespace) -> int:
             cli_instance = BacktestCLI(config)
         elif args.command == 'backtest-workflow':
             cli_instance = BacktestWorkflowCLI(config)
-            # Pass host/port from global args to the workflow CLI
-            if hasattr(args, 'host'):
-                cli_instance.config.host = args.host
-            if hasattr(args, 'port'):
-                cli_instance.config.port = args.port
         elif args.command == 'order':
             cli_instance = OrderCLI(config)
         elif args.command == 'utils':
@@ -336,58 +430,6 @@ async def main_async(args: argparse.Namespace) -> int:
             else:
                 logger.error(f"Unknown utils action: {args.action}")
                 return 1
-        elif args.command == 'lab' and args.action == 'longest-backtest':
-            # Handle longest backtest using unified service
-            from ..services.backtest import BacktestService
-            from ..api.lab.lab_api import LabAPI
-            from ..api.backtest.backtest_api import BacktestAPI
-            from ..core.auth import AuthenticationManager
-            
-            # Create authentication manager
-            auth_manager = AuthenticationManager(
-                email=os.getenv('API_EMAIL'),
-                password=os.getenv('API_PASSWORD')
-            )
-            await auth_manager.authenticate()
-            
-            # Create API instances
-            lab_api = LabAPI(auth_manager, config)
-            backtest_api = BacktestAPI(auth_manager, config)
-            
-            # Create backtest service
-            backtest_service = BacktestService(lab_api, backtest_api)
-            
-            # Parse lab IDs
-            lab_ids = [lab_id.strip() for lab_id in (args.lab_ids or '').split(',') if lab_id.strip()]
-            if not lab_ids:
-                logger.error("No lab IDs provided. Use --lab-ids id1,id2")
-                return 1
-            
-            # Run comprehensive longest backtest
-            results = await backtest_service.run_comprehensive_longest_backtest(
-                lab_ids=lab_ids,
-                max_iterations=args.max_iterations,
-                start_date=args.start_date,
-                dry_run=args.dry_run
-            )
-            
-            # Print summary
-            print("\n📋 Longest Backtest Summary")
-            for lab_id, result in results.items():
-                if 'error' in result:
-                    print(f"  {lab_id}: ❌ {result['error']}")
-                else:
-                    status_icon = "🔄" if result['status'] == 'running' else "⏳" if result['status'] == 'queued' else "✅"
-                    print(f"  {lab_id}: {status_icon} {result['status']} | {result.get('start_date', 'N/A')} → {result.get('end_date', 'N/A')} | {result.get('period_days', 0)} days")
-            
-            # Save results if requested
-            if args.output:
-                import json
-                with open(args.output, 'w') as f:
-                    json.dump(results, f, indent=2)
-                print(f"\n💾 Results saved to {args.output}")
-            
-            return 0
         else:
             logger.error(f"Unknown command: {args.command}")
             return 1

@@ -162,11 +162,18 @@ class LabAPI:
             
             self.logger.info(f"Getting details for lab: {lab_id}")
             
+            # Get authentication parameters
+            session = self.auth_manager.session
+            if not session:
+                raise LabError("Not authenticated")
+            
             response = await self.client.get_json(
                 "/LabsAPI.php",
                 params={
                     "channel": "GET_LAB_DETAILS",
-                    "labid": lab_id
+                    "labid": lab_id,
+                    "interfacekey": session.interface_key,
+                    "userid": session.user_id
                 }
             )
             
@@ -178,7 +185,53 @@ class LabAPI:
                     raise LabError(message=f"Failed to get lab details: {error_msg}")
             
             lab_data = response.get("Data", {})
-            lab_details = LabDetails(**lab_data)
+            self.logger.debug(f"Raw lab data: {lab_data}")
+            
+            # Debug ST (settings) data structure
+            st_data = lab_data.get("ST", {})
+            self.logger.debug(f"ST (settings) data: {st_data}")
+            self.logger.debug(f"ST data keys: {list(st_data.keys())}")
+            
+            # Check for market tag in different field names
+            market_tag = (st_data.get("marketTag") or 
+                         st_data.get("market_tag") or 
+                         st_data.get("market") or "")
+            if not market_tag:
+                self.logger.warning(f"Market tag not found in ST data. Available keys: {list(st_data.keys())}")
+            else:
+                self.logger.debug(f"Found market tag: {market_tag}")
+            
+            # Map API response to LabDetails model
+            mapped_data = {
+                "labId": lab_data.get("LID"),
+                "name": lab_data.get("N"),
+                "scriptId": lab_data.get("SID"),
+                "scriptName": lab_data.get("SN", ""),  # Script name not in response
+                "settings": {
+                    "accountId": lab_data.get("ST", {}).get("accountId", "") or lab_data.get("ST", {}).get("account_id", ""),
+                    "marketTag": lab_data.get("ST", {}).get("marketTag", "") or lab_data.get("ST", {}).get("market_tag", "") or lab_data.get("ST", {}).get("market", ""),
+                    "interval": lab_data.get("ST", {}).get("interval", 1),
+                    "tradeAmount": lab_data.get("ST", {}).get("tradeAmount", 100.0) or lab_data.get("ST", {}).get("trade_amount", 100.0),
+                    "chartStyle": lab_data.get("ST", {}).get("chartStyle", 300) or lab_data.get("ST", {}).get("chart_style", 300),
+                    "orderTemplate": lab_data.get("ST", {}).get("orderTemplate", 500) or lab_data.get("ST", {}).get("order_template", 500),
+                    "leverage": lab_data.get("ST", {}).get("leverage", 0.0),
+                    "positionMode": lab_data.get("ST", {}).get("positionMode", 0) or lab_data.get("ST", {}).get("position_mode", 0),
+                    "marginMode": lab_data.get("ST", {}).get("marginMode", 0) or lab_data.get("ST", {}).get("margin_mode", 0)
+                },
+                "config": {
+                    "max_parallel": lab_data.get("C", {}).get("MP", 10),
+                    "max_generations": lab_data.get("C", {}).get("MG", 30),
+                    "max_epochs": lab_data.get("C", {}).get("ME", 3),
+                    "max_runtime": lab_data.get("C", {}).get("MR", 0),
+                    "auto_restart": lab_data.get("C", {}).get("AR", 0)
+                },
+                "status": self._map_status(lab_data.get("S", 0)),  # Map status number to string
+                "createdAt": lab_data.get("CA"),
+                "updatedAt": lab_data.get("UA"),
+                "backtestCount": lab_data.get("CB", 0)
+            }
+            
+            lab_details = LabDetails(**mapped_data)
             
             self.logger.info(f"Retrieved lab details: {lab_details.name}")
             return lab_details
@@ -191,6 +244,19 @@ class LabAPI:
                 raise
             else:
                 raise LabError(message=f"Failed to get lab details: {e}")
+    
+    def _map_status(self, status_code: int) -> str:
+        """Map numeric status code to string status"""
+        status_map = {
+            0: "ACTIVE",
+            1: "ACTIVE", 
+            2: "RUNNING",
+            3: "COMPLETED",
+            4: "COMPLETED",  # Based on the error, 4 seems to be completed
+            5: "FAILED",
+            6: "CANCELLED"
+        }
+        return status_map.get(status_code, "ACTIVE")
     
     async def update_lab_details(self, lab_details: LabDetails) -> LabDetails:
         """

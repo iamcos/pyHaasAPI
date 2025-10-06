@@ -20,6 +20,9 @@
 # - TESTING: For testing purposes, always connect to server 3 (srv03) using SSH tunnel:
 #   `ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv03 &`
 #   before running any tests that require API connectivity.
+# - CRITICAL: Credentials are stored in .env file with same credentials for all 3 servers:
+#   API_EMAIL and API_PASSWORD are set in .env file and used by all examples and tests.
+#   All servers (srv01, srv02, srv03) use the same credentials from the .env file.
 
 # pyHaasAPI Library - Cursor Rules
 
@@ -717,21 +720,191 @@ python -m pyHaasAPI.examples.example_usage
 ### CRITICAL: SERVERS ARE ALWAYS AVAILABLE
 **The servers (srv01, srv02, srv03) are always available and accessible. SSH tunnels work properly. If there are connection issues, it's a configuration problem, not a server availability problem. Always assume servers are online and working.**
 
+### CRITICAL: V2-ONLY RUNTIME POLICY
+**ABSOLUTELY NO v1 RUNTIME USAGE IN CLI/SERVICES/WORKFLOWS**
+- **v1 is REFERENCE ONLY** - Use v1 only for reading/reference, NEVER for runtime
+- **BLOCK ALL v1 IMPORTS** - Add guards to prevent v1 imports in CLI/services
+- **REPLACE ALL v1 CALLS** - Convert any v1 functionality to v2 equivalents
+- **NO v1 FALLBACKS** - If v2 fails, abort with clear message, don't fall back to v1
+- **v2-ONLY IMPLEMENTATION** - All new code must use v2 APIs exclusively
+- **GUARD AGAINST v1** - Add assertions/logging to detect and block v1 usage
+- **MIGRATE EVERYTHING** - Convert all v1 patterns to v2 patterns immediately
+
+### CRITICAL: FIELD MAPPING AND API RESPONSE HANDLING
+**PREVENT THE 50% OF ERRORS CAUSED BY MISSING FIELDS AND .get() ISSUES**
+
+#### MANDATORY FIELD MAPPING RULES
+- **NEVER use .get() on API response objects** - API objects are NOT dictionaries
+- **ALWAYS use getattr(obj, 'attribute', default)** instead of obj.get()
+- **ALWAYS validate field existence** before accessing nested attributes
+- **ALWAYS provide meaningful defaults** for missing fields
+- **ALWAYS log field mapping issues** for debugging
+
+#### MANDATORY API RESPONSE HANDLING
+```python
+# ❌ WRONG - Causes AttributeError: 'APIObject' object has no attribute 'get'
+value = response.get('field', default)
+
+# ✅ CORRECT - Use getattr for API objects
+value = getattr(response, 'field', default)
+
+# ❌ WRONG - Assumes field exists
+market_tag = lab_details.settings.market_tag
+
+# ✅ CORRECT - Validate field existence
+if hasattr(lab_details, 'settings') and hasattr(lab_details.settings, 'market_tag'):
+    market_tag = lab_details.settings.market_tag
+else:
+    market_tag = None
+    logger.warning(f"Market tag missing from lab {lab_id}")
+```
+
+#### MANDATORY FIELD VALIDATION PATTERNS
+```python
+# For API responses
+def safe_get_field(obj, field_name, default=None):
+    """Safely get field from API object with proper error handling"""
+    if hasattr(obj, field_name):
+        return getattr(obj, field_name)
+    else:
+        logger.warning(f"Field '{field_name}' missing from {type(obj).__name__}")
+        return default
+
+# For nested objects
+def safe_get_nested_field(obj, path, default=None):
+    """Safely get nested field with path validation"""
+    current = obj
+    for attr in path.split('.'):
+        if hasattr(current, attr):
+            current = getattr(current, attr)
+        else:
+            logger.warning(f"Path '{path}' broken at '{attr}' in {type(current).__name__}")
+            return default
+    return current
+```
+
+#### MANDATORY ERROR PREVENTION
+- **ALWAYS check hasattr()** before accessing any field
+- **ALWAYS provide fallback values** for critical fields like market_tag
+- **ALWAYS log missing fields** for debugging
+- **NEVER assume field structure** - API responses can change
+- **ALWAYS use defensive programming** for field access
+
+#### CRITICAL: COMMON FIELD MAPPING ISSUES
+**THESE ARE THE 50% OF ERRORS - PREVENT THEM ALL**
+
+##### Market Tag Issues (MOST COMMON)
+```python
+# ❌ WRONG - Assumes market_tag exists
+market_tag = lab_details.settings.market_tag
+
+# ✅ CORRECT - Safe market tag access
+market_tag = getattr(lab_details.settings, 'market_tag', None) if hasattr(lab_details, 'settings') else None
+if not market_tag:
+    logger.error(f"Market tag missing from lab {lab_id}")
+    raise ValueError("Market tag is required but not found")
+```
+
+##### API Response Object Issues (VERY COMMON)
+```python
+# ❌ WRONG - API objects are NOT dictionaries
+value = response.get('field', default)
+
+# ✅ CORRECT - Use getattr for API objects
+value = getattr(response, 'field', default)
+
+# ❌ WRONG - Assumes nested structure exists
+account_id = lab_details.settings.account_id
+
+# ✅ CORRECT - Safe nested access
+if hasattr(lab_details, 'settings') and hasattr(lab_details.settings, 'account_id'):
+    account_id = lab_details.settings.account_id
+else:
+    account_id = None
+    logger.warning(f"Account ID missing from lab {lab_id}")
+```
+
+##### Pydantic Model Field Issues
+```python
+# ❌ WRONG - Assumes field exists in API response
+"marketTag": lab_data.get("ST", {}).get("marketTag", "")
+
+# ✅ CORRECT - Check actual API response structure first
+st_data = lab_data.get("ST", {})
+market_tag = st_data.get("marketTag") or st_data.get("market_tag") or st_data.get("market") or ""
+if not market_tag:
+    logger.warning(f"Market tag not found in ST data: {list(st_data.keys())}")
+```
+
+##### Status and Configuration Field Issues
+```python
+# ❌ WRONG - Assumes status field exists
+status = lab_details.status
+
+# ✅ CORRECT - Safe status access
+status = getattr(lab_details, 'status', 'UNKNOWN')
+if status == 'UNKNOWN':
+    logger.warning(f"Status unknown for lab {lab_id}")
+```
+
+#### MANDATORY FIELD MAPPING VALIDATION
+**ALWAYS validate these critical fields before use:**
+- `market_tag` / `marketTag` - Trading market identifier
+- `account_id` / `accountId` - Account identifier  
+- `script_id` / `scriptId` - Script identifier
+- `status` - Lab/bot status
+- `leverage` - Trading leverage
+- `position_mode` / `positionMode` - Position mode
+- `margin_mode` / `marginMode` - Margin mode
+
+**ALWAYS provide fallbacks for missing critical fields:**
+```python
+# Safe field access with validation
+def get_safe_field(obj, field_name, default=None, required=False):
+    """Safely get field with validation and logging"""
+    if hasattr(obj, field_name):
+        value = getattr(obj, field_name)
+        if value is None and required:
+            logger.error(f"Required field '{field_name}' is None in {type(obj).__name__}")
+        return value
+    else:
+        if required:
+            logger.error(f"Required field '{field_name}' missing from {type(obj).__name__}")
+            raise ValueError(f"Required field '{field_name}' not found")
+        else:
+            logger.warning(f"Optional field '{field_name}' missing from {type(obj).__name__}")
+            return default
+```
+
 ### CRITICAL: KNOWN SERVER ISSUES
 **IMPORTANT: The v2 API authentication is currently failing because servers are returning HTML instead of JSON, causing "missing user data" errors. This is a KNOWN SERVER-SIDE ISSUE, not a code problem. The servers are reachable but returning malformed responses. This affects v2 authentication but v1 API works fine through SSH tunnels.**
 
 ### SSH Tunneling - Connection Model (MANDATORY)
 The HaasOnline instances are reachable through SSH tunnels; clients connect to `localhost` via forwarded ports.
 
-- **Pattern**: Create an SSH local port forward from your machine to the remote Haas API port, then point the API client at `host=127.0.0.1`, `port=8090` (or the chosen local port).
+- **Default Rule (MANDATORY)**: The ONLY correct way to connect is via a single SSH tunnel using EXACTLY this command (with the target server): `ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv0*`. Do NOT use any other local ports (e.g., 8091 is invalid). All tools and CLIs must use this single tunnel.
+- **Pattern**: Create the single SSH local port forward to expose remote Haas API and auxiliary port on localhost 8090 and 8092 only. Point all clients at `host=127.0.0.1`, using port 8090 (primary) or 8092 (auxiliary) as appropriate.
 - **Example (manual)**:
-  - Server 1: `ssh -N -L 8090:127.0.0.1:8090 srv01`
-  - Server 2: `ssh -N -L 8091:127.0.0.1:8090 srv02`
-  - Server 3 (current practice): `ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv03`
+  - Servers `srv01`/`srv02`/`srv03`: `ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv0*`
 - **Client config**:
-  - v1: set `API_HOST=127.0.0.1`, `API_PORT=<local_port>` in environment (e.g., 8092 for srv03)
-  - v2: pass `--host 127.0.0.1 --port <local_port>` to CLI, or set env vars
-- **Lifecycle**: Ensure tunnel is established before running any CLI/API command; close tunnel after work to avoid orphaned processes.
+  - v2 ONLY: Use ServerManager with preflight checks, NO host/port flags in CLI
+  - Environment: `API_HOST=127.0.0.1`, `API_PORT=8090` (or 8092)
+- **Lifecycle**: Ensure this exact tunnel is established before running any CLI/API command; close tunnel after work to avoid orphaned processes.
+- **Single-Connection Policy (ENFORCED)**: Only one SSH tunnel/connection may be active at any time. All tooling (CLI, services, tests) MUST operate through this single active tunnel. Do not open parallel tunnels or connect to multiple servers concurrently.
+- **Preflight Checks**: All CLI operations MUST verify tunnel availability before proceeding. Fail fast with clear message if tunnel is not active.
+
+### Server Manager and CLI Usage (ENFORCED)
+- **ServerManager REQUIRED**: All runtime connection management MUST go through `pyHaasAPI/core/server_manager.py`. The ServerManager is responsible for establishing the mandated SSH tunnel and ensuring connectivity before any API/CLI operations.
+- **No host/port flags in CLI**: Do NOT pass `--host`/`--port` to CLI commands. CLIs MUST rely on the ServerManager-managed tunnel on 8090/8092 and default environment.
+- **CLI connection discipline**: Before any CLI run, ensure the SSH tunnel above is active. If not, establish it using the exact SSH command with the correct `srv0*` target.
+- **Preflight Enforcement**: All CLI operations MUST call `ServerManager.preflight_check()` before proceeding. Fail fast with clear error message if tunnel is not available.
+- **v2-Only Runtime**: All CLI and service operations MUST use v2 APIs exclusively. NO v1 runtime usage allowed.
+
+### Project Goals and Testing (MANDATORY)
+- **Primary goal**: Make pyHaasAPI v2 fully functional end-to-end (library, CLI, MCP). Migrate off v1; use v1 only as reference.
+- **CLI first-class**: Ensure all workflows operate through the v2 CLI with ServerManager-managed connectivity.
+- **MCP integration**: After CLI is verified, ensure MCP tooling uses the same ServerManager/tunnel model.
+- **Testing focus**: Tests validate real functionality over the live tunnel (no mocks). When testing flows (e.g., longest backtest), strictly follow cancel-between-attempts and the robust window algorithm; never return “not found”.
 - **Troubleshooting**:
   - Connection refused: tunnel not running or wrong local port
   - Auth HTML instead of JSON (v2): known server-side issue; prefer v1 through tunnel for now
@@ -743,6 +916,43 @@ The HaasOnline instances are reachable through SSH tunnels; clients connect to `
 # - Everything is ALREADY INSTALLED; do NOT add or change dependencies.
 # - Always use `.venv` for any Python or CLI execution.
 # - Whenever doing testing, make sure to work with new resources: create new labs/bots for testing; do not modify existing ones.
+
+# CRITICAL WORKFLOW RULES - NO STOPPING UNTIL COMPLETE
+# - ALWAYS add every user task to TODO list FIRST before starting work
+# - NEVER create summaries, status reports, or progress updates mid-project
+# - NEVER ask "should I continue" or "what's next" - just keep working
+# - When a TODO is completed, immediately start the next one without pause
+# - Only stop when ALL TODOs are completed or user explicitly says "stop"
+# - NO mid-project explanations of what was done - just do it
+# - NO "let me explain what I did" - just mark complete and move on
+# - Work continuously until the entire project is finished
+# - If you complete a task, immediately read the next TODO and start working on it
+# - Maintain full context of the entire project scope, not just individual tasks
+# - Treat this as a marathon, not a series of sprints
+
+### CRITICAL: PREVENT FIELD MAPPING ERRORS IN ALL CODE
+**MANDATORY: Before writing ANY code that accesses API response fields:**
+
+1. **ALWAYS check the actual API response structure first**
+2. **ALWAYS use getattr() instead of .get() for API objects**
+3. **ALWAYS validate field existence with hasattr()**
+4. **ALWAYS provide meaningful defaults for missing fields**
+5. **ALWAYS log field mapping issues for debugging**
+
+**MANDATORY: When fixing existing code with field mapping issues:**
+1. **Find ALL instances of .get() on API objects and replace with getattr()**
+2. **Find ALL direct field access and add hasattr() checks**
+3. **Find ALL missing field handling and add proper fallbacks**
+4. **Test the fixes with real API responses**
+5. **Add logging for missing fields to help debug future issues**
+
+**MANDATORY: Code review checklist for field access:**
+- [ ] No .get() calls on API response objects
+- [ ] All field access uses getattr() or hasattr() checks
+- [ ] All critical fields have fallback values
+- [ ] Missing fields are logged for debugging
+- [ ] Field mapping is consistent between API response and Pydantic models
+
 - Maintain a full mental model of the current `pyHaasAPI` (v2 default) and `pyHaasAPI_v1` (legacy) codebase and CLI. Before adding functionality, first locate the appropriate module/CLI and integrate there; avoid ad-hoc root scripts.
 - Prefer existing CLI subcommands in `pyHaasAPI/cli/` (e.g., `lab_cli.py`, `backtest_workflow_cli.py`). If a workflow is missing, extend those CLIs rather than creating standalone files.
 - Always assume servers are online; if connectivity fails, verify tunnels and configuration first. Never implement mock flows.
@@ -794,6 +1004,18 @@ job_id = api.start_lab_execution(executor, lab_id)
 # Monitor progress
 monitor_backtest_progress(executor, lab_id, job_id)
 ```
+ 
+### Finalized Implementation Notes (Critical)
+- Canonical CLI: use `python -m pyHaasAPI.cli.longest_backtest` (single implementation). All previous variants were removed.
+- Lab naming: append the date without extra separators. Format: `<existing name> DD.MM.YYYY` (no trailing `- - -`).
+- Status detection: compare against `LabStatus.RUNNING`/`LabStatus.QUEUED` (enum), not strings. Consider `status['is_running']` true as running.
+- Cancellation discipline: force-cancel any existing backtest before testing a new period and after each test outcome.
+- Period persistence: `update_lab_details` must include `startUnix` and `endUnix` fields; this fixes “short backtests” caused by missing timestamps.
+- Config preservation: call `start_lab_execution(..., ensure_config=False)` and restore the original lab config immediately after starting to avoid unintended MP/MG changes.
+- Fresh dates: pass `start_unix`/`end_unix` explicitly into the start function to avoid using stale dates fetched prior to persistence.
+- Algorithm safety: cap iterations in all step loops to avoid infinite cycles; log each step with human-readable dates and duration.
+- SSH usage: ensure an active tunnel before invoking the CLI; prefer srv03 for testing unless a lab exists only on srv01.
+
 
 ## pyHaasAPI Architecture (COMPREHENSIVE)
 

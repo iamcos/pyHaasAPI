@@ -687,6 +687,8 @@ def update_lab_details(
         'labid': lab_details.lab_id,
         'name': lab_details.name,
         'type': str(lab_details.type),
+        'startunix': str(lab_details.start_unix),
+        'endunix': str(lab_details.end_unix),
         'config': json.dumps({
             "MP": lab_details.config.max_population,
             "MG": lab_details.config.max_generations, 

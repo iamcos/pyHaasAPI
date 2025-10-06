@@ -86,6 +86,14 @@ class ServerManager:
         
         # Setup signal handlers for graceful shutdown
         self._setup_signal_handlers()
+        
+        # Enforce allowed local ports
+        for name, status in self.servers.items():
+            allowed_ports = [8090, 8092]
+            if status.config.local_ports != allowed_ports or status.config.api_ports != allowed_ports:
+                raise ConfigurationError(
+                    f"Invalid port forwarding for {name}. Only 8090 and 8092 are allowed."
+                )
     
     def _load_server_configs(self) -> None:
         """Load server configurations from settings or defaults"""
@@ -146,6 +154,13 @@ class ServerManager:
             raise ServerError(f"Unknown server: {server_name}")
         
         server_status = self.servers[server_name]
+
+        # Single-tunnel guard: disallow switching servers without teardown
+        if self.active_server and self.active_server != server_name:
+            raise ConfigurationError(
+                f"Single-tunnel policy enforced. Active server is {self.active_server}. "
+                f"Disconnect before connecting to {server_name}."
+            )
         
         if server_status.status == ServerStatus.CONNECTED:
             self.logger.info(f"Server {server_name} already connected")
@@ -168,6 +183,21 @@ class ServerManager:
             
             # Wait for connection to establish
             await asyncio.sleep(2)
+            
+            # Preflight check: verify localhost:8090 (and 8092) are reachable
+            preflight_ok = await self.preflight_check()
+            if not preflight_ok:
+                try:
+                    # Clean up process if preflight fails
+                    if process and process.poll() is None:
+                        process.terminate()
+                except Exception:
+                    pass
+                server_status.status = ServerStatus.FAILED
+                raise ConnectionError(
+                    "Tunnel preflight failed. Start the mandated SSH tunnel: "
+                    "ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv0*"
+                )
             
             # Check if process is still running
             if process.poll() is None:
@@ -203,6 +233,9 @@ class ServerManager:
     
     def _build_ssh_command(self, config: ServerConfig) -> List[str]:
         """Build SSH command for tunnel creation"""
+        # Enforce exact ports 8090 and 8092
+        if config.local_ports != [8090, 8092] or config.api_ports != [8090, 8092]:
+            raise ConfigurationError("Only local/api ports 8090 and 8092 are permitted")
         cmd = [
             "ssh",
             "-N",  # Don't execute remote command
@@ -292,6 +325,11 @@ class ServerManager:
         if server_name not in self.servers:
             raise ServerError(f"Unknown server: {server_name}")
         
+        # Enforce teardown before switching
+        if self.active_server and self.active_server != server_name:
+            raise ConfigurationError(
+                f"Single-tunnel policy enforced. Disconnect {self.active_server} before switching to {server_name}."
+            )
         # Connect to new server
         if await self.connect_server(server_name):
             self.active_server = server_name
@@ -474,3 +512,24 @@ class ServerManager:
         except Exception as e:
             self.logger.error(f"Health check failed for {server_name}: {e}")
             return False
+
+    async def preflight_check(self, check_auxiliary: bool = True, timeout: float = 2.0) -> bool:
+        """Verify that mandated local ports are reachable on localhost.
+        Returns True if 127.0.0.1:8090 is reachable (and 8092 if requested).
+        """
+        async def _probe(port: int) -> bool:
+            try:
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection('127.0.0.1', port),
+                    timeout=timeout
+                )
+                writer.close()
+                await writer.wait_closed()
+                return True
+            except Exception:
+                return False
+        ok_primary = await _probe(8090)
+        ok_aux = True
+        if check_auxiliary:
+            ok_aux = await _probe(8092)
+        return ok_primary and ok_aux

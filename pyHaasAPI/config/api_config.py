@@ -19,9 +19,9 @@ class APIConfig(BaseSettings):
         extra="ignore",
     )
     
-    # Connection settings
+    # Connection settings (mandated tunnel only)
     host: str = Field(default="127.0.0.1", env="API_HOST")
-    port: int = Field(default=8090, env="API_PORT")
+    port: int = Field(default=8090, env="API_PORT") 
     protocol: str = Field(default="http", env="API_PROTOCOL")
     base_url: Optional[str] = Field(default=None, env="API_BASE_URL")
     

@@ -42,8 +42,6 @@ except ImportError:
 @dataclass
 class CLIConfig:
     """Configuration for CLI tools"""
-    host: str = "127.0.0.1"
-    port: int = 8090
     timeout: float = 30.0
     max_retries: int = 3
     retry_delay: float = 1.0
@@ -127,10 +125,37 @@ class BaseCLI(ABC):
                 self.logger.error("API_EMAIL and API_PASSWORD environment variables are required")
                 return False
             
-            # Build API config for v2 client
+            # Host/port are now handled by APIConfig defaults
+
+            # Preflight TCP reachability check for mandated tunnel
+            try:
+                import asyncio as _asyncio
+                async def _probe(port: int) -> bool:
+                    try:
+                        reader, writer = await _asyncio.wait_for(
+                            _asyncio.open_connection('127.0.0.1', port),
+                            timeout=2.0
+                        )
+                        writer.close()
+                        await writer.wait_closed()
+                        return True
+                    except Exception:
+                        return False
+                ok = await _probe(8090)
+                ok2 = await _probe(8092)
+                if not ok:
+                    raise ConnectionError(
+                        "Tunnel preflight failed. Start the mandated SSH tunnel: "
+                        "ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv0*"
+                    )
+                if not ok2:
+                    self.logger.warning("Auxiliary port 8092 not reachable; proceeding with primary 8090")
+            except Exception as e:
+                self.logger.error(str(e))
+                raise SystemExit(2)
+
+            # Build API config for v2 client (uses environment defaults)
             api_config = APIConfig(
-                host=self.config.host,
-                port=self.config.port,
                 timeout=self.config.timeout,
                 email=email,
                 password=password
@@ -318,18 +343,7 @@ class BaseCLI(ABC):
             formatter_class=argparse.RawDescriptionHelpFormatter
         )
         
-        # Common options
-        parser.add_argument(
-            '--host', 
-            default=self.config.host,
-            help='API host (default: 127.0.0.1)'
-        )
-        parser.add_argument(
-            '--port', 
-            type=int, 
-            default=self.config.port,
-            help='API port (default: 8090)'
-        )
+        # Common options (host/port flags are intentionally not exposed)
         parser.add_argument(
             '--timeout', 
             type=float, 
@@ -368,10 +382,7 @@ class BaseCLI(ABC):
         Args:
             args: Parsed arguments
         """
-        if hasattr(args, 'host'):
-            self.config.host = args.host
-        if hasattr(args, 'port'):
-            self.config.port = args.port
+        # Host/port flags are banned; ignore if present
         if hasattr(args, 'timeout'):
             self.config.timeout = args.timeout
         if hasattr(args, 'log_level'):
