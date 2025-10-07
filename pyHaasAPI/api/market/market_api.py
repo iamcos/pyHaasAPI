@@ -14,6 +14,7 @@ from ...core.client import AsyncHaasClient
 from ...core.auth import AuthenticationManager
 from ...exceptions import MarketError, MarketNotFoundError, PriceDataError
 from ...core.logging import get_logger
+from ...core.field_utils import safe_get_dict_field
 from ...models.market import MarketData, PriceData, CloudMarket
 
 
@@ -48,19 +49,40 @@ class MarketAPI:
         try:
             self.logger.debug("Retrieving all markets")
             
-            # Use the proven v1 implementation pattern
-            response = await self.client.execute_request(
-                endpoint="Price",
-                response_type=List[CloudMarket],
-                query_params={"channel": "MARKETLIST"}
+            # Use canonical PHP JSON endpoint only
+            raw = await self.client.get_json(
+                endpoint="/PriceAPI.php",
+                params={"channel": "MARKETLIST"}
             )
             
-            self.logger.debug(f"Retrieved {len(response)} markets")
+            # Some endpoints return raw lists, others wrap in {Success, Data}
+            markets_payload = safe_get_dict_field(raw, "Data", raw) if isinstance(raw, dict) else raw
+            markets: List[CloudMarket] = []
+            if isinstance(markets_payload, list):
+                for market_data in markets_payload:
+                    try:
+                        markets.append(CloudMarket.model_validate(market_data))
+                    except Exception:
+                        # Fallback minimal mapping
+                        price_source = (safe_get_dict_field(market_data, "price_source") or safe_get_dict_field(market_data, "PriceSource") or "")
+                        primary = safe_get_dict_field(market_data, "primary") or safe_get_dict_field(market_data, "Primary") or ""
+                        secondary = safe_get_dict_field(market_data, "secondary") or safe_get_dict_field(market_data, "Secondary") or ""
+                        contract = safe_get_dict_field(market_data, "contract") or safe_get_dict_field(market_data, "Contract") or ""
+                        market_tag = safe_get_dict_field(market_data, "market_tag") or safe_get_dict_field(market_data, "MarketTag") or f"{price_source}_{primary}_{secondary}"
+                        markets.append(CloudMarket(
+                            price_source=price_source,
+                            primary=primary,
+                            secondary=secondary,
+                            contract=contract,
+                            market_tag=market_tag
+                        ))
+            
+            self.logger.debug(f"Retrieved {len(markets)} markets")
             
             # Update cache
-            self._markets_cache = {f"{m.price_source}_{m.primary}_{m.secondary}": m for m in response}
+            self._markets_cache = {f"{m.price_source}_{m.primary}_{m.secondary}": m for m in markets}
             
-            return response
+            return markets
             
         except Exception as e:
             self.logger.error(f"Failed to retrieve all markets: {e}")
@@ -82,15 +104,16 @@ class MarketAPI:
         try:
             self.logger.debug(f"Retrieving markets for price source: {price_source}")
             
-            response = await self.client.get(
-                endpoint="Price",
+            response = await self.client.get_json(
+                endpoint="PriceAPI.php",
                 params={
                     "channel": "MARKETLIST",
                     "pricesource": price_source,
                 }
             )
             
-            markets = [CloudMarket.model_validate(market_data) for market_data in response]
+            payload = safe_get_dict_field(response, "Data", response) if isinstance(response, dict) else response
+            markets = [CloudMarket.model_validate(market_data) for market_data in (payload or [])]
             self.logger.debug(f"Retrieved {len(markets)} markets for {price_source}")
             return markets
             
@@ -121,7 +144,7 @@ class MarketAPI:
             self.logger.error(f"Failed to retrieve unique price sources: {e}")
             raise MarketError(f"Failed to retrieve unique price sources: {e}") from e
     
-    async def get_trade_markets(self, exchange_code: str) -> List[CloudMarket]:
+    async def get_trade_markets(self, exchange_code: Optional[str] = None) -> List[CloudMarket]:
         """
         Get list of supported trading markets for a given exchange
         
@@ -137,26 +160,41 @@ class MarketAPI:
         try:
             self.logger.debug(f"Retrieving trade markets for exchange: {exchange_code}")
             
-            response = await self.client.get(
-                endpoint="Price",
-                params={
-                    "channel": "TRADE_MARKETS",
-                    "pricesource": exchange_code,
-                }
-            )
+            # If exchange_code provided, use TRADE_MARKETS, otherwise MARKETLIST
+            if exchange_code:
+                response = await self.client.get_json(
+                    endpoint="/PriceAPI.php",
+                    params={
+                        "channel": "TRADE_MARKETS",
+                        "pricesource": exchange_code,
+                    }
+                )
+                payload = safe_get_dict_field(response, "Data", response) if isinstance(response, dict) else response
+            else:
+                response = await self.client.get_json(
+                    endpoint="/PriceAPI.php",
+                    params={
+                        "channel": "MARKETLIST",
+                    }
+                )
+                payload = safe_get_dict_field(response, "Data", response) if isinstance(response, dict) else response
             
             # Convert Market objects to CloudMarket objects
             markets = []
-            for market_data in response:
-                # Convert to CloudMarket format
-                cloud_market = CloudMarket(
-                    price_source=market_data.get("price_source", exchange_code),
-                    primary=market_data.get("primary", ""),
-                    secondary=market_data.get("secondary", ""),
-                    contract=market_data.get("contract", ""),
-                    market_tag=f"{exchange_code}_{market_data.get('primary', '')}_{market_data.get('secondary', '')}"
+            for market_data in (payload or []):
+                # Map flexible fields to our CloudMarket model
+                market = CloudMarket(
+                    market=safe_get_dict_field(market_data, "Market") or safe_get_dict_field(market_data, "market") or safe_get_dict_field(market_data, "market_tag") or "",
+                    exchange=safe_get_dict_field(market_data, "PriceSource") or safe_get_dict_field(market_data, "price_source") or "",
+                    base_currency=safe_get_dict_field(market_data, "Primary") or safe_get_dict_field(market_data, "primary") or "",
+                    quote_currency=safe_get_dict_field(market_data, "Secondary") or safe_get_dict_field(market_data, "secondary") or "",
+                    is_active=bool(safe_get_dict_field(market_data, "IsActive", True)),
+                    min_trade_amount=float(safe_get_dict_field(market_data, "MinTradeAmount", 0) or 0),
+                    max_trade_amount=float(safe_get_dict_field(market_data, "MaxTradeAmount", 0) or 0),
+                    price_precision=int(safe_get_dict_field(market_data, "PricePrecision", 2) or 2),
+                    amount_precision=int(safe_get_dict_field(market_data, "AmountPrecision", 2) or 2),
                 )
-                markets.append(cloud_market)
+                markets.append(market)
             
             self.logger.debug(f"Retrieved {len(markets)} trade markets for {exchange_code}")
             return markets
@@ -182,15 +220,27 @@ class MarketAPI:
         try:
             self.logger.debug(f"Retrieving price data for market: {market}")
             
-            response = await self.client.get(
-                endpoint="Price",
+            response = await self.client.get_json(
+                endpoint="PriceAPI.php",
                 params={
                     "channel": "PRICE",
                     "market": market,
                 }
             )
             
-            price_data = PriceData.model_validate(response)
+            # Convert response to PriceData dataclass
+            price_data = PriceData(
+                timestamp=response.get('timestamp', 0),
+                open=response.get('open', 0.0),
+                high=response.get('high', 0.0),
+                low=response.get('low', 0.0),
+                close=response.get('close', 0.0),
+                volume=response.get('volume', 0.0),
+                bid=response.get('bid', 0.0),
+                ask=response.get('ask', 0.0),
+                spread=response.get('spread', 0.0),
+                spread_percentage=response.get('spread_percentage', 0.0)
+            )
             
             # Update cache
             self._price_cache[market] = price_data
@@ -227,7 +277,7 @@ class MarketAPI:
             self.logger.debug(f"Retrieving historical data for market: {market}")
             
             response = await self.client.get(
-                endpoint="Price",
+                endpoint="PriceAPI.php",
                 params={
                     "channel": "HISTORICAL",
                     "market": market,

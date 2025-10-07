@@ -79,24 +79,33 @@ class LabParameter(BaseModel):
 
 class LabRecord(BaseModel):
     """Lab record for listing operations"""
-    lab_id: str = Field(alias="labId", description="Lab ID")
-    name: str = Field(description="Lab name")
-    script_id: str = Field(alias="scriptId", description="Script ID")
-    script_name: str = Field(alias="scriptName", description="Script name")
-    account_id: str = Field(alias="accountId", description="Account ID")
-    market_tag: str = Field(alias="marketTag", description="Market tag")
-    status: str = Field(description="Lab status")
-    created_at: Optional[datetime] = Field(alias="createdAt", default=None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(alias="updatedAt", default=None, description="Last update timestamp")
-    backtest_count: int = Field(alias="backtestCount", default=0, description="Number of backtests")
+    user_id: str = Field(alias="UID", description="User ID")
+    lab_id: str = Field(alias="LID", description="Lab ID")
+    script_id: str = Field(alias="SID", description="Script ID")
+    name: str = Field(alias="N", description="Lab name")
+    type: int = Field(alias="T", description="Lab type")
+    status: int = Field(alias="S", description="Lab status")
+    scheduled_backtests: int = Field(alias="SB", description="Scheduled backtests")
+    completed_backtests: int = Field(alias="CB", description="Completed backtests")
+    created_at: int = Field(alias="CA", description="Creation timestamp")
+    updated_at: int = Field(alias="UA", description="Last update timestamp")
+    started_at: int = Field(alias="SA", description="Started timestamp")
+    running_since: int = Field(alias="RS", description="Running since timestamp")
+    start_unix: int = Field(alias="SU", description="Start Unix timestamp")
+    end_unix: int = Field(alias="EU", description="End Unix timestamp")
+    send_email: bool = Field(alias="SE", description="Send email notification")
+    cancel_reason: Optional[str] = Field(alias="CM", default=None, description="Cancel reason")
     
     @field_validator("status")
     def validate_status(cls, v, info):
         """Validate lab status"""
-        valid_statuses = ["ACTIVE", "COMPLETED", "RUNNING", "FAILED", "CANCELLED"]
-        if v.upper() not in valid_statuses:
-            raise ValueError(f"Status must be one of: {valid_statuses}")
-        return v.upper()
+        # Status is an integer from the server
+        valid_statuses = [0, 1, 2, 3, 4]  # Common status codes
+        if v not in valid_statuses:
+            # Log warning but don't fail validation
+            import logging
+            logging.warning(f"Unknown lab status: {v}")
+        return v
 
 
 class LabDetails(BaseModel):

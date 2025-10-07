@@ -911,6 +911,13 @@ The HaasOnline instances are reachable through SSH tunnels; clients connect to `
   - Verify with: `nc -zv 127.0.0.1 <local_port>` or `curl http://127.0.0.1:<local_port>/UserAPI.php || true`
 
 ### Assistant Operational Rules (INTERNAL)
+# ABSOLUTE TEST DISCIPLINE (MANDATORY)
+# - NEVER add, suggest, or accept pytest skips or xfails for any reason.
+# - Do not mark tests as flaky, intermittent, or conditionally skipped.
+# - All test failures must be investigated and fixed in code or fixtures.
+# - Assume servers are healthy; do not attribute failures to servers.
+# - If external services misbehave, add resilient handling, not skips.
+# - Test suite must remain deterministic and strict with zero skips.
 # STATE OF THE PROJECT (DEFAULT) – MID-FILE REMINDER
 # - Servers are ONLINE and AVAILABLE.
 # - Everything is ALREADY INSTALLED; do NOT add or change dependencies.

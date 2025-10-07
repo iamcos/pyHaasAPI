@@ -1,0 +1,49 @@
+name: Smoke Suite (srv03)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      API_EMAIL: ${{ secrets.API_EMAIL }}
+      API_PASSWORD: ${{ secrets.API_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f pyHaasAPI/requirements-test.txt ]; then pip install -r pyHaasAPI/requirements-test.txt; fi
+
+      - name: Configure SSH key
+        if: ${{ secrets.SSH_PRIVATE_KEY && secrets.SRV03_HOST && secrets.SRV03_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          printf "Host *\n    StrictHostKeyChecking no\n" > ~/.ssh/config
+
+      - name: Start SSH tunnel to srv03
+        if: ${{ secrets.SSH_PRIVATE_KEY && secrets.SRV03_HOST && secrets.SRV03_USER }}
+        run: |
+          nohup ssh -i ~/.ssh/id_rsa -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 ${{ secrets.SRV03_USER }}@${{ secrets.SRV03_HOST }} &
+          sleep 3
+
+      - name: Run smoke tests
+        run: |
+          source .venv/bin/activate
+          python -m pytest -q pyHaasAPI/tests/crud/test_api_smoke.py -q
+

@@ -14,6 +14,10 @@ from ...core.client import AsyncHaasClient
 from ...core.auth import AuthenticationManager
 from ...exceptions import ScriptError, ScriptNotFoundError, ScriptCreationError, ScriptConfigurationError
 from ...core.logging import get_logger
+from ...core.field_utils import (
+    safe_get_field, safe_get_nested_field, safe_get_dict_field,
+    safe_get_success_flag, log_field_mapping_issues
+)
 from ...models.script import ScriptRecord, ScriptItem, ScriptParameter
 
 
@@ -45,19 +49,146 @@ class ScriptAPI:
         try:
             self.logger.debug("Retrieving all scripts")
             
-            # Use the correct client method
-            response = await self.client.get_json(
-                endpoint="HaasScript",
-                params={"channel": "GET_ALL_SCRIPT_ITEMS"}
-            )
+            # Prefer PHP JSON endpoint, fallback to route
+            try:
+                response = await self.client.get_json(
+                    endpoint="/HaasScriptAPI.php",
+                    params={
+                        "channel": "GET_ALL_SCRIPT_ITEMS",
+                        "userid": self.auth_manager.user_id,
+                        "interfacekey": self.auth_manager.interface_key,
+                    }
+                )
+            except Exception:
+                response = await self.client.get_json(
+                    endpoint="/HaasScriptAPI.php",
+                    params={
+                        "channel": "GET_ALL_SCRIPT_ITEMS",
+                        "userid": self.auth_manager.user_id,
+                        "interfacekey": self.auth_manager.interface_key,
+                    }
+                )
             
-            # Parse response data
-            if not response.get("Success", False):
-                raise ScriptError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            # Parse response data using safe field access
+            success = safe_get_success_flag(response)
+            if not success:
+                error_msg = safe_get_field(response, 'Error', 'Unknown error')
+                raise ScriptError(message=f"API request failed: {error_msg}")
             
-            # Convert to ScriptItem objects
-            scripts_data = response.get("Data", [])
-            response = [ScriptItem(**script_data) for script_data in scripts_data]
+            # Convert to ScriptItem objects with safe mapping
+            scripts_data = safe_get_field(response, 'Data', [])
+            mapped_scripts: List[ScriptItem] = []
+            for item in scripts_data:
+                try:
+                    # Safe field access for script ID
+                    script_id = ""
+                    for key in ['ScriptId', 'ID', 'Id', 'script_id']:
+                        if hasattr(item, key):
+                            script_id = str(getattr(item, key, ""))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            script_id = str(item[key])
+                            break
+                    
+                    # Safe field access for name
+                    name = ""
+                    for key in ['Name', 'N', 'name']:
+                        if hasattr(item, key):
+                            name = str(getattr(item, key, ""))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            name = str(item[key])
+                            break
+                    
+                    # Safe field access for description
+                    description = ""
+                    for key in ['Description', 'D', 'description']:
+                        if hasattr(item, key):
+                            description = str(getattr(item, key, ""))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            description = str(item[key])
+                            break
+                    
+                    # Safe field access for source code
+                    source_code = ""
+                    for key in ['Source', 'SourceCode', 'source_code']:
+                        if hasattr(item, key):
+                            source_code = str(getattr(item, key, ""))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            source_code = str(item[key])
+                            break
+                    
+                    # Safe field access for version
+                    version = ""
+                    for key in ['Version', 'version']:
+                        if hasattr(item, key):
+                            version = str(getattr(item, key, ""))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            version = str(item[key])
+                            break
+                    
+                    # Safe field access for author
+                    author = ""
+                    for key in ['Author', 'author']:
+                        if hasattr(item, key):
+                            author = str(getattr(item, key, ""))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            author = str(item[key])
+                            break
+                    
+                    # Safe field access for dependencies
+                    dependencies = []
+                    for key in ['Dependencies', 'dependencies']:
+                        if hasattr(item, key):
+                            dependencies = getattr(item, key, [])
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            dependencies = item[key]
+                            break
+                    
+                    # Safe field access for parameters
+                    parameters = []
+                    for key in ['Parameters', 'parameters']:
+                        if hasattr(item, key):
+                            parameters = getattr(item, key, [])
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            parameters = item[key]
+                            break
+                    
+                    # Safe field access for is_published
+                    is_published = False
+                    for key in ['IsPublished', 'is_published']:
+                        if hasattr(item, key):
+                            is_published = bool(getattr(item, key, False))
+                            break
+                        elif isinstance(item, dict) and key in item:
+                            is_published = bool(item[key])
+                            break
+                    
+                    mapped_scripts.append(
+                        ScriptItem(
+                            script_id=script_id,
+                            name=name,
+                            description=description,
+                            source_code=source_code,
+                            version=version,
+                            author=author,
+                            dependencies=dependencies,
+                            parameters=parameters,
+                            created_at=datetime.now().isoformat(),
+                            updated_at=datetime.now().isoformat(),
+                            is_published=is_published,
+                        )
+                    )
+                except Exception as map_err:
+                    self.logger.warning(f"Failed to map script item, skipping: {map_err}")
+                    continue
+            response = mapped_scripts
             
             self.logger.debug(f"Retrieved {len(response)} scripts")
             return response
@@ -83,8 +214,8 @@ class ScriptAPI:
         try:
             self.logger.debug(f"Retrieving script record: {script_id}")
             
-            response = await self.client.get(
-                endpoint="HaasScript",
+            response = await self.client.get_json(
+                endpoint="/HaasScriptAPI.php",
                 params={
                     "channel": "GET_SCRIPT_RECORD",
                     "scriptid": script_id,
@@ -118,11 +249,13 @@ class ScriptAPI:
         try:
             self.logger.debug(f"Retrieving script item: {script_id}")
             
-            response = await self.client.get(
-                endpoint="HaasScript",
+            response = await self.client.get_json(
+                endpoint="/HaasScriptAPI.php",
                 params={
                     "channel": "GET_SCRIPT_ITEM",
                     "scriptid": script_id,
+                    "interfacekey": self.auth_manager.interface_key,
+                    "userid": self.auth_manager.user_id,
                 }
             )
             
@@ -200,14 +333,16 @@ class ScriptAPI:
         try:
             self.logger.info(f"Creating new script: {script_name}")
             
-            response = await self.client.post(
-                endpoint="HaasScript",
+            response = await self.client.post_json(
+                endpoint="/HaasScriptAPI.php",
                 data={
                     "channel": "ADD_SCRIPT",
                     "name": script_name,
                     "script": script_content,
                     "description": description,
                     "type": script_type,
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
@@ -260,8 +395,10 @@ class ScriptAPI:
             if settings is not None:
                 params["settings"] = json.dumps(settings)
             
-            response = await self.client.post(
-                endpoint="HaasScript",
+            params["userid"] = self.auth_manager.user_id
+            params["interfacekey"] = self.auth_manager.interface_key
+            response = await self.client.post_json(
+                endpoint="/HaasScriptAPI.php",
                 data=params
             )
             
@@ -303,13 +440,15 @@ class ScriptAPI:
         try:
             self.logger.info(f"Editing script source code: {script_id}")
             
-            response = await self.client.post(
-                endpoint="HaasScript",
+            response = await self.client.post_json(
+                endpoint="/HaasScriptAPI.php",
                 data={
                     "channel": "EDIT_SCRIPT_SOURCECODE",
                     "scriptid": script_id,
                     "sourcecode": sourcecode,
                     "settings": json.dumps(settings),
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
@@ -337,15 +476,17 @@ class ScriptAPI:
         try:
             self.logger.info(f"Deleting script: {script_id}")
             
-            response = await self.client.post(
-                endpoint="HaasScript",
+            response = await self.client.post_json(
+                endpoint="/HaasScriptAPI.php",
                 data={
                     "channel": "DELETE_SCRIPT",
                     "scriptid": script_id,
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
-            success = response if isinstance(response, bool) else response.get("success", False)
+            success = response if isinstance(response, bool) else safe_get_field(response, "success", False)
             if success:
                 self.logger.info(f"Successfully deleted script: {script_id}")
             else:
@@ -374,15 +515,17 @@ class ScriptAPI:
         try:
             self.logger.info(f"Publishing script: {script_id}")
             
-            response = await self.client.post(
-                endpoint="HaasScript",
+            response = await self.client.post_json(
+                endpoint="/HaasScriptAPI.php",
                 data={
                     "channel": "PUBLISH_SCRIPT",
                     "scriptid": script_id,
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
-            success = response if isinstance(response, bool) else response.get("success", False)
+            success = response if isinstance(response, bool) else safe_get_field(response, "success", False)
             if success:
                 self.logger.info(f"Successfully published script: {script_id}")
             else:
@@ -407,10 +550,12 @@ class ScriptAPI:
         try:
             self.logger.debug("Retrieving HaasScript commands")
             
-            response = await self.client.get(
-                endpoint="HaasScript",
+            response = await self.client.get_json(
+                endpoint="/HaasScriptAPI.php",
                 params={
                     "channel": "GET_COMMANDS",
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
@@ -445,13 +590,15 @@ class ScriptAPI:
         try:
             self.logger.info(f"Executing debug test for script: {script_id}")
             
-            response = await self.client.post(
-                endpoint="Backtest",
+            response = await self.client.post_json(
+                endpoint="/BacktestAPI.php",
                 data={
                     "channel": "EXECUTE_DEBUGTEST",
                     "scriptid": script_id,
                     "scripttype": script_type,
                     "settings": json.dumps(settings),
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
@@ -486,13 +633,15 @@ class ScriptAPI:
         try:
             self.logger.info(f"Executing quicktest for script: {script_id}")
             
-            response = await self.client.post(
-                endpoint="Backtest",
+            response = await self.client.post_json(
+                endpoint="/BacktestAPI.php",
                 data={
                     "channel": "EXECUTE_QUICKTEST",
                     "backtestid": backtest_id,
                     "scriptid": script_id,
                     "settings": json.dumps(settings),
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             

@@ -169,7 +169,7 @@ class AsyncHaasClient:
                     timeout=timeout,
                     headers={
                         "User-Agent": "pyHaasAPI-v2/2.0.0",
-                        "Accept": "application/json",
+                        "Accept": "application/json, text/javascript, */*; q=0.1",
                         "Content-Type": "application/json"
                     }
                 )
@@ -204,10 +204,16 @@ class AsyncHaasClient:
             await self.connect()
         
         # Build URL
-        url = urljoin(self.config.full_url, endpoint)
+        # Ensure base_url respects trailing slash semantics
+        base = self.config.full_url
+        url = urljoin(base if base.endswith('/') else base + '/', endpoint.lstrip('/'))
         
         # Prepare headers
         request_headers = dict(headers) if headers else {}
+        # Encourage server to return JSON rather than HTML
+        request_headers.setdefault("Accept", "application/json, text/javascript, */*; q=0.1")
+        # Indicate AJAX-style request for some servers that gate JSON behind XHR
+        request_headers.setdefault("X-Requested-With", "XMLHttpRequest")
         if self.config.is_authenticated:
             request_headers.update(self.config.get_auth_headers())
         
@@ -215,7 +221,10 @@ class AsyncHaasClient:
         request_data = None
         if data is not None:
             if isinstance(data, dict):
-                request_data = aiohttp.FormData(data)
+                # Many Haas endpoints expect x-www-form-urlencoded, not multipart
+                from urllib.parse import urlencode
+                request_data = urlencode(data)
+                request_headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
             else:
                 request_data = data
         
@@ -352,11 +361,16 @@ class AsyncHaasClient:
     ) -> Dict[str, Any]:
         """Make request and return JSON response"""
         response = await self._make_request(method, endpoint, params, data, headers, timeout)
-        
+
         try:
-            return await response.json()
+            # Parse JSON regardless of Content-Type; fail with clear context
+            return await response.json(content_type=None)
         except Exception as e:
-            raise APIResponseError(f"Failed to parse JSON response: {e}")
+            body_preview = (await response.text())[:300]
+            raise APIResponseError(
+                f"Failed to parse JSON (ct={response.headers.get('Content-Type')}, status={response.status}). "
+                f"Body preview: {body_preview}"
+            )
     
     async def get_json(
         self,
@@ -378,6 +392,40 @@ class AsyncHaasClient:
     ) -> Dict[str, Any]:
         """Make POST request and return JSON response"""
         return await self.request_json("POST", endpoint, params=params, data=data, headers=headers, timeout=timeout)
+    
+    async def execute(
+        self,
+        endpoint: str,
+        method: str = "POST",
+        query_params: Optional[Dict[str, Any]] = None,
+        data: Optional[Any] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute API request using the endpoint exactly as provided.
+        
+        The caller must pass the full PHP endpoint path (e.g., "/LabsAPI.php").
+        Query parameters are forwarded via the request's params.
+        
+        Args:
+            endpoint: Full endpoint path including .php (e.g., "/BacktestAPI.php")
+            method: HTTP method (GET, POST, etc.)
+            query_params: Query parameters including channel
+            data: Request data for POST requests
+            headers: Additional headers
+            timeout: Request timeout
+            
+        Returns:
+            Dictionary response from the API
+        """
+        full_endpoint = endpoint
+        if method.upper() == "GET":
+            return await self.get_json(full_endpoint, params=query_params, headers=headers, timeout=timeout)
+        elif method.upper() == "POST":
+            return await self.post_json(full_endpoint, data=data, params=query_params, headers=headers, timeout=timeout)
+        else:
+            return await self.request_json(method, full_endpoint, params=query_params, data=data, headers=headers, timeout=timeout)
     
     @property
     def is_connected(self) -> bool:

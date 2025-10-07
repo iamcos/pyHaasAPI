@@ -460,6 +460,29 @@ class ServerManager:
         self.shutdown_event.set()
         self.logger.info("Server manager shutdown complete")
     
+    async def ensure_srv03_tunnel(self) -> bool:
+        """Convenience: ensure mandated tunnel to srv03 is active.
+        - Respects single-tunnel policy
+        - Performs preflight checks and retries once
+        Returns True on success, False otherwise.
+        """
+        target = "srv03"
+        # If already connected to srv03, just re-check health
+        if self.active_server == target and await self.health_check(target):
+            return True
+        # If connected to another server, fail fast per policy
+        if self.active_server and self.active_server != target:
+            self.logger.error(
+                f"Active server {self.active_server} present; cannot connect to {target} without teardown"
+            )
+            return False
+        # Attempt connect with one retry on preflight failure
+        if await self.connect_server(target):
+            return True
+        await asyncio.sleep(1.0)
+        self.logger.warning("Retrying srv03 tunnel after initial failure…")
+        return await self.connect_server(target)
+    
     def get_active_server_config(self) -> Optional[ServerConfig]:
         """Get configuration of the currently active server"""
         if self.active_server and self.active_server in self.servers:

@@ -251,7 +251,7 @@ class AuthenticationManager:
         try:
             # Use the refresh endpoint
             response = await self.client.post_json(
-                "/User",
+                "/UserAPI.php",
                 data={
                     "channel": "REFRESH_SESSION",
                     "userid": self._session.user_id,
@@ -294,7 +294,7 @@ class AuthenticationManager:
         try:
             # Test session with a simple API call
             response = await self.client.get_json(
-                "/User",
+                "/UserAPI.php",
                 params={
                     "channel": "REFRESH_LICENSE",
                     "userid": self._session.user_id,
@@ -313,7 +313,7 @@ class AuthenticationManager:
         if self._session:
             try:
                 await self.client.post_json(
-                    "/User",
+                    "/UserAPI.php",
                     data={
                         "channel": "LOGOUT",
                         "userid": self._session.user_id,

@@ -30,6 +30,40 @@ await auth_manager.authenticate()
 labs = await client.get_labs()
 ```
 
+## Endpoints and Connectivity (PHP routes only)
+
+Use a single SSH tunnel to srv03 and point the client to 127.0.0.1:8090.
+
+```bash
+ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv03
+```
+
+Only the PHP JSON endpoints are supported (avoid frontend paths):
+
+- Accounts: `/AccountAPI.php?channel=GET_ACCOUNTS`
+- Markets: `/PriceAPI.php?channel=MARKETLIST`, `/PriceAPI.php?channel=TRADE_MARKETS&pricesource=...`
+- Scripts: `/HaasScriptAPI.php?channel=GET_ALL_SCRIPT_ITEMS&userid=<...>&interfacekey=<...>`
+- Orders: `/AccountAPI.php?channel=GET_ORDERS&accountid=<...>`, `/AccountAPI.php?channel=GET_ALL_ORDERS`
+- Backtests: `/BacktestAPI.php?channel=GET_HISTORY_STATUS`, `/LabsAPI.php?channel=GET_BACKTEST_RESULT_PAGE&labid=<...>`
+- Labs: `/LabsAPI.php?channel=GET_LAB_DETAILS`, `/LabsAPI.php?channel=CREATE_LAB`, `/LabsAPI.php?channel=DELETE_LAB`
+
+Troubleshooting:
+- If you see HTML instead of JSON, the request hit a frontend route. Use the PHP endpoints above exclusively.
+- Ensure the tunnel is active before running any CLI/tests.
+
+## CI Smoke Gate
+
+A GitHub Actions workflow (`.github/workflows/smoke.yml`) runs a fast smoke suite on every PR:
+
+- Starts the SSH tunnel to srv03
+- Runs read-only smoke tests for Accounts, Markets, Scripts, Orders, and Backtests
+- Blocks merges if the smoke suite fails
+
+Required repository secrets:
+
+- `SSH_PRIVATE_KEY`, `SRV03_HOST`, `SRV03_USER`
+- `API_EMAIL`, `API_PASSWORD`
+
 ## MCP Server
 
 The library includes an MCP server for AI agent integration:

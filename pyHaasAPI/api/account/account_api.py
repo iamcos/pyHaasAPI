@@ -13,6 +13,10 @@ from ...core.client import AsyncHaasClient
 from ...core.auth import AuthenticationManager
 from ...exceptions import AccountError, AccountNotFoundError, AccountConfigurationError
 from ...core.logging import get_logger
+from ...core.field_utils import (
+    safe_get_field, safe_get_nested_field, safe_get_dict_field,
+    safe_get_success_flag, safe_get_status, log_field_mapping_issues
+)
 from ...models.account import AccountDetails, AccountRecord, AccountBalance
 
 
@@ -29,7 +33,7 @@ class AccountAPI:
         self.auth_manager = auth_manager
         self.logger = get_logger("account_api")
     
-    async def get_accounts(self) -> List[AccountDetails]:
+    async def get_accounts(self) -> List[AccountRecord]:
         """
         Get all accounts
         
@@ -44,19 +48,61 @@ class AccountAPI:
         try:
             self.logger.debug("Retrieving all accounts")
             
-            # Use the correct client method
-            response = await self.client.get_json(
-                endpoint="Account",
-                params={"channel": "GET_ACCOUNTS"}
-            )
+            # Build auth payload (many endpoints require interfacekey and userid explicitly)
+            interface_key = getattr(self.auth_manager, 'interface_key', None)
+            user_id = getattr(self.auth_manager, 'user_id', None)
+            payload = {"channel": "GET_ACCOUNTS"}
+            if interface_key:
+                payload["interfacekey"] = interface_key
+            if user_id:
+                payload["userid"] = user_id
+
+            # Use canonical PHP JSON endpoint only (avoid frontend HTML)
+            endpoints = [
+                ("/AccountAPI.php", "GET"),
+            ]
+            last_error: Optional[Exception] = None
+            response: Dict[str, Any] = {}
+            for ep, method in endpoints:
+                try:
+                    if method == "POST":
+                        response = await self.client.post_json(ep, data=payload)
+                    else:
+                        response = await self.client.get_json(ep, params=payload)
+                    # Basic shape validation; must contain Success/Data keys
+                    if isinstance(response, dict) and ("Success" in response or "Data" in response):
+                        break
+                except Exception as e:
+                    last_error = e
+                    continue
+            else:
+                # If loop didn't break, propagate last error
+                if last_error:
+                    raise last_error
             
-            # Parse response data
-            if not response.get("Success", False):
-                raise AccountError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            # Parse response data - support both wrapped and raw list
+            accounts_data: Any = []
+            if isinstance(response, dict):
+                # Some servers wrap in { Success, Data }
+                if safe_get_success_flag(response):
+                    accounts_data = safe_get_field(response, "Data", [])
+                else:
+                    # If dict without Success but with Data
+                    accounts_data = safe_get_dict_field(response, "Data", [])
+            elif isinstance(response, list):
+                accounts_data = response
             
-            # Convert to AccountDetails objects
-            accounts_data = response.get("Data", [])
-            response = [AccountDetails(**account_data) for account_data in accounts_data]
+            if not isinstance(accounts_data, list):
+                self.logger.warning("Unexpected accounts payload shape; returning empty list")
+                return []
+            
+            # Log field mapping for debugging
+            if accounts_data:
+                log_field_mapping_issues(accounts_data[0], "account data sample")
+            
+            # Convert to AccountRecord objects using proper field aliases
+            accounts = [AccountRecord(**account_data) for account_data in accounts_data]
+            response = accounts
             
             self.logger.debug(f"Retrieved {len(response)} accounts")
             return response
@@ -138,7 +184,7 @@ class AccountAPI:
             account_bot_counts = {}
             for bot in all_bots:
                 account_id = bot.account_id
-                account_bot_counts[account_id] = account_bot_counts.get(account_id, 0) + 1
+                account_bot_counts[account_id] = safe_get_dict_field(account_bot_counts, account_id, 0) + 1
             
             # Sort accounts by bot count (ascending) and then by account_id for consistency
             available_accounts = sorted(
@@ -173,25 +219,30 @@ class AccountAPI:
         try:
             self.logger.debug(f"Retrieving account data: {account_id}")
             
-            response = await self.client.get(
-                endpoint="Account",
+            response = await self.client.get_json(
+                endpoint="AccountAPI.php",
                 params={
                     "channel": "GET_ACCOUNT_DATA",
                     "accountid": account_id,
                 }
             )
             
-            # Extract data from the raw response
-            data = response.get("Data", {})
+            # Extract data from the raw response using safe field access
+            data = safe_get_field(response, "Data", {})
+            if not data:
+                raise AccountError(message="No account data returned from API")
             
-            # Construct AccountDetails object
+            # Log field mapping for debugging
+            log_field_mapping_issues(data, f"account {account_id}")
+            
+            # Construct AccountDetails object using safe field access
             account_data = AccountDetails(
                 account_id=account_id,
-                exchange=data.get("exchange", ""),
-                type=data.get("type", ""),
-                wallets=data.get("B", []),
-                name=data.get("name", ""),
-                status=data.get("status", "active")
+                exchange=safe_get_dict_field(data, "exchange", ""),
+                type=safe_get_dict_field(data, "type", ""),
+                wallets=safe_get_dict_field(data, "B", []),
+                name=safe_get_dict_field(data, "name", ""),
+                status=safe_get_dict_field(data, "status", "active")
             )
             
             self.logger.debug(f"Retrieved account data: {account_id}")
@@ -219,7 +270,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving balance for account: {account_id}")
             
             response = await self.client.get(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 params={
                     "channel": "GET_BALANCE",
                     "accountid": account_id,
@@ -247,7 +298,7 @@ class AccountAPI:
             self.logger.debug("Retrieving balances for all accounts")
             
             response = await self.client.get(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 params={
                     "channel": "GET_ALL_BALANCES",
                 }
@@ -278,7 +329,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving orders for account: {account_id}")
             
             response = await self.client.get(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 params={
                     "channel": "GET_ORDERS",
                     "accountid": account_id,
@@ -313,7 +364,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving margin settings for account {account_id}, market {market}")
             
             response = await self.client.get(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 params={
                     "channel": "GET_MARGIN_SETTINGS",
                     "accountid": account_id,
@@ -370,7 +421,7 @@ class AccountAPI:
                 params["leverage"] = leverage
             
             response = await self.client.post(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 data=params
             )
             
@@ -401,7 +452,7 @@ class AccountAPI:
             self.logger.info(f"Setting position mode {position_mode} for account {account_id}, market {market}")
             
             response = await self.client.post(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "SET_POSITION_MODE",
                     "accountid": account_id,
@@ -437,7 +488,7 @@ class AccountAPI:
             self.logger.info(f"Setting margin mode {margin_mode} for account {account_id}, market {market}")
             
             response = await self.client.post(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "SET_MARGIN_MODE",
                     "accountid": account_id,
@@ -473,7 +524,7 @@ class AccountAPI:
             self.logger.info(f"Setting leverage {leverage} for account {account_id}, market {market}")
             
             response = await self.client.post(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "SET_LEVERAGE",
                     "accountid": account_id,
@@ -519,7 +570,7 @@ class AccountAPI:
             self.logger.info(f"Distributing {len(bot_ids)} bots across {len(account_ids)} accounts")
             
             response = await self.client.post(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "DISTRIBUTE_BOTS_TO_ACCOUNTS",
                     "bot_ids": bot_ids,
@@ -568,7 +619,7 @@ class AccountAPI:
             self.logger.info(f"Migrating bot {bot_id} to account {new_account_id}")
             
             response = await self.client.post(
-                endpoint="Account",
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "MIGRATE_BOT_TO_ACCOUNT",
                     "bot_id": bot_id,
@@ -604,8 +655,8 @@ class AccountAPI:
         try:
             self.logger.info(f"Changing bot {bot_id} account to {new_account_id}")
             
-            response = await self.client.post(
-                endpoint="Account",
+            response = await self.client.post_json(
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "CHANGE_BOT_ACCOUNT",
                     "bot_id": bot_id,
@@ -658,8 +709,8 @@ class AccountAPI:
         try:
             self.logger.info(f"Setting bot {bot_id} account to {account_id}")
             
-            response = await self.client.post(
-                endpoint="Account",
+            response = await self.client.post_json(
+                endpoint="AccountAPI.php",
                 data={
                     "channel": "SET_BOT_ACCOUNT",
                     "bot_id": bot_id,

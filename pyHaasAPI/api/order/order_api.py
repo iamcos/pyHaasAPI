@@ -69,7 +69,7 @@ class OrderAPI:
             self.logger.info(f"Placing {side} order for {amount} {market} at {price}")
             
             response = await self.client.execute(
-                endpoint="Account",
+                endpoint="/AccountAPI.php",
                 query_params={
                     "channel": "PLACE_ORDER",
                     "accountid": account_id,
@@ -149,7 +149,7 @@ class OrderAPI:
             self.logger.info(f"Canceling order {order_id} for account {account_id}")
             
             response = await self.client.execute(
-                endpoint="Account",
+                endpoint="/AccountAPI.php",
                 query_params={
                     "channel": "CANCEL_ORDER",
                     "accountid": account_id,
@@ -303,9 +303,9 @@ class OrderAPI:
         try:
             self.logger.info("Getting all orders across all accounts")
             
-            response = await self.client.execute(
-                endpoint="Account",
-                query_params={
+            response = await self.client.get_json(
+                endpoint="/AccountAPI.php",
+                params={
                     "channel": "GET_ALL_ORDERS",
                 }
             )
@@ -334,9 +334,9 @@ class OrderAPI:
         try:
             self.logger.info(f"Getting orders for account {account_id}")
             
-            response = await self.client.execute(
-                endpoint="Account",
-                query_params={
+            response = await self.client.get_json(
+                endpoint="/AccountAPI.php",
+                params={
                     "channel": "GET_ORDERS",
                     "accountid": account_id,
                 }
@@ -372,9 +372,9 @@ class OrderAPI:
         try:
             self.logger.info(f"Getting positions for account {account_id}")
             
-            response = await self.client.execute(
-                endpoint="Account",
-                query_params={
+            response = await self.client.get_json(
+                endpoint="/AccountAPI.php",
+                params={
                     "channel": "GET_POSITIONS",
                     "accountid": account_id,
                 }
@@ -413,7 +413,7 @@ class OrderAPI:
             self.logger.info(f"Getting orders for bot {bot_id}")
             
             response = await self.client.execute(
-                endpoint="Bot",
+                endpoint="/BotAPI.php",
                 query_params={
                     "channel": "GET_BOT_ORDERS",
                     "botid": bot_id,
@@ -445,7 +445,7 @@ class OrderAPI:
             self.logger.info(f"Getting positions for bot {bot_id}")
             
             response = await self.client.execute(
-                endpoint="Bot",
+                endpoint="/BotAPI.php",
                 query_params={
                     "channel": "GET_BOT_POSITIONS",
                     "botid": bot_id,
@@ -478,7 +478,7 @@ class OrderAPI:
             self.logger.info(f"Canceling order {order_id} for bot {bot_id}")
             
             response = await self.client.execute(
-                endpoint="Bot",
+                endpoint="/BotAPI.php",
                 query_params={
                     "channel": "CANCEL_BOT_ORDER",
                     "botid": bot_id,
@@ -510,7 +510,7 @@ class OrderAPI:
             self.logger.info(f"Canceling all orders for bot {bot_id}")
             
             response = await self.client.execute(
-                endpoint="Bot",
+                endpoint="/BotAPI.php",
                 query_params={
                     "channel": "CANCEL_ALL_BOT_ORDERS",
                     "botid": bot_id,

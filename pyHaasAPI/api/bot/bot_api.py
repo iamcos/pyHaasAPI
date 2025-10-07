@@ -13,6 +13,10 @@ from ...core.client import AsyncHaasClient
 from ...core.auth import AuthenticationManager
 from ...exceptions import BotError, BotNotFoundError, BotCreationError, BotConfigurationError
 from ...core.logging import get_logger
+from ...core.field_utils import (
+    safe_get_field, safe_get_nested_field, safe_get_dict_field,
+    safe_get_success_flag, safe_get_status, log_field_mapping_issues
+)
 from ...models.bot import BotDetails, BotRecord, BotConfiguration
 
 
@@ -29,16 +33,87 @@ class BotAPI:
         self.auth_manager = auth_manager
         self.logger = get_logger("bot_api")
     
+    async def create_bot_from_lab(
+        self,
+        lab_id: str,
+        backtest_id: str,
+        bot_name: str,
+        account_id: str,
+        market: str,
+        leverage: float = 20.0
+    ) -> BotDetails:
+        """
+        Create a bot from a lab's backtest using v1 patterns
+        
+        Based on v1 implementation from pyHaasAPI_v1/api.py (lines 1471-1492)
+        Uses ADD_BOT_FROM_LABS channel for reliable bot creation
+        
+        Args:
+            lab_id: ID of the lab to create bot from
+            backtest_id: ID of the specific backtest to use
+            bot_name: Name for the new bot
+            account_id: ID of the account to assign the bot to
+            market: Market to trade on
+            leverage: Leverage to use (default: 20.0)
+            
+        Returns:
+            BotDetails object with created bot information
+            
+        Raises:
+            BotCreationError: If bot creation fails
+        """
+        try:
+            self.logger.info(f"Creating bot from lab {lab_id}, backtest {backtest_id}: {bot_name}")
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotCreationError("Not authenticated")
+            
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
+                data={
+                    "channel": "ADD_BOT_FROM_LABS",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
+                    "labid": lab_id,
+                    "backtestid": backtest_id,
+                    "botname": bot_name,
+                    "accountid": account_id,
+                    "market": market,
+                    "leverage": leverage,
+                }
+            )
+            
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Bot creation failed")
+                raise BotCreationError(f"Failed to create bot from lab: {error_msg}")
+            
+            bot_data = safe_get_field(response, "Data", {})
+            if not bot_data:
+                raise BotCreationError("No bot data returned from API")
+            
+            bot_details = BotDetails.model_validate(bot_data)
+            self.logger.info(f"Successfully created bot from lab: {bot_details.bot_id}")
+            return bot_details
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create bot from lab: {e}")
+            if isinstance(e, BotCreationError):
+                raise
+            else:
+                raise BotCreationError(f"Failed to create bot from lab: {e}")
+
     async def create_bot(
         self,
         bot_name: str,
         script_id: str,
-        script_type: str,
-        account_id: str,
-        market: str,
+        script_type: int = 0,
+        account_id: str = "",
+        market: str = "",
         leverage: float = 20.0,
         interval: int = 1,
-        chart_style: int = 300
+        chart_style: int = 300,
+        **kwargs: Any
     ) -> BotDetails:
         """
         Create a new bot
@@ -61,23 +136,35 @@ class BotAPI:
         """
         try:
             self.logger.info(f"Creating bot: {bot_name}")
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotCreationError("Not authenticated")
             
+            # Allow tests to pass 'market_tag' instead of 'market'
+            effective_market = safe_get_dict_field(kwargs, "market_tag") or market
             response = await self.client.post_json(
-                endpoint="Bot",
-                json_data={
+                endpoint="/BotAPI.php",
+                data={
                     "channel": "ADD_BOT",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botname": bot_name,
                     "scriptid": script_id,
                     "scripttype": script_type,
                     "accountid": account_id,
-                    "market": market,
+                    "market": effective_market,
                     "leverage": leverage,
                     "interval": interval,
                     "chartstyle": chart_style,
                 }
             )
             
-            bot_details = BotDetails.model_validate(response)
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Bot creation failed")
+                raise BotCreationError(f"Failed to create bot: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data)
             self.logger.info(f"Successfully created bot: {bot_details.bot_id}")
             return bot_details
             
@@ -113,11 +200,17 @@ class BotAPI:
         """
         try:
             self.logger.info(f"Creating bot from lab {lab_id}, backtest {backtest_id}")
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotCreationError("Not authenticated")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "ADD_BOT_FROM_LABS",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "labid": lab_id,
                     "backtestid": backtest_id,
                     "botname": bot_name,
@@ -127,7 +220,11 @@ class BotAPI:
                 }
             )
             
-            bot_details = BotDetails.model_validate(response)
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Bot creation from lab failed")
+                raise BotCreationError(f"Failed to create bot from lab: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data)
             self.logger.info(f"Successfully created bot from lab: {bot_details.bot_id}")
             return bot_details
             
@@ -151,14 +248,25 @@ class BotAPI:
         """
         try:
             self.logger.info(f"Deleting bot: {bot_id}")
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "DELETE_BOT",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                 }
             )
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to delete bot")
+                if "not found" in str(error_msg).lower():
+                    raise BotNotFoundError(f"Bot not found: {bot_id}")
+                raise BotError(message=f"Failed to delete bot: {error_msg}")
             
             self.logger.info(f"Successfully deleted bot: {bot_id}")
             return True
@@ -184,16 +292,23 @@ class BotAPI:
             
             # Use the correct client method
             response = await self.client.get_json(
-                endpoint="Bot",
+                endpoint="/BotAPI.php",
                 params={"channel": "GET_BOTS"}
             )
             
-            # Parse response data
-            if not response.get("Success", False):
-                raise BotError(message=f"API request failed: {response.get('Error', 'Unknown error')}")
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to get bots")
+                raise BotError(message=f"Failed to get bots: {error_msg}")
             
-            # Convert to BotDetails objects
-            bots_data = response.get("Data", [])
+            bots_data = safe_get_field(response, "Data", [])
+            if not bots_data:
+                self.logger.warning("No bot data returned from API")
+                return []
+            
+            # Log field mapping for debugging
+            if bots_data:
+                log_field_mapping_issues(bots_data[0], "bot data sample")
+            
             response = [BotDetails(**bot_data) for bot_data in bots_data]
             
             self.logger.debug(f"Retrieved {len(response)} bots")
@@ -220,15 +335,18 @@ class BotAPI:
         try:
             self.logger.debug(f"Retrieving bot details: {bot_id}")
             
-            response = await self.client.get(
-                endpoint="Bot",
+            response = await self.client.get_json(
+                endpoint="/BotAPI.php",
                 params={
                     "channel": "GET_BOT",
                     "botid": bot_id,
                 }
             )
-            
-            bot_details = BotDetails.model_validate(response)
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to get bot")
+                raise BotNotFoundError(f"Bot not found or error: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data)
             self.logger.debug(f"Retrieved bot details: {bot_id}")
             return bot_details
             
@@ -272,23 +390,26 @@ class BotAPI:
         try:
             self.logger.info(f"Activating bot: {bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "ACTIVATE_BOT",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                     "cleanreports": clean_reports,
                 }
             )
             
-            # Handle different response types
-            if isinstance(response, dict) and "bot_id" in response:
-                bot_details = BotDetails.model_validate(response)
-            elif response is True:
-                # If response is True, fetch the updated bot details
-                bot_details = await self.get_bot_details(bot_id)
-            else:
-                raise BotError(message=f"Unexpected response from ACTIVATE_BOT: {response}")
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to activate bot")
+                raise BotError(message=f"Failed to activate bot: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully activated bot: {bot_id}")
             return bot_details
@@ -315,23 +436,26 @@ class BotAPI:
         try:
             self.logger.info(f"Deactivating bot: {bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "DEACTIVATE_BOT",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                     "cancelorders": cancel_orders,
                 }
             )
             
-            # Handle different response types
-            if isinstance(response, dict) and "bot_id" in response:
-                bot_details = BotDetails.model_validate(response)
-            elif response is True:
-                # If response is True, fetch the updated bot details
-                bot_details = await self.get_bot_details(bot_id)
-            else:
-                raise BotError(message=f"Unexpected response from DEACTIVATE_BOT: {response}")
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to deactivate bot")
+                raise BotError(message=f"Failed to deactivate bot: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully deactivated bot: {bot_id}")
             return bot_details
@@ -357,22 +481,25 @@ class BotAPI:
         try:
             self.logger.info(f"Pausing bot: {bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "PAUSE_BOT",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                 }
             )
             
-            # Handle different response types
-            if isinstance(response, dict) and "bot_id" in response:
-                bot_details = BotDetails.model_validate(response)
-            elif response is True:
-                # If response is True, fetch the updated bot details
-                bot_details = await self.get_bot_details(bot_id)
-            else:
-                raise BotError(message=f"Unexpected response from PAUSE_BOT: {response}")
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to pause bot")
+                raise BotError(message=f"Failed to pause bot: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully paused bot: {bot_id}")
             return bot_details
@@ -398,22 +525,25 @@ class BotAPI:
         try:
             self.logger.info(f"Resuming bot: {bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "RESUME_BOT",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                 }
             )
             
-            # Handle different response types
-            if isinstance(response, dict) and "bot_id" in response:
-                bot_details = BotDetails.model_validate(response)
-            elif response is True:
-                # If response is True, fetch the updated bot details
-                bot_details = await self.get_bot_details(bot_id)
-            else:
-                raise BotError(message=f"Unexpected response from RESUME_BOT: {response}")
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to resume bot")
+                raise BotError(message=f"Failed to resume bot: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully resumed bot: {bot_id}")
             return bot_details
@@ -435,14 +565,24 @@ class BotAPI:
         try:
             self.logger.info("Deactivating all bots")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "DEACTIVATE_ALL_BOTS",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                 }
             )
             
-            bots = [BotDetails.model_validate(bot_data) for bot_data in response]
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to deactivate all bots")
+                raise BotError(message=f"Failed to deactivate all bots: {error_msg}")
+            data = safe_get_field(response, "Data", [])
+            bots = [BotDetails.model_validate(bot_data) for bot_data in data]
             self.logger.info(f"Successfully deactivated {len(bots)} bots")
             return bots
             
@@ -467,17 +607,27 @@ class BotAPI:
         try:
             self.logger.info(f"Editing bot parameters: {bot.bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotConfigurationError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "EDIT_SETTINGS",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot.bot_id,
                     "scriptid": bot.script_id,
                     "settings": bot.settings.model_dump_json(by_alias=True),
                 }
             )
             
-            updated_bot = BotDetails.model_validate(response)
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to edit bot settings")
+                raise BotConfigurationError(f"Failed to edit bot parameters: {error_msg}")
+            data = safe_get_field(response, "Data", {})
+            updated_bot = BotDetails.model_validate(data)
             self.logger.info(f"Successfully updated bot parameters: {bot.bot_id}")
             return updated_bot
             
@@ -502,16 +652,20 @@ class BotAPI:
         try:
             self.logger.debug(f"Retrieving orders for bot: {bot_id}")
             
-            response = await self.client.get(
-                endpoint="Bot",
+            response = await self.client.get_json(
+                endpoint="/BotAPI.php",
                 params={
                     "channel": "GET_BOT_ORDERS",
                     "botid": bot_id,
                 }
             )
             
-            self.logger.debug(f"Retrieved {len(response)} orders for bot: {bot_id}")
-            return response
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to get bot orders")
+                raise BotError(message=f"Failed to get bot orders: {error_msg}")
+            orders = safe_get_field(response, "Data", [])
+            self.logger.debug(f"Retrieved {len(orders)} orders for bot: {bot_id}")
+            return orders
             
         except Exception as e:
             self.logger.error(f"Failed to retrieve orders for bot {bot_id}: {e}")
@@ -534,16 +688,20 @@ class BotAPI:
         try:
             self.logger.debug(f"Retrieving positions for bot: {bot_id}")
             
-            response = await self.client.get(
-                endpoint="Bot",
+            response = await self.client.get_json(
+                endpoint="/BotAPI.php",
                 params={
                     "channel": "GET_BOT_POSITIONS",
                     "botid": bot_id,
                 }
             )
             
-            self.logger.debug(f"Retrieved {len(response)} positions for bot: {bot_id}")
-            return response
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to get bot positions")
+                raise BotError(message=f"Failed to get bot positions: {error_msg}")
+            positions = safe_get_field(response, "Data", [])
+            self.logger.debug(f"Retrieved {len(positions)} positions for bot: {bot_id}")
+            return positions
             
         except Exception as e:
             self.logger.error(f"Failed to retrieve positions for bot {bot_id}: {e}")
@@ -567,7 +725,7 @@ class BotAPI:
         try:
             self.logger.info(f"Updating notes for bot: {bot_id}")
             response = await self.client.post(
-                endpoint="Bot",
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "CHANGE_BOT_NOTES",
                     "botid": bot_id,
@@ -598,10 +756,16 @@ class BotAPI:
         try:
             self.logger.info(f"Cancelling order {order_id} for bot: {bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "CANCEL_BOT_ORDER",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                     "orderid": order_id,
                 }
@@ -631,10 +795,16 @@ class BotAPI:
         try:
             self.logger.info(f"Cancelling all orders for bot: {bot_id}")
             
-            response = await self.client.post(
-                endpoint="Bot",
+            await self.auth_manager.ensure_authenticated()
+            session = self.auth_manager.session
+            if not session:
+                raise BotError("Not authenticated")
+            response = await self.client.post_json(
+                endpoint="/BotAPI.php",
                 data={
                     "channel": "CANCEL_ALL_BOT_ORDERS",
+                    "userid": session.user_id,
+                    "interfacekey": session.interface_key,
                     "botid": bot_id,
                 }
             )

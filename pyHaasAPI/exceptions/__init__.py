@@ -13,6 +13,7 @@ from .network import NetworkError, ConnectionError, TimeoutError, DNSResolutionE
 from .config import ConfigurationError
 from .cache import CacheError
 from .analysis import AnalysisError
+from .finetune import FinetuneError
 from .account import AccountError, AccountNotFoundError, AccountConfigurationError, AccountBalanceError, AccountPermissionError
 from .script import ScriptError, ScriptNotFoundError, ScriptCreationError, ScriptConfigurationError, ScriptExecutionError, ScriptValidationError
 from .market import MarketError, MarketNotFoundError, PriceDataError, MarketDataError, ExchangeError
@@ -46,6 +47,7 @@ __all__ = [
     "ConfigurationError",
     "CacheError",
     "AnalysisError",
+    "FinetuneError",
     "AccountError",
     "AccountNotFoundError",
     "AccountConfigurationError",

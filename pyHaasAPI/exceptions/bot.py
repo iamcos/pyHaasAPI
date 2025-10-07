@@ -9,24 +9,18 @@ class BotError(NonRetryableError):
     """Base class for bot-related errors"""
     
     def __init__(self, message: str = "Bot operation failed", **kwargs):
-        super().__init__(
-            message=message,
-            error_code="BOT_ERROR",
-            recovery_suggestion="Check bot configuration and try again",
-            **kwargs
-        )
+        # Ensure default codes are present if not supplied
+        kwargs.setdefault("error_code", "BOT_ERROR")
+        kwargs.setdefault("recovery_suggestion", "Check bot configuration and try again")
+        super().__init__(message=message, **kwargs)
 
 
 class BotCreationError(BotError):
     """Base class for bot creation errors"""
     
     def __init__(self, message: str = "Bot creation failed", **kwargs):
-        super().__init__(
-            message=message,
-            error_code="BOT_CREATION_ERROR",
-            recovery_suggestion="Check bot configuration and try again",
-            **kwargs
-        )
+        kwargs.setdefault("error_code", "BOT_CREATION_ERROR")
+        super().__init__(message=message, **kwargs)
 
 
 class BotConfigurationError(BotError):
