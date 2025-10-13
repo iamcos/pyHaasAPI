@@ -26,6 +26,8 @@ from .market_cli import MarketCLI
 from .backtest_cli import BacktestCLI
 from .order_cli import OrderCLI
 from .backtest_workflow_cli import BacktestWorkflowCLI
+from .consolidated_cli import ConsolidatedCLI
+from .download_cli import DownloadCLI
 # Google Sheets integration moved to gdocs/ folder
 # from .google_sheets_integration import GoogleSheetsIntegration
 from ..core.logging import get_logger
@@ -81,6 +83,11 @@ Examples:
   python -m pyHaasAPI_v2.cli order list --bot-id bot123
   python -m pyHaasAPI_v2.cli order place --bot-id bot123 --side buy --amount 1000
   python -m pyHaasAPI_v2.cli order cancel --order-id order123
+  
+  # Orchestrator operations
+  python -m pyHaasAPI.cli orchestrator execute --project-name "MyProject" --base-labs lab1,lab2,lab3
+  python -m pyHaasAPI.cli orchestrator validate --project-name "TestProject" --base-labs lab1,lab2
+  python -m pyHaasAPI.cli orchestrator status --project-name "MyProject"
         """
     )
     
@@ -156,7 +163,7 @@ Examples:
     analysis_parser = subparsers.add_parser('analysis', help='Analysis operations')
     analysis_parser.add_argument(
         'action',
-        choices=['labs', 'bots', 'wfo', 'performance', 'reports'],
+        choices=['labs', 'bots', 'wfo', 'performance', 'reports', 'labs-without-bots'],
         help='Analysis action to perform'
     )
     analysis_parser.add_argument('--lab-id', help='Lab ID')
@@ -165,6 +172,7 @@ Examples:
     analysis_parser.add_argument('--end-date', help='End date (YYYY-MM-DD)')
     analysis_parser.add_argument('--generate-reports', action='store_true', help='Generate reports')
     analysis_parser.add_argument('--performance-metrics', action='store_true', help='Include performance metrics')
+    analysis_parser.add_argument('--server', help='Server name (srv01, srv02, srv03)')
     
     # Account subcommand
     account_parser = subparsers.add_parser('account', help='Account operations')
@@ -243,6 +251,16 @@ Examples:
     order_parser.add_argument('--amount', type=float, help='Order amount')
     order_parser.add_argument('--price', type=float, help='Order price')
 
+    # Download subcommand
+    download_parser = subparsers.add_parser('download', help='Download all backtests from all servers')
+    download_parser.add_argument(
+        'action',
+        choices=['everything', 'server', 'lab', 'backtests-for-labs', 'help'],
+        help='Download action to perform'
+    )
+    download_parser.add_argument('--server-name', help='Server name (for server action)')
+    download_parser.add_argument('--lab-id', help='Lab ID (for lab action)')
+
     # Utils subcommand (direct runners for helper tools)
     utils_parser = subparsers.add_parser('utils', help='Utility tools')
     utils_parser.add_argument(
@@ -258,6 +276,39 @@ Examples:
     utils_parser.add_argument('--top-count', type=int, default=10)
     # detailed-analysis options
     utils_parser.add_argument('--lab-id', help='Lab ID for detailed analysis')
+    
+    # Consolidated CLI subcommand (all-in-one functionality)
+    consolidated_parser = subparsers.add_parser('consolidated', help='Consolidated CLI with all functionality')
+    consolidated_parser.add_argument('--analyze', action='store_true', help='Analyze labs with zero drawdown requirement')
+    consolidated_parser.add_argument('--create-bots', action='store_true', help='Create bots from analysis results')
+    consolidated_parser.add_argument('--min-winrate', type=float, default=55.0, help='Minimum win rate percentage (default: 55)')
+    consolidated_parser.add_argument('--bots-per-lab', type=int, default=2, help='Number of bots to create per lab (default: 2)')
+    consolidated_parser.add_argument('--sort-by', choices=['roi', 'roe', 'winrate'], default='roe', help='Sort by metric (default: roe)')
+    
+    # Orchestrator subcommand (simple trading orchestrator)
+    orchestrator_parser = subparsers.add_parser('orchestrator', help='Simple Trading Orchestrator - Multi-server trading orchestration')
+    orchestrator_parser.add_argument(
+        'action',
+        choices=['execute', 'validate', 'status'],
+        help='Orchestrator action to perform'
+    )
+    # Execute arguments
+    orchestrator_parser.add_argument('--project-name', type=str, required=True, help='Name of the trading project')
+    orchestrator_parser.add_argument('--servers', type=str, default='srv01,srv02,srv03', help='Comma-separated list of servers')
+    orchestrator_parser.add_argument('--coins', type=str, default='BTC,ETH,TRX,ADA', help='Comma-separated list of coins')
+    orchestrator_parser.add_argument('--base-labs', type=str, required=True, help='Comma-separated list of base lab IDs')
+    orchestrator_parser.add_argument('--account-type', type=str, default='BINANCEFUTURES_USDT', help='Account type')
+    orchestrator_parser.add_argument('--trade-amount-usdt', type=float, default=2000.0, help='Trade amount in USDT')
+    orchestrator_parser.add_argument('--leverage', type=float, default=20.0, help='Leverage')
+    orchestrator_parser.add_argument('--max-drawdown-threshold', type=float, default=0.0, help='Maximum drawdown threshold')
+    orchestrator_parser.add_argument('--min-win-rate', type=float, default=0.6, help='Minimum win rate')
+    orchestrator_parser.add_argument('--min-trades', type=int, default=10, help='Minimum number of trades')
+    orchestrator_parser.add_argument('--min-stability-score', type=float, default=70.0, help='Minimum stability score')
+    orchestrator_parser.add_argument('--top-bots-per-coin', type=int, default=3, help='Number of top bots per coin')
+    orchestrator_parser.add_argument('--activate-bots', action='store_true', help='Activate bots after creation')
+    orchestrator_parser.add_argument('--dry-run', action='store_true', help='Dry run - validate configuration without execution')
+    orchestrator_parser.add_argument('--output-dir', type=str, default='trading_projects', help='Output directory for project results')
+    orchestrator_parser.add_argument('--config-file', type=str, help='Load configuration from JSON file')
     
     return parser
 
@@ -400,6 +451,64 @@ async def main_async(args: argparse.Namespace) -> int:
             cli_instance = BacktestWorkflowCLI(config)
         elif args.command == 'order':
             cli_instance = OrderCLI(config)
+        elif args.command == 'download':
+            cli_instance = DownloadCLI()
+        elif args.command == 'orchestrator':
+            # Handle orchestrator command using SimpleOrchestratorCLI
+            from .simple_orchestrator_cli import SimpleOrchestratorCLI
+            cli = SimpleOrchestratorCLI()
+            return await cli.run(sys.argv[1:])
+        elif args.command == 'consolidated':
+            # Use the consolidated CLI directly
+            cli = ConsolidatedCLI()
+            try:
+                # Connect to API
+                if not await cli.connect():
+                    logger.error("Failed to connect to API")
+                    return 1
+                
+                lab_results = {}
+                
+                # Analyze labs if requested
+                if args.analyze:
+                    lab_results = await cli.analyze_all_labs(
+                        min_winrate=args.min_winrate,
+                        sort_by=args.sort_by
+                    )
+                    
+                    if lab_results:
+                        cli.print_analysis_report(lab_results)
+                    else:
+                        logger.warning("No qualifying labs found")
+                        return 0
+                
+                # Create bots if requested
+                if args.create_bots:
+                    if not lab_results:
+                        # Re-analyze if not already done
+                        lab_results = await cli.analyze_all_labs(
+                            min_winrate=args.min_winrate,
+                            sort_by=args.sort_by
+                        )
+                    
+                    if lab_results:
+                        created_bots = await cli.create_bots_from_analysis(lab_results, args.bots_per_lab)
+                        if created_bots:
+                            cli.print_bot_creation_report(created_bots)
+                        else:
+                            logger.warning("No bots were created")
+                    else:
+                        logger.warning("No qualifying labs found for bot creation")
+                
+                return 0
+                
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
+                import traceback
+                traceback.print_exc()
+                return 1
+            finally:
+                await cli.close()
         elif args.command == 'utils':
             # Run utility scripts directly to avoid heavy wiring
             if args.action == 'cache-filtered':
@@ -436,7 +545,19 @@ async def main_async(args: argparse.Namespace) -> int:
         
         # Run the CLI
         async with cli_instance:
-            return await cli_instance.run(sys.argv[1:])
+            # Pass only the arguments after the command
+            # sys.argv can vary depending on options passed before the command
+            # Find the command in sys.argv and pass everything after it
+            try:
+                command_index = sys.argv.index(args.command)
+                remaining_args = sys.argv[command_index + 1:]  # Skip command and everything before it
+            except ValueError:
+                remaining_args = sys.argv[2:]  # Fallback
+            
+            logger.debug(f"sys.argv: {sys.argv}")
+            logger.debug(f"command: {args.command}")
+            logger.debug(f"remaining_args: {remaining_args}")
+            return await cli_instance.run(remaining_args)
             
     except KeyboardInterrupt:
         logger.info("Operation cancelled by user")

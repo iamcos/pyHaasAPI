@@ -82,15 +82,21 @@ class AccountAPI:
             
             # Parse response data - support both wrapped and raw list
             accounts_data: Any = []
-            if isinstance(response, dict):
+            if isinstance(response, list):
+                # Direct list response
+                accounts_data = response
+                self.logger.debug(f"Received direct list response with {len(response)} accounts")
+            elif isinstance(response, dict):
                 # Some servers wrap in { Success, Data }
+                self.logger.debug(f"Response keys: {list(response.keys())}")
                 if safe_get_success_flag(response):
                     accounts_data = safe_get_field(response, "Data", [])
                 else:
                     # If dict without Success but with Data
                     accounts_data = safe_get_dict_field(response, "Data", [])
-            elif isinstance(response, list):
-                accounts_data = response
+                    # Also try direct response if Data is empty
+                    if not accounts_data:
+                        accounts_data = response
             
             if not isinstance(accounts_data, list):
                 self.logger.warning("Unexpected accounts payload shape; returning empty list")
@@ -110,6 +116,98 @@ class AccountAPI:
         except Exception as e:
             self.logger.error(f"Failed to retrieve accounts: {e}")
             raise AccountError(f"Failed to retrieve accounts: {e}") from e
+    
+    async def create_simulated_account(
+        self,
+        name: str,
+        exchange: str = "BINANCEFUTURES",
+        initial_balance: float = 10000.0,
+        position_mode: int = 1  # HEDGE mode
+    ) -> Optional[AccountRecord]:
+        """
+        Create a new simulated account with specified balance.
+        
+        Based on v1: api.py add_simulated_account (lines 2309-2339)
+        
+        Args:
+            name: Account display name (e.g., "[Sim] 4AA-10k")
+            exchange: Exchange code (default: "BINANCEFUTURES")
+            initial_balance: Starting balance in USDT (default: 10000.0)
+            position_mode: Position mode - 1 for HEDGE, 0 for ONE_WAY (default: 1)
+            
+        Returns:
+            AccountRecord object if successful, None otherwise
+            
+        Raises:
+            AccountError: If account creation fails
+        """
+        try:
+            self.logger.info(f"Creating simulated account: {name} with {initial_balance} USDT")
+            
+            # Build request payload
+            payload = {
+                "channel": "ADD_SIMULATED_ACCOUNT",
+                "name": name,
+                "drivercode": exchange,
+                "drivertype": 2,  # 2 = simulated account type
+                "interfacekey": self.auth_manager.interface_key,
+                "userid": self.auth_manager.user_id
+            }
+            
+            # Execute account creation
+            response = await self.client.post_json(
+                endpoint="/AccountAPI.php",
+                data=payload
+            )
+            
+            # Parse response
+            if isinstance(response, dict):
+                if not response.get("Success", False):
+                    error_msg = response.get("Error", "Account creation failed")
+                    self.logger.error(f"Failed to create account: {error_msg}")
+                    raise AccountError(message=f"Failed to create account: {error_msg}")
+                
+                # Get the created account ID from response
+                account_id = response.get("AccountId") or response.get("Data")
+                
+                if not account_id:
+                    self.logger.error("No account ID returned from API")
+                    raise AccountError(message="No account ID returned from API")
+                
+                self.logger.info(f"✅ Account created successfully: {account_id}")
+                
+                # Fetch the newly created account to get full details
+                accounts = await self.get_accounts()
+                for account in accounts:
+                    if account.account_id == account_id:
+                        return account
+                
+                # If we can't find it, return a minimal record
+                self.logger.warning("Could not fetch created account details, returning minimal record")
+                return AccountRecord(
+                    user_id=self.auth_manager.user_id,
+                    account_id=account_id,
+                    name=name,
+                    exchange=exchange,
+                    exchange_type=2,  # Simulated
+                    status=1,  # Active
+                    is_simulated=True,
+                    is_testnet=False,
+                    is_paper=False,
+                    is_wallet=False,
+                    position_mode=position_mode,
+                    market_settings=None,
+                    version=1
+                )
+            else:
+                self.logger.error("Unexpected response type from account creation API")
+                raise AccountError(message="Unexpected response type from account creation API")
+                
+        except AccountError:
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to create simulated account: {e}")
+            raise AccountError(message=f"Failed to create simulated account: {str(e)}")
 
     async def get_binancefutures_accounts(self) -> List[AccountDetails]:
         """
@@ -529,7 +627,7 @@ class AccountAPI:
                     "channel": "SET_LEVERAGE",
                     "accountid": account_id,
                     "market": market,
-                    "leverage": leverage,
+                    "leverage": int(leverage),
                 }
             )
             
@@ -578,7 +676,7 @@ class AccountAPI:
                     "configure_margin": configure_margin,
                     "position_mode": position_mode,
                     "margin_mode": margin_mode,
-                    "leverage": leverage,
+                    "leverage": int(leverage),
                 }
             )
             
@@ -627,7 +725,7 @@ class AccountAPI:
                     "preserve_settings": preserve_settings,
                     "position_mode": position_mode,
                     "margin_mode": margin_mode,
-                    "leverage": leverage,
+                    "leverage": int(leverage),
                 }
             )
             

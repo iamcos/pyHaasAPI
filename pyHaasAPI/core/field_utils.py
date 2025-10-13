@@ -253,11 +253,30 @@ def safe_get_success_flag(response: Any) -> bool:
     Returns:
         True if successful, False otherwise
     """
-    success = safe_get_field(response, "Success", False)
-    if not success:
-        error_msg = safe_get_field(response, "Error", "Unknown error")
-        logger.warning(f"API request failed: {error_msg}")
-    return success
+    # Check if response has Success field
+    success = safe_get_field(response, "Success", None)
+    if success is not None:
+        # Response has Success field - use it
+        if not success:
+            error_msg = safe_get_field(response, "Error", "Unknown error")
+            logger.warning(f"API request failed: {error_msg}")
+        return success
+    
+    # No Success field - check if response has data (indicates success)
+    data = safe_get_field(response, "Data", None)
+    if data is not None:
+        # Response has Data field - assume success
+        logger.debug("API response has Data field, assuming success")
+        return True
+    
+    # Check if response is a list or dict with content (direct data response)
+    if isinstance(response, (list, dict)) and response:
+        logger.debug("API response is direct data, assuming success")
+        return True
+    
+    # No success indicators found
+    logger.warning("API response has no success indicators")
+    return False
 
 
 def log_field_mapping_issues(obj: Any, context: str = "") -> None:

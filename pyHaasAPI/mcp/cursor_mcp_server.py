@@ -28,6 +28,7 @@ from ..core.server_manager import ServerManager, ServerConfig
 from ..core.data_manager import ComprehensiveDataManager
 from ..core.client import AsyncHaasClient
 from ..core.auth import AuthenticationManager
+from ..config.api_config import APIConfig
 from ..api import LabAPI, BotAPI, AccountAPI, ScriptAPI, MarketAPI, BacktestAPI, OrderAPI
 from ..services import LabService, BotService, AnalysisService, ReportingService
 from ..models import *
@@ -50,6 +51,7 @@ class CursorPyHaasAPIMCPServer:
         self.settings = Settings()
         self.server_manager: Optional[ServerManager] = None
         self.data_manager: Optional[ComprehensiveDataManager] = None
+        self.logger = logger
         
         # API modules (will be initialized per server)
         self.api_modules: Dict[str, Dict[str, Any]] = {}
@@ -93,12 +95,20 @@ class CursorPyHaasAPIMCPServer:
             if not server_config:
                 return False
             
-            # Create client for this server
-            client = AsyncHaasClient(host="127.0.0.1", port=8090)
-            auth_manager = AuthenticationManager(
-                email=self.settings.email,
-                password=self.settings.password
+            # Create API config bound to mandated tunnel (127.0.0.1:8090)
+            api_config = APIConfig(
+                host="127.0.0.1",
+                port=8090,
+                email=self.settings.api.email,
+                password=self.settings.api.password,
+                timeout=self.settings.api.timeout,
+                max_retries=self.settings.api.max_retries,
+                retry_delay=self.settings.api.retry_delay,
+                retry_backoff_factor=self.settings.api.retry_backoff_factor,
             )
+            # Create client and auth manager
+            client = AsyncHaasClient(api_config)
+            auth_manager = AuthenticationManager(client, api_config)
             
             # Authenticate
             await auth_manager.authenticate()

@@ -288,21 +288,20 @@ class LabAPI:
             
             self.logger.info("Fetching all labs")
             
-            # Use v1 pattern: execute method with proper authentication
-            # Add authentication parameters like v1 does
+            # Use POST with auth parameters in body
             session = self.auth_manager.session
             if not session:
                 raise LabError("Not authenticated")
             
-            query_params = {
-                "channel": "GET_LABS",
-                "userid": session.user_id,
-                "interfacekey": session.interface_key
+            post_data = {
+                'interfacekey': session.interface_key,
+                'userid': session.user_id
             }
             
-            response = await self.client.execute(
+            response = await self.client.post_json(
                 endpoint="/LabsAPI.php",
-                query_params=query_params
+                params={"channel": "GET_LABS"},
+                data=post_data
             )
             
             # Parse response data - v1 returns data directly for list responses
@@ -346,19 +345,21 @@ class LabAPI:
             
             self.logger.info(f"Getting details for lab: {lab_id}")
             
-            # Get authentication parameters
+            # Use POST with auth parameters in body
             session = self.auth_manager.session
             if not session:
                 raise LabError("Not authenticated")
             
-            response = await self.client.get_json(
+            post_data = {
+                'labid': lab_id,
+                'interfacekey': session.interface_key,
+                'userid': session.user_id
+            }
+            
+            response = await self.client.post_json(
                 "/LabsAPI.php",
-                params={
-                    "channel": "GET_LAB_DETAILS",
-                    "labid": lab_id,
-                    "interfacekey": session.interface_key,
-                    "userid": session.user_id
-                }
+                params={"channel": "GET_LAB_DETAILS"},
+                data=post_data
             )
             
             if not safe_get_success_flag(response):
@@ -368,9 +369,31 @@ class LabAPI:
                 else:
                     raise LabError(message=f"Failed to get lab details: {error_msg}")
             
-            lab_data = safe_get_field(response, "Data", {})
-            if not lab_data:
-                raise LabError(message="No lab data returned from API")
+            # Debug: Log the actual response structure
+            self.logger.debug(f"Raw API response type: {type(response)}")
+            self.logger.debug(f"Raw API response: {response}")
+            
+            # Try to get lab data from different possible locations
+            if isinstance(response, dict):
+                # Response is a dictionary - use dict access
+                lab_data = response.get("Data", None)
+                if not lab_data:
+                    # If no Data field, check if response is the lab data directly
+                    if "LID" in response:
+                        lab_data = response
+                    else:
+                        # Log available keys for debugging
+                        self.logger.debug(f"Available keys in response: {list(response.keys())}")
+                        raise LabError(message="No lab data returned from API")
+            else:
+                # Response is an object - use safe_get_field
+                lab_data = safe_get_field(response, "Data", None)
+                if not lab_data:
+                    # If no Data field, check if response is the lab data directly
+                    if hasattr(response, "LID"):
+                        lab_data = response
+                    else:
+                        raise LabError(message="No lab data returned from API")
             
             self.logger.debug(f"Raw lab data: {lab_data}")
             
@@ -395,35 +418,67 @@ class LabAPI:
             if not account_id:
                 self.logger.warning(f"Account ID not found in lab {lab_id}")
             
-            # Map API response to LabDetails model using safe field access
-            mapped_data = {
-                "labId": safe_get_field(lab_data, "LID", required=True),
-                "name": safe_get_field(lab_data, "N", required=True),
-                "scriptId": safe_get_field(lab_data, "SID", required=True),
-                "scriptName": safe_get_field(lab_data, "SN", ""),  # Script name not in response
-                "settings": {
-                    "accountId": account_id,
-                    "marketTag": market_tag,
-                    "interval": safe_get_nested_field(lab_data, "ST.interval", 1),
-                    "tradeAmount": safe_get_nested_field(lab_data, "ST.tradeAmount", 100.0) or safe_get_nested_field(lab_data, "ST.trade_amount", 100.0),
-                    "chartStyle": safe_get_nested_field(lab_data, "ST.chartStyle", 300) or safe_get_nested_field(lab_data, "ST.chart_style", 300),
-                    "orderTemplate": safe_get_nested_field(lab_data, "ST.orderTemplate", 500) or safe_get_nested_field(lab_data, "ST.order_template", 500),
-                    "leverage": safe_get_nested_field(lab_data, "ST.leverage", 0.0),
-                    "positionMode": safe_get_nested_field(lab_data, "ST.positionMode", 0) or safe_get_nested_field(lab_data, "ST.position_mode", 0),
-                    "marginMode": safe_get_nested_field(lab_data, "ST.marginMode", 0) or safe_get_nested_field(lab_data, "ST.margin_mode", 0)
-                },
-                "config": {
-                    "max_parallel": safe_get_nested_field(lab_data, "C.MP", 10),
-                    "max_generations": safe_get_nested_field(lab_data, "C.MG", 30),
-                    "max_epochs": safe_get_nested_field(lab_data, "C.ME", 3),
-                    "max_runtime": safe_get_nested_field(lab_data, "C.MR", 0),
-                    "auto_restart": safe_get_nested_field(lab_data, "C.AR", 0)
-                },
-                "status": self._map_status(safe_get_field(lab_data, "S", 0)),  # Map status number to string
-                "createdAt": safe_get_field(lab_data, "CA"),
-                "updatedAt": safe_get_field(lab_data, "UA"),
-                "backtestCount": safe_get_field(lab_data, "CB", 0)
-            }
+            # Map API response to LabDetails model using dictionary access for dict responses
+            if isinstance(lab_data, dict):
+                # Use dictionary access for dict responses
+                mapped_data = {
+                    "labId": lab_data.get("LID", ""),
+                    "name": lab_data.get("N", ""),
+                    "scriptId": lab_data.get("SID", ""),
+                    "scriptName": lab_data.get("SN", ""),  # Script name not in response
+                    "settings": {
+                        "accountId": lab_data.get("ST", {}).get("accountId", ""),
+                        "marketTag": lab_data.get("ST", {}).get("marketTag", ""),
+                        "interval": lab_data.get("ST", {}).get("interval", 1),
+                        "tradeAmount": lab_data.get("ST", {}).get("tradeAmount", 100.0),
+                        "chartStyle": lab_data.get("ST", {}).get("chartStyle", 300),
+                        "orderTemplate": lab_data.get("ST", {}).get("orderTemplate", 500),
+                        "leverage": lab_data.get("ST", {}).get("leverage", 0.0),
+                        "positionMode": lab_data.get("ST", {}).get("positionMode", 0),
+                        "marginMode": lab_data.get("ST", {}).get("marginMode", 0)
+                    },
+                    "config": {
+                        "max_parallel": lab_data.get("C", {}).get("MP", 10),
+                        "max_generations": lab_data.get("C", {}).get("MG", 30),
+                        "max_epochs": lab_data.get("C", {}).get("ME", 3),
+                        "max_runtime": lab_data.get("C", {}).get("MR", 0),
+                        "auto_restart": lab_data.get("C", {}).get("AR", 0)
+                    },
+                    "status": self._map_status(lab_data.get("S", 0)),  # Map status number to string
+                    "createdAt": lab_data.get("CA"),
+                    "updatedAt": lab_data.get("UA"),
+                    "backtestCount": lab_data.get("CB", 0)
+                }
+            else:
+                # Use safe field access for object responses
+                mapped_data = {
+                    "labId": safe_get_field(lab_data, "LID", required=True),
+                    "name": safe_get_field(lab_data, "N", required=True),
+                    "scriptId": safe_get_field(lab_data, "SID", required=True),
+                    "scriptName": safe_get_field(lab_data, "SN", ""),  # Script name not in response
+                    "settings": {
+                        "accountId": account_id,
+                        "marketTag": market_tag,
+                        "interval": safe_get_nested_field(lab_data, "ST.interval", 1),
+                        "tradeAmount": safe_get_nested_field(lab_data, "ST.tradeAmount", 100.0) or safe_get_nested_field(lab_data, "ST.trade_amount", 100.0),
+                        "chartStyle": safe_get_nested_field(lab_data, "ST.chartStyle", 300) or safe_get_nested_field(lab_data, "ST.chart_style", 300),
+                        "orderTemplate": safe_get_nested_field(lab_data, "ST.orderTemplate", 500) or safe_get_nested_field(lab_data, "ST.order_template", 500),
+                        "leverage": safe_get_nested_field(lab_data, "ST.leverage", 0.0),
+                        "positionMode": safe_get_nested_field(lab_data, "ST.positionMode", 0) or safe_get_nested_field(lab_data, "ST.position_mode", 0),
+                        "marginMode": safe_get_nested_field(lab_data, "ST.marginMode", 0) or safe_get_nested_field(lab_data, "ST.margin_mode", 0)
+                    },
+                    "config": {
+                        "max_parallel": safe_get_nested_field(lab_data, "C.MP", 10),
+                        "max_generations": safe_get_nested_field(lab_data, "C.MG", 30),
+                        "max_epochs": safe_get_nested_field(lab_data, "C.ME", 3),
+                        "max_runtime": safe_get_nested_field(lab_data, "C.MR", 0),
+                        "auto_restart": safe_get_nested_field(lab_data, "C.AR", 0)
+                    },
+                    "status": self._map_status(safe_get_field(lab_data, "S", 0)),  # Map status number to string
+                    "createdAt": safe_get_field(lab_data, "CA"),
+                    "updatedAt": safe_get_field(lab_data, "UA"),
+                    "backtestCount": safe_get_field(lab_data, "CB", 0)
+                }
             
             lab_details = LabDetails(**mapped_data)
             
@@ -675,26 +730,42 @@ class LabAPI:
             if not session:
                 raise LabError("Not authenticated")
             
+            post_data = {
+                'labid': lab_id,
+                'name': new_name,
+                'interfacekey': session.interface_key,
+                'userid': session.user_id
+            }
+            
             response = await self.client.post_json(
                 "/LabsAPI.php",
-                data={
-                    "channel": "CLONE_LAB",
-                    "userid": session.user_id,
-                    "interfacekey": session.interface_key,
-                    "labid": lab_id,
-                    "name": new_name,
-                }
+                params={"channel": "CLONE_LAB"},
+                data=post_data
             )
+            
+            # Debug: Log the actual response structure
+            self.logger.debug(f"Raw clone_lab response type: {type(response)}")
+            self.logger.debug(f"Raw clone_lab response: {response}")
             
             if not safe_get_success_flag(response):
                 error_msg = safe_get_field(response, "Error", "Failed to clone lab")
                 raise LabError(message=f"Failed to clone lab: {error_msg}")
             
-            cloned_data = safe_get_field(response, "Data", {})
+            # Handle the response structure - it has Success, Error, Data
+            if isinstance(response, dict) and "Data" in response:
+                cloned_data = response["Data"]
+            else:
+                cloned_data = safe_get_field(response, "Data", {})
+            
             if not cloned_data:
+                # Log available keys for debugging
+                if isinstance(response, dict):
+                    self.logger.debug(f"Available keys in clone response: {list(response.keys())}")
                 raise LabError(message="No cloned lab data returned from API")
             
-            cloned_lab = LabDetails(**cloned_data)
+            # Map the API response to the expected model structure
+            mapped_data = self._map_lab_response_to_model(cloned_data)
+            cloned_lab = LabDetails(**mapped_data)
             
             self.logger.info(f"Lab cloned successfully: {cloned_lab.lab_id}")
             return cloned_lab
@@ -707,6 +778,75 @@ class LabAPI:
                 raise
             else:
                 raise LabError(message=f"Failed to clone lab: {e}")
+    
+    def _map_lab_response_to_model(self, lab_data: dict) -> dict:
+        """Map API response to LabDetails model structure"""
+        try:
+            # Extract basic fields
+            lab_id = lab_data.get("LID", "")
+            name = lab_data.get("N", "")
+            script_id = lab_data.get("SID", "")
+            
+            # Extract settings from ST field
+            st_data = lab_data.get("ST", {})
+            settings = {
+                "accountId": st_data.get("accountId", ""),
+                "marketTag": st_data.get("marketTag", ""),
+                "interval": st_data.get("interval", 1),
+                "tradeAmount": st_data.get("tradeAmount", 100.0),
+                "chartStyle": st_data.get("chartStyle", 300),
+                "orderTemplate": st_data.get("orderTemplate", 500),
+                "leverage": st_data.get("leverage", 0.0),
+                "positionMode": st_data.get("positionMode", 0),
+                "marginMode": st_data.get("marginMode", 0),
+            }
+            
+            # Extract config from C field
+            c_data = lab_data.get("C", {})
+            config = {
+                "max_parallel": c_data.get("MP", 10),
+                "max_generations": c_data.get("MG", 30),
+                "max_epochs": c_data.get("ME", 3),
+                "max_runtime": c_data.get("MR", 0),
+                "auto_restart": c_data.get("AR", 0),
+            }
+            
+            # Extract parameters from P field
+            parameters = []
+            p_data = lab_data.get("P", [])
+            for param in p_data:
+                # Get the first option as the default value
+                options = param.get("O", [])
+                default_value = options[0] if options else ""
+                
+                parameters.append({
+                    "key": param.get("K", ""),
+                    "value": default_value,
+                    "type": param.get("T", 0),
+                    "options": options,
+                    "included": param.get("I", True),
+                    "selected": param.get("IS", False),
+                })
+            
+            # Map status
+            status_map = {0: "ACTIVE", 1: "RUNNING", 2: "COMPLETED", 3: "FAILED", 4: "CANCELLED"}
+            status = status_map.get(lab_data.get("S", 0), "ACTIVE")
+            
+            return {
+                "labId": lab_id,
+                "name": name,
+                "scriptId": script_id,
+                "scriptName": name,  # Use lab name as script name for now
+                "settings": settings,
+                "config": config,
+                "parameters": parameters,
+                "status": status,
+                "backtestCount": lab_data.get("CB", 0),
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to map lab response: {e}")
+            raise LabError(message=f"Failed to map lab response: {e}")
     
     async def change_lab_script(self, lab_id: str, script_id: str) -> LabDetails:
         """
@@ -909,12 +1049,20 @@ class LabAPI:
         try:
             await self.auth_manager.ensure_authenticated()
             
-            response = await self.client.get_json(
+            session = self.auth_manager.session
+            if not session:
+                raise LabError("Not authenticated")
+            
+            post_data = {
+                'labid': lab_id,
+                'interfacekey': session.interface_key,
+                'userid': session.user_id
+            }
+            
+            response = await self.client.post_json(
                 "/LabsAPI.php",
-                params={
-                    "channel": "GET_LAB_EXECUTION_UPDATE",
-                    "labid": lab_id
-                }
+                params={"channel": "GET_LAB_EXECUTION_UPDATE"},
+                data=post_data
             )
             
             if not safe_get_success_flag(response):

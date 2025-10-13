@@ -80,7 +80,7 @@ class BotAPI:
                     "botname": bot_name,
                     "accountid": account_id,
                     "market": market,
-                    "leverage": leverage,
+                    "leverage": int(leverage),
                 }
             )
             
@@ -154,7 +154,7 @@ class BotAPI:
                     "scripttype": script_type,
                     "accountid": account_id,
                     "market": effective_market,
-                    "leverage": leverage,
+                    "leverage": int(leverage),
                     "interval": interval,
                     "chartstyle": chart_style,
                 }
@@ -216,7 +216,7 @@ class BotAPI:
                     "botname": bot_name,
                     "accountid": account_id,
                     "market": market,
-                    "leverage": leverage,
+                    "leverage": int(leverage),
                 }
             )
             
@@ -290,17 +290,32 @@ class BotAPI:
         try:
             self.logger.debug("Retrieving all bots")
             
-            # Use the correct client method
+            # Use the correct client method with required auth parameters
             response = await self.client.get_json(
                 endpoint="/BotAPI.php",
-                params={"channel": "GET_BOTS"}
+                params={
+                    "channel": "GET_BOTS",
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key
+                }
             )
             
-            if not safe_get_success_flag(response):
-                error_msg = safe_get_field(response, "Error", "Failed to get bots")
-                raise BotError(message=f"Failed to get bots: {error_msg}")
+            # Handle both object and dictionary responses
+            if isinstance(response, dict):
+                # Dictionary response - check for success
+                if not response.get("Success", True):  # Default to True if no Success field
+                    error_msg = response.get("Error", "Failed to get bots")
+                    raise BotError(message=f"Failed to get bots: {error_msg}")
+                
+                bots_data = response.get("Data", [])
+            else:
+                # Object response - use safe_get_field
+                if not safe_get_success_flag(response):
+                    error_msg = safe_get_field(response, "Error", "Failed to get bots")
+                    raise BotError(message=f"Failed to get bots: {error_msg}")
+                
+                bots_data = safe_get_field(response, "Data", [])
             
-            bots_data = safe_get_field(response, "Data", [])
             if not bots_data:
                 self.logger.warning("No bot data returned from API")
                 return []
@@ -309,7 +324,36 @@ class BotAPI:
             if bots_data:
                 log_field_mapping_issues(bots_data[0], "bot data sample")
             
-            response = [BotDetails(**bot_data) for bot_data in bots_data]
+            # Map API fields to BotDetails model fields
+            mapped_bots = []
+            for bot_data in bots_data:
+                try:
+                    # Map API response fields to BotDetails model fields
+                    mapped_bot = {
+                        "botId": bot_data.get("UI", ""),  # UI -> botId
+                        "botName": bot_data.get("BN", ""),  # BN -> botName  
+                        "scriptId": bot_data.get("SI", ""),  # SI -> scriptId
+                        "scriptName": bot_data.get("SN", ""),  # SN -> scriptName
+                        "scriptVersion": bot_data.get("SV", 1),  # SV -> scriptVersion
+                        "accountId": bot_data.get("AI", ""),  # AI -> accountId
+                        "marketTag": bot_data.get("PM", ""),  # PM -> marketTag
+                        "status": "ACTIVE" if bot_data.get("IA", False) else "INACTIVE",  # IA -> isActive -> status
+                        "isActive": bot_data.get("IA", False),  # IA -> isActive
+                        "createdAt": bot_data.get("UC", None),  # UC -> createdAt (Unix timestamp)
+                        "updatedAt": bot_data.get("UC", None),  # UC -> updatedAt
+                        "configuration": {
+                            "leverage": max(bot_data.get("F", 0), 1.0),  # F -> leverage (ensure positive)
+                            "trade_amount": bot_data.get("TAE", 1000.0),  # TAE -> trade_amount
+                            "position_mode": bot_data.get("PM", 1),  # PM -> position_mode (this might be wrong)
+                            "margin_mode": bot_data.get("MM", 0),  # MM -> margin_mode
+                        }
+                    }
+                    mapped_bots.append(BotDetails(**mapped_bot))
+                except Exception as e:
+                    self.logger.warning(f"Failed to map bot data: {e}")
+                    continue
+            
+            response = mapped_bots
             
             self.logger.debug(f"Retrieved {len(response)} bots")
             return response

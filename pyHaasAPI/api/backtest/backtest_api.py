@@ -63,27 +63,66 @@ class BacktestAPI:
         try:
             self.logger.info(f"Getting backtest results for lab {lab_id}, page {next_page_id}")
             
-            # Canonical PHP JSON endpoint first
-            raw = await self.client.get_json(
+            # Use POST with auth parameters in body
+            post_data = {
+                'labid': lab_id,
+                'nextpageid': next_page_id,
+                'pagelength': page_length,
+                'interfacekey': self.auth_manager.interface_key,
+                'userid': self.auth_manager.user_id
+            }
+            
+            raw = await self.client.post_json(
                 endpoint="/LabsAPI.php",
-                params={
-                    "channel": "GET_BACKTEST_RESULT_PAGE",
-                    "labid": lab_id,
-                    "nextpageid": next_page_id,
-                    "pagelength": page_length,
-                }
+                params={"channel": "GET_BACKTEST_RESULT_PAGE"},
+                data=post_data
             )
-            data = raw.get('Data', raw) if isinstance(raw, dict) else raw
+            
+            # Response structure: {"Success":true,"Data":{"I":[...items...]}}
+            # Extract the items array from Data.I
+            data = raw.get('Data', {}) if isinstance(raw, dict) else {}
+            items_raw = data.get('I', []) if isinstance(data, dict) else []
+            self.logger.info(f"Found {len(items_raw)} raw backtest items")
+            
             items: List[BacktestResult] = []
-            if isinstance(data, list):
-                for item in data:
+            if isinstance(items_raw, list):
+                for item in items_raw:
                     try:
-                        items.append(BacktestResult.model_validate(item))
-                    except Exception:
+                        # Parse raw API response to BacktestResult
+                        # API fields: RID, UID, LID, BID, NG, NP, ST, SE, P, RT, C, L, S
+                        backtest_result = BacktestResult(
+                            backtest_id=item.get('BID', ''),  # Backtest ID
+                            lab_id=item.get('LID', ''),  # Lab ID
+                            status=item.get('ST', 0),  # Status
+                            generation_idx=item.get('NG', 0),  # Generation
+                            population_idx=item.get('NP', 0),  # Population
+                            total_trades=item.get('S', {}).get('T', 0) if item.get('S') else 0,
+                            winning_trades=item.get('S', {}).get('P', 0) if item.get('S') else 0,
+                            losing_trades=(item.get('S', {}).get('T', 0) - item.get('S', {}).get('P', 0)) if item.get('S') else 0,
+                            total_profit=item.get('S', {}).get('RP', {}).get('USDT', 0.0) if item.get('S') and item.get('S').get('RP') else 0.0,
+                            total_fees=item.get('S', {}).get('FC', {}).get('USDT', 0.0) if item.get('S') and item.get('S').get('FC') else 0.0,
+                            roi=item.get('S', {}).get('ROI', [0.0])[0] if item.get('S') and item.get('S').get('ROI') else 0.0,
+                            parameters=item.get('P', {}),
+                            settings=item.get('SE', {}),
+                            created_at=datetime.now(),  # Not provided in API
+                            updated_at=datetime.now()   # Not provided in API
+                        )
+                        items.append(backtest_result)
+                    except Exception as e:
+                        self.logger.debug(f"Failed to parse backtest result: {e}")
                         continue
+            
             has_more = bool((raw.get('HasMore') if isinstance(raw, dict) else False))
             next_id = raw.get('NextPageId') if isinstance(raw, dict) else None
-            return PaginatedResponse[BacktestResult](items=items, has_more=has_more, next_page_id=next_id)
+            
+            # Create PaginatedResponse with required fields using aliases
+            return PaginatedResponse[BacktestResult](
+                items=items,
+                totalCount=len(items),  # Use alias for total_count
+                totalPages=1 if not has_more else 2,  # Use alias for total_pages
+                hasNext=has_more,  # Use alias for has_next
+                next_page_id=next_id
+            )
             
         except Exception as e:
             self.logger.error(f"Failed to get backtest results: {e}")
@@ -110,13 +149,18 @@ class BacktestAPI:
         try:
             self.logger.info(f"Getting runtime data for backtest {backtest_id} in lab {lab_id}")
             
-            response = await self.client.get_json(
+            # Use POST with auth parameters in body
+            post_data = {
+                'labid': lab_id,
+                'backtestid': backtest_id,
+                'interfacekey': self.auth_manager.interface_key,
+                'userid': self.auth_manager.user_id
+            }
+            
+            response = await self.client.post_json(
                 endpoint="/LabsAPI.php",
-                params={
-                    "channel": "GET_BACKTEST_RUNTIME",
-                    "labid": lab_id,
-                    "backtestid": backtest_id,
-                }
+                params={"channel": "GET_BACKTEST_RUNTIME"},
+                data=post_data
             )
             
             return response
@@ -187,13 +231,18 @@ class BacktestAPI:
         try:
             self.logger.info(f"Getting chart data for backtest {backtest_id}")
             
-            response = await self.client.get_json(
+            # Use POST with auth parameters in body
+            post_data = {
+                'labid': lab_id,
+                'backtestid': backtest_id,
+                'interfacekey': self.auth_manager.interface_key,
+                'userid': self.auth_manager.user_id
+            }
+            
+            response = await self.client.post_json(
                 endpoint="/LabsAPI.php",
-                params={
-                    "channel": "GET_BACKTEST_CHART",
-                    "labid": lab_id,
-                    "backtestid": backtest_id,
-                }
+                params={"channel": "GET_BACKTEST_CHART"},
+                data=post_data
             )
             
             return BacktestChart.model_validate(response)
@@ -223,13 +272,18 @@ class BacktestAPI:
         try:
             self.logger.info(f"Getting log data for backtest {backtest_id}")
             
-            response = await self.client.get_json(
+            # Use POST with auth parameters in body
+            post_data = {
+                'labid': lab_id,
+                'backtestid': backtest_id,
+                'interfacekey': self.auth_manager.interface_key,
+                'userid': self.auth_manager.user_id
+            }
+            
+            response = await self.client.post_json(
                 endpoint="/LabsAPI.php",
-                params={
-                    "channel": "GET_BACKTEST_LOG",
-                    "labid": lab_id,
-                    "backtestid": backtest_id,
-                }
+                params={"channel": "GET_BACKTEST_LOG"},
+                data=post_data
             )
             
             return response if isinstance(response, list) else []
@@ -439,11 +493,26 @@ class BacktestAPI:
         try:
             self.logger.info("Getting history sync status")
             
+            # Use SetupAPI per canonical UI call and include auth when available
+            params = {"channel": "GET_HISTORY_STATUS"}
+            try:
+                session = self.auth_manager.session
+                if session:
+                    params.update({
+                        "userid": session.user_id,
+                        "interfacekey": session.interface_key,
+                    })
+            except Exception:
+                pass
+            
             response = await self.client.get_json(
-                endpoint="/BacktestAPI.php",
-                params={"channel": "GET_HISTORY_STATUS"}
+                endpoint="/SetupAPI.php",
+                params=params
             )
             
+            # Normalize to bare market map for downstream consumers
+            if isinstance(response, dict) and "Data" in response:
+                return response["Data"]
             return response
             
         except Exception as e:
@@ -675,7 +744,7 @@ class BacktestAPI:
                 response = await self.get_backtest_result(lab_id, next_page_id, 100)
                 all_backtests.extend(response.items)
                 
-                if not response.has_more or not response.next_page_id:
+                if not response.has_next or not response.next_page_id:
                     break
                     
                 next_page_id = response.next_page_id

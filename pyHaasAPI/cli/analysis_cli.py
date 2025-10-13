@@ -63,6 +63,8 @@ class AnalysisCLI(BaseCLI):
                 return await self.analyze_performance(parsed_args)
             elif parsed_args.action == 'reports':
                 return await self.generate_reports(parsed_args)
+            elif parsed_args.action == 'labs-without-bots':
+                return await self.analyze_labs_without_bots(parsed_args)
             else:
                 self.logger.error(f"Unknown action: {parsed_args.action}")
                 return 1
@@ -101,7 +103,7 @@ Examples:
         # Analysis-specific options
         parser.add_argument(
             'action',
-            choices=['labs', 'bots', 'wfo', 'performance', 'reports'],
+            choices=['labs', 'bots', 'wfo', 'performance', 'reports', 'labs-without-bots'],
             help='Analysis action to perform'
         )
         parser.add_argument('--lab-id', help='Lab ID')
@@ -121,6 +123,7 @@ Examples:
                            help='Only recommend strategies with zero or positive drawdown (default: True)')
         parser.add_argument('--allow-negative-drawdown', action='store_true', 
                            help='Allow strategies with negative drawdown (NOT RECOMMENDED)')
+        parser.add_argument('--server', help='Server name (srv01, srv02, srv03)')
         
         return parser
 
@@ -476,3 +479,164 @@ Examples:
             format=args.format
         )
         self.logger.info(f"Performance report generated: {report_path}")
+    
+    async def analyze_labs_without_bots(self, args: argparse.Namespace) -> int:
+        """Analyze individual backtest files for labs without bots"""
+        try:
+            # Parse server from args
+            server = getattr(args, 'server', None)
+            if not server:
+                self.logger.error("Server name required. Use --server <name>")
+                return 1
+            
+            min_winrate = getattr(args, 'min_winrate', None) or 0.55
+            
+            print(f"🔍 Analyzing individual backtest files for labs without bots on {server}...")
+            print(f"📊 Filter criteria: ZERO drawdown (max_drawdown == 0), {min_winrate*100:.0f}%+ win rate, sorted by ROE")
+            
+            # Import required modules
+            from pathlib import Path
+            import json
+            import glob
+            
+            # Load snapshot to get labs without bots
+            snapshot_files = glob.glob(f"unified_cache/snapshots/{server}_*.json")
+            if not snapshot_files:
+                print(f"❌ No snapshot found for {server}. Run download command first.")
+                return 1
+            
+            # Get latest snapshot
+            latest_snapshot = max(snapshot_files, key=lambda x: Path(x).stat().st_mtime)
+            print(f"📁 Loading snapshot: {latest_snapshot}")
+            
+            with open(latest_snapshot, 'r') as f:
+                snapshot_data = json.load(f)
+            
+            labs_without_bots = snapshot_data.get('labs_without_bots', [])
+            if not labs_without_bots:
+                print(f"✅ No labs without bots found on {server}")
+                return 0
+            
+            print(f"📈 Found {len(labs_without_bots)} labs without bots")
+            
+            # Analyze each lab
+            analysis_results = {}
+            total_qualifying_backtests = 0
+            
+            for lab_id in labs_without_bots:
+                print(f"\n🔍 Analyzing lab {lab_id[:8]}...")
+                
+                try:
+                    # Find all backtest files for this lab (with server prefix)
+                    backtest_files = glob.glob(f"unified_cache/backtests/{server}_{lab_id}_*.json")
+                    if not backtest_files:
+                        print(f"   ⚠️  No backtest files found for lab {lab_id[:8]}")
+                        continue
+                    
+                    print(f"   📁 Found {len(backtest_files)} backtest files")
+                    
+                    # Load and analyze each backtest
+                    qualifying_backtests = []
+                    
+                    for file in backtest_files:
+                        try:
+                            with open(file, 'r') as f:
+                                bt = json.load(f)
+                            
+                            # Extract key metrics
+                            max_drawdown = bt.get('max_drawdown', 0)
+                            win_rate = bt.get('win_rate', 0)
+                            roe = bt.get('roe', 0)
+                            
+                            # CRITICAL FILTERS - ZERO drawdown (exactly 0) + 55%+ win rate
+                            if (max_drawdown == 0 and  # ZERO drawdown (exactly 0, not < 0.01)
+                                win_rate >= min_winrate):  # 55%+ win rate
+                                
+                                qualifying_backtests.append({
+                                    'backtest_id': bt.get('backtest_id', 'N/A'),
+                                    'roi': bt.get('roi', 0),
+                                    'roe': roe,
+                                    'win_rate': win_rate,
+                                    'max_drawdown': max_drawdown,
+                                    'total_trades': bt.get('total_trades', 0),
+                                    'realized_profits_usdt': bt.get('realized_profits_usdt', 0),
+                                    'starting_balance': bt.get('starting_balance', 0),
+                                    'file_path': str(file)
+                                })
+                        
+                        except Exception as e:
+                            print(f"   ⚠️  Error loading file {file}: {e}")
+                            continue
+                    
+                    if not qualifying_backtests:
+                        print(f"   ❌ No qualifying backtests found (ZERO drawdown + {min_winrate*100:.0f}%+ WR)")
+                        continue
+                    
+                    # Sort by ROE descending (highest first)
+                    qualifying_backtests.sort(key=lambda x: x.get('roe', 0), reverse=True)
+                    top_5 = qualifying_backtests[:5]
+                    
+                    print(f"   ✅ Found {len(qualifying_backtests)} qualifying backtests")
+                    roe_values = [f"{bt.get('roe', 0):.1f}%" for bt in top_5]
+                    print(f"   🏆 Top 5 ROE: {roe_values}")
+                    
+                    # Store results
+                    lab_name = next((lab['name'] for lab in snapshot_data.get('labs', []) if lab['lab_id'] == lab_id), lab_id[:8])
+                    analysis_results[lab_id] = {
+                        'lab_name': lab_name,
+                        'total_qualifying': len(qualifying_backtests),
+                        'top_5': top_5
+                    }
+                    
+                    total_qualifying_backtests += len(qualifying_backtests)
+                    
+                except Exception as e:
+                    print(f"   ❌ Error analyzing lab {lab_id[:8]}: {e}")
+                    continue
+            
+            # Save analysis results
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            analysis_file = f"unified_cache/analysis/{server}_top_backtests_{timestamp}.json"
+            Path("unified_cache/analysis").mkdir(parents=True, exist_ok=True)
+            
+            analysis_data = {
+                'server': server,
+                'timestamp': datetime.now().isoformat(),
+                'filter_criteria': {
+                    'max_drawdown': 0,  # ZERO drawdown (exactly 0)
+                    'min_winrate': min_winrate,
+                    'sort_by': 'roe'  # Sort by ROE descending
+                },
+                'summary': {
+                    'labs_analyzed': len(labs_without_bots),
+                    'labs_with_qualifying_backtests': len(analysis_results),
+                    'total_qualifying_backtests': total_qualifying_backtests,
+                    'total_top_5_backtests': sum(len(result['top_5']) for result in analysis_results.values())
+                },
+                'results': analysis_results
+            }
+            
+            with open(analysis_file, 'w') as f:
+                json.dump(analysis_data, f, indent=2, default=str)
+            
+            # Summary
+            print(f"\n🎉 Analysis completed for {server}!")
+            print(f"📊 Summary:")
+            print(f"   - Labs analyzed: {len(labs_without_bots)}")
+            print(f"   - Labs with qualifying backtests: {len(analysis_results)}")
+            print(f"   - Total qualifying backtests: {total_qualifying_backtests}")
+            print(f"   - Total top 5 backtests: {sum(len(result['top_5']) for result in analysis_results.values())}")
+            print(f"   - Analysis saved: {analysis_file}")
+            
+            # Show per-lab results
+            print(f"\n📋 Per-lab results:")
+            for lab_id, result in analysis_results.items():
+                print(f"   - {result['lab_name']}: {result['total_qualifying']} qualifying, {len(result['top_5'])} top 5")
+            
+            return 0
+            
+        except Exception as e:
+            print(f"❌ Error analyzing labs without bots: {e}")
+            import traceback
+            traceback.print_exc()
+            return 1

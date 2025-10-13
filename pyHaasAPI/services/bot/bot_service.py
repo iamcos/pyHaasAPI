@@ -21,6 +21,7 @@ from ...exceptions import BotError, BotNotFoundError, BotCreationError
 from ...core.logging import get_logger
 from ...models.bot import BotDetails, BotRecord, BotConfiguration, CreateBotRequest
 from ...models.backtest import BacktestResult
+from ..server_content_manager import ServerContentManager
 
 logger = get_logger("bot_service")
 
@@ -81,7 +82,8 @@ class BotService:
         backtest_api: BacktestAPI,
         market_api: MarketAPI,
         client: AsyncHaasClient,
-        auth_manager: AuthenticationManager
+        auth_manager: AuthenticationManager,
+        server_content_manager: Optional[ServerContentManager] = None
     ):
         self.bot_api = bot_api
         self.account_api = account_api
@@ -89,7 +91,57 @@ class BotService:
         self.market_api = market_api
         self.client = client
         self.auth_manager = auth_manager
+        self.server_content_manager = server_content_manager
         self.logger = get_logger("bot_service")
+
+    # Duplicate Detection and Bot Creation
+
+    async def check_duplicate_bot(
+        self,
+        lab_id: str,
+        backtest_id: str,
+        bot_name: str,
+        existing_bots: Optional[List[Any]] = None
+    ) -> bool:
+        """
+        Check if a bot with similar characteristics already exists.
+        
+        Args:
+            lab_id: Lab ID for the bot
+            backtest_id: Backtest ID for the bot
+            bot_name: Proposed bot name
+            existing_bots: Optional list of existing bots to check against
+            
+        Returns:
+            True if duplicate found, False otherwise
+        """
+        if not self.server_content_manager:
+            self.logger.warning("No ServerContentManager provided, skipping duplicate check")
+            return False
+            
+        try:
+            # Get existing bots if not provided
+            if existing_bots is None:
+                existing_bots = await self.bot_api.get_bots()
+            
+            # Check for duplicate by name
+            for bot in existing_bots:
+                existing_name = getattr(bot, 'bot_name', None) or getattr(bot, 'name', None)
+                if existing_name and existing_name.strip().lower() == bot_name.strip().lower():
+                    self.logger.info(f"Duplicate bot found by name: {bot_name}")
+                    return True
+                
+                # Check for duplicate by origin backtest ID in notes
+                notes = getattr(bot, 'notes', None) or ""
+                if self.server_content_manager._extract_origin_backtest_id(notes) == backtest_id:
+                    self.logger.info(f"Duplicate bot found by origin backtest: {backtest_id}")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to check for duplicates: {e}")
+            return False
 
     # Bot Creation from Lab Analysis
 
@@ -124,6 +176,27 @@ class BotService:
         """
         try:
             self.logger.info(f"Creating bot from lab {lab_id}, backtest {backtest_id}")
+
+            # Check for duplicates before proceeding
+            if bot_name:
+                is_duplicate = await self.check_duplicate_bot(lab_id, backtest_id, bot_name)
+                if is_duplicate:
+                    self.logger.info(f"Skipping bot creation - duplicate found: {bot_name}")
+                    return BotCreationResult(
+                        bot_id="",
+                        bot_name=bot_name,
+                        backtest_id=backtest_id,
+                        account_id=account_id,
+                        market_tag="",
+                        leverage=leverage,
+                        margin_mode="",
+                        position_mode="",
+                        trade_amount_usdt=trade_amount_usdt,
+                        creation_timestamp=datetime.now().isoformat(),
+                        success=False,
+                        activated=False,
+                        error_message="Duplicate bot detected"
+                    )
 
             # Get backtest details
             backtest_runtime = await self.backtest_api.get_full_backtest_runtime_data(lab_id, backtest_id)

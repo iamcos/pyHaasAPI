@@ -325,12 +325,10 @@ class ServerManager:
         if server_name not in self.servers:
             raise ServerError(f"Unknown server: {server_name}")
         
-        # Enforce teardown before switching
+        # If a different server is active, gracefully disconnect first (single-tunnel policy)
         if self.active_server and self.active_server != server_name:
-            raise ConfigurationError(
-                f"Single-tunnel policy enforced. Disconnect {self.active_server} before switching to {server_name}."
-            )
-        # Connect to new server
+            await self.disconnect_server(self.active_server)
+        # Connect to the requested server
         if await self.connect_server(server_name):
             self.active_server = server_name
             self.logger.info(f"Switched to server {server_name}")

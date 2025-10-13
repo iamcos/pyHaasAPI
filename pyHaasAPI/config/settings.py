@@ -1,68 +1,34 @@
 """
 Main settings configuration for pyHaasAPI v2
 
-Central configuration management using Pydantic with environment variable support.
+Simplified configuration without Pydantic validation.
 """
 
 import os
 from typing import Optional, Dict, Any
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from .api_config import APIConfig
-from .cache_config import CacheConfig
-from .logging_config import LoggingConfig
-from .analysis_config import AnalysisConfig
-from .bot_config import BotConfig
-from .report_config import ReportConfig
 
-
-class Settings(BaseSettings):
+@dataclass
+class Settings:
     """
     Main settings class for pyHaasAPI v2
     
-    Combines all configuration sections and provides environment variable support.
+    Simplified configuration without Pydantic validation.
     """
     
-    # API Configuration
-    api: APIConfig = Field(default_factory=APIConfig)
-    
-    # Cache Configuration
-    cache: CacheConfig = Field(default_factory=CacheConfig)
-    
-    # Logging Configuration
-    logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    
-    # Analysis Configuration
-    analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
-    
-    # Bot Configuration
-    bot: BotConfig = Field(default_factory=BotConfig)
-    
-    # Report Configuration
-    report: ReportConfig = Field(default_factory=ReportConfig)
-    
     # Global settings
-    debug: bool = Field(default=False, env="PYHAASAPI_DEBUG")
-    environment: str = Field(default="production", env="PYHAASAPI_ENV")
-    version: str = Field(default="2.0.0")
+    debug: bool = False
+    environment: str = "production"
+    version: str = "2.0.0"
+    default_server: str = "srv03"
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"
-        env_nested_delimiter = "__"
-    
-    @field_validator("environment")
-    @classmethod
-    def validate_environment(cls, v):
-        """Validate environment setting"""
-        valid_envs = ["development", "staging", "production", "testing"]
-        if v not in valid_envs:
-            raise ValueError(f"Environment must be one of: {valid_envs}")
-        return v
+    def __post_init__(self):
+        """Initialize settings from environment variables"""
+        self.debug = os.getenv("PYHAASAPI_DEBUG", "false").lower() == "true"
+        self.environment = os.getenv("PYHAASAPI_ENV", "production")
+        self.default_server = os.getenv("API_DEFAULT_SERVER", "srv03")
     
     @property
     def is_development(self) -> bool:
@@ -81,7 +47,12 @@ class Settings(BaseSettings):
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert settings to dictionary"""
-        return self.dict()
+        return {
+            "debug": self.debug,
+            "environment": self.environment,
+            "version": self.version,
+            "default_server": self.default_server
+        }
     
     def save_to_file(self, file_path: str) -> None:
         """Save settings to file"""

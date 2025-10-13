@@ -71,6 +71,8 @@ class BotCLI(BaseCLI):
                 return await self.set_bot_notes(parsed_args)
             elif parsed_args.action == 'get-notes':
                 return await self.get_bot_notes(parsed_args)
+            elif parsed_args.action == 'create-from-analysis':
+                return await self.create_from_analysis(parsed_args)
             else:
                 self.logger.error(f"Unknown action: {parsed_args.action}")
                 return 1
@@ -109,7 +111,7 @@ Examples:
         # Bot-specific options
         parser.add_argument(
             'action',
-            choices=['list', 'create', 'delete', 'activate', 'deactivate', 'pause', 'resume', 'set-notes', 'get-notes'],
+            choices=['list', 'create', 'delete', 'activate', 'deactivate', 'pause', 'resume', 'set-notes', 'get-notes', 'create-from-analysis'],
             help='Bot action to perform'
         )
         parser.add_argument('--bot-id', help='Bot ID')
@@ -434,3 +436,217 @@ Examples:
         except Exception as e:
             self.logger.error(f"Failed to set bot notes: {e}")
             return 1
+    
+    async def create_from_analysis(self, args: argparse.Namespace) -> int:
+        """Create bots from analysis results"""
+        try:
+            # Parse arguments
+            server = getattr(args, 'server', None)
+            analysis_file = getattr(args, 'analysis_file', None)
+            
+            if not server:
+                print("❌ Server name required. Use --server <name>")
+                return 1
+            
+            if not analysis_file:
+                print("❌ Analysis file required. Use --analysis-file <path>")
+                return 1
+            
+            print(f"🤖 Creating bots from analysis for {server}...")
+            print(f"📁 Loading analysis file: {analysis_file}")
+            
+            # Load analysis file
+            import json
+            from pathlib import Path
+            
+            if not Path(analysis_file).exists():
+                print(f"❌ Analysis file not found: {analysis_file}")
+                return 1
+            
+            with open(analysis_file, 'r') as f:
+                analysis_data = json.load(f)
+            
+            results = analysis_data.get('results', {})
+            if not results:
+                print("❌ No analysis results found in file")
+                return 1
+            
+            print(f"📊 Found {len(results)} labs with analysis results")
+            
+            # Setup server configuration
+            server_configs = {
+                'srv01': {'port': 8089, 'tunnel_cmd': 'ssh -N -L 8089:127.0.0.1:8090 -L 8091:127.0.0.1:8092 prod@srv01'},
+                'srv02': {'port': 8090, 'tunnel_cmd': None},  # Already running
+                'srv03': {'port': 8091, 'tunnel_cmd': 'ssh -N -L 8091:127.0.0.1:8090 -L 8093:127.0.0.1:8092 prod@srv03'},
+            }
+            
+            if server not in server_configs:
+                print(f"❌ Unknown server: {server}. Available: srv01, srv02, srv03")
+                return 1
+            
+            config = server_configs[server]
+            
+            # Setup client for this server
+            from pyHaasAPI.core.client import AsyncHaasClient
+            from pyHaasAPI.core.auth import AuthenticationManager
+            from pyHaasAPI.config.api_config import APIConfig
+            from pyHaasAPI.api.lab.lab_api import LabAPI
+            from pyHaasAPI.api.bot.bot_api import BotAPI
+            
+            server_config = APIConfig()
+            server_config.host = "127.0.0.1"
+            server_config.port = config['port']
+            
+            # Connect and authenticate
+            client = AsyncHaasClient(server_config)
+            auth_manager = AuthenticationManager(client, server_config)
+            
+            await client.connect()
+            await auth_manager.authenticate()
+            print(f"✅ Connected to {server}")
+            
+            # Create API instances
+            lab_api = LabAPI(client, auth_manager)
+            bot_api = BotAPI(client, auth_manager)
+            
+            # Create bots for each lab
+            bot_creation_results = {}
+            total_bots_created = 0
+            
+            for lab_id, lab_data in results.items():
+                lab_name = lab_data.get('lab_name', lab_id[:8])
+                top_5_backtests = lab_data.get('top_5', [])
+                
+                if not top_5_backtests:
+                    print(f"   ⚠️  No top 5 backtests for lab {lab_name}")
+                    continue
+                
+                print(f"\n🤖 Creating bots for lab {lab_name}...")
+                print(f"   📊 Top 5 backtests: {len(top_5_backtests)}")
+                
+                try:
+                    # Get lab details for account/market info
+                    lab_details = await lab_api.get_lab_details(lab_id)
+                    
+                    # Create 5 bots (one for each top backtest)
+                    lab_bot_results = []
+                    
+                    for i, backtest in enumerate(top_5_backtests, 1):
+                        try:
+                            backtest_id = backtest['backtest_id']
+                            roi = backtest['roi_percentage']
+                            win_rate = backtest['win_rate']
+                            
+                            # Create bot name
+                            bot_name = f"{lab_name} - Top {i} - ROE {roi:.1f}%"
+                            
+                            # Get lab configuration
+                            account_id = getattr(lab_details, 'account_id', '') or getattr(lab_details, 'accountId', '')
+                            market_tag = getattr(lab_details, 'market_tag', '') or getattr(lab_details, 'marketTag', '')
+                            leverage = getattr(lab_details, 'leverage', 20.0) or 20.0
+                            
+                            if not account_id or not market_tag:
+                                print(f"   ❌ Missing lab config (account_id: {account_id}, market_tag: {market_tag})")
+                                continue
+                            
+                            # Create bot
+                            print(f"   🔄 Creating bot {i}/5: {bot_name}")
+                            bot_details = await bot_api.create_bot_from_lab(
+                                lab_id=lab_id,
+                                backtest_id=backtest_id,
+                                bot_name=bot_name,
+                                account_id=account_id,
+                                market=market_tag,
+                                leverage=leverage
+                            )
+                            
+                            print(f"   ✅ Created bot: {bot_details.bot_id[:8]} - {bot_name}")
+                            
+                            lab_bot_results.append({
+                                'bot_id': bot_details.bot_id,
+                                'bot_name': bot_name,
+                                'backtest_id': backtest_id,
+                                'roi_percentage': roi,
+                                'win_rate': win_rate,
+                                'status': 'created'
+                            })
+                            
+                            total_bots_created += 1
+                            
+                        except Exception as e:
+                            print(f"   ❌ Failed to create bot {i}: {e}")
+                            lab_bot_results.append({
+                                'bot_name': f"{lab_name} - Top {i} - ROE {backtest['roi_percentage']:.1f}%",
+                                'backtest_id': backtest['backtest_id'],
+                                'error': str(e),
+                                'status': 'failed'
+                            })
+                    
+                    bot_creation_results[lab_id] = {
+                        'lab_name': lab_name,
+                        'bots_created': len([r for r in lab_bot_results if r.get('status') == 'created']),
+                        'bots_failed': len([r for r in lab_bot_results if r.get('status') == 'failed']),
+                        'results': lab_bot_results
+                    }
+                    
+                    print(f"   📊 Lab {lab_name}: {len([r for r in lab_bot_results if r.get('status') == 'created'])} bots created, {len([r for r in lab_bot_results if r.get('status') == 'failed'])} failed")
+                    
+                except Exception as e:
+                    print(f"   ❌ Error processing lab {lab_name}: {e}")
+                    bot_creation_results[lab_id] = {
+                        'lab_name': lab_name,
+                        'error': str(e),
+                        'bots_created': 0,
+                        'bots_failed': 0,
+                        'results': []
+                    }
+            
+            # Save bot creation results
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            results_file = f"unified_cache/bot_creation/{server}_results_{timestamp}.json"
+            Path("unified_cache/bot_creation").mkdir(parents=True, exist_ok=True)
+            
+            creation_data = {
+                'server': server,
+                'timestamp': datetime.now().isoformat(),
+                'analysis_file': analysis_file,
+                'summary': {
+                    'labs_processed': len(results),
+                    'total_bots_created': total_bots_created,
+                    'total_bots_failed': sum(result.get('bots_failed', 0) for result in bot_creation_results.values()),
+                    'labs_with_success': len([r for r in bot_creation_results.values() if r.get('bots_created', 0) > 0])
+                },
+                'results': bot_creation_results
+            }
+            
+            with open(results_file, 'w') as f:
+                json.dump(creation_data, f, indent=2, default=str)
+            
+            # Summary
+            print(f"\n🎉 Bot creation completed for {server}!")
+            print(f"📊 Summary:")
+            print(f"   - Labs processed: {len(results)}")
+            print(f"   - Total bots created: {total_bots_created}")
+            print(f"   - Total bots failed: {sum(result.get('bots_failed', 0) for result in bot_creation_results.values())}")
+            print(f"   - Labs with successful bot creation: {len([r for r in bot_creation_results.values() if r.get('bots_created', 0) > 0])}")
+            print(f"   - Results saved: {results_file}")
+            
+            # Show per-lab results
+            print(f"\n📋 Per-lab results:")
+            for lab_id, result in bot_creation_results.items():
+                if result.get('bots_created', 0) > 0:
+                    print(f"   ✅ {result['lab_name']}: {result['bots_created']} bots created")
+                elif result.get('error'):
+                    print(f"   ❌ {result['lab_name']}: ERROR - {result['error']}")
+                else:
+                    print(f"   ⚠️  {result['lab_name']}: No bots created")
+            
+            return 0
+            
+        except Exception as e:
+            print(f"❌ Error creating bots from analysis: {e}")
+            import traceback
+            traceback.print_exc()
+            return 1
+        finally:
+            await client.close()

@@ -148,9 +148,9 @@ class AnalysisService:
             if not all_backtests:
                 return LabAnalysisResult(
                     lab_id=lab_id,
-                    lab_name=lab_details.lab_name,
+                    lab_name=lab_details.name,
                     script_name=lab_details.script_name,
-                    market_tag=lab_details.market_tag,
+                    market_tag=lab_details.settings.market_tag,
                     total_backtests=0,
                     top_performers=[],
                     average_roi=0.0,
@@ -228,9 +228,9 @@ class AnalysisService:
 
             return LabAnalysisResult(
                 lab_id=lab_id,
-                lab_name=lab_details.lab_name,
+                lab_name=lab_details.name,
                 script_name=lab_details.script_name,
-                market_tag=lab_details.market_tag,
+                market_tag=lab_details.settings.market_tag,
                 total_backtests=total_backtests,
                 top_performers=top_performers,
                 average_roi=average_roi,
@@ -685,8 +685,8 @@ class AnalysisService:
             for backtest in backtest_results.items:
                 try:
                     # CRITICAL: Reject any strategy with negative drawdown
-                    if backtest.max_drawdown < 0:
-                        self.logger.debug(f"Rejecting backtest {backtest.backtest_id} due to negative drawdown: {backtest.max_drawdown}")
+                    if backtest.max_drawdown != 0.0:
+                        self.logger.debug(f"Rejecting backtest {backtest.backtest_id} due to non-zero drawdown: {backtest.max_drawdown}")
                         continue
                     
                     # Extract performance data

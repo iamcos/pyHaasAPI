@@ -153,7 +153,7 @@ Examples:
                 else:
                     print("id,name,script_id,status,created_at")
                     for lab in labs:
-                        print(f"{lab.id},{lab.name},{lab.script_id},{lab.status},{lab.created_at}")
+                        print(f"{lab.lab_id},{lab.name},{lab.script_id},{lab.status},{lab.created_at}")
             else:
                 # Table format
                 print(f"\nFound {len(labs)} labs:")
@@ -161,7 +161,7 @@ Examples:
                 print(f"{'ID':<20} {'Name':<30} {'Script ID':<20} {'Status':<10}")
                 print("-" * 80)
                 for lab in labs:
-                    print(f"{lab.id:<20} {lab.name[:30]:<30} {lab.script_id:<20} {lab.status:<10}")
+                    print(f"{lab.lab_id:<20} {lab.name[:30]:<30} {lab.script_id:<20} {lab.status:<10}")
                 print("-" * 80)
             
             return 0

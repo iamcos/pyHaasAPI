@@ -24,6 +24,7 @@ from .testing import TestingError, TestingConfigurationError, TestingExecutionEr
 from .bot import BotError, BotCreationError, BotConfigurationError, BotNotFoundError, BotActivationError, BotDeactivationError, BotParameterError
 from .lab import LabError, LabNotFoundError, LabExecutionError, LabConfigurationError, LabScriptError, LabParameterError
 from .server import ServerError, ServerConnectionError, ServerAuthenticationError, ServerTimeoutError, ServerUnavailableError, ServerConfigurationError
+from .orchestration import OrchestrationError, ProjectExecutionError, ServerCoordinationError, WorkflowError, ConfigurationError, ResourceError
 
 __all__ = [
     "HaasAPIError",
@@ -101,4 +102,10 @@ __all__ = [
     "ServerTimeoutError",
     "ServerUnavailableError",
     "ServerConfigurationError",
+    "OrchestrationError",
+    "ProjectExecutionError",
+    "ServerCoordinationError",
+    "WorkflowError",
+    "ConfigurationError",
+    "ResourceError",
 ]
