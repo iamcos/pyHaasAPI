@@ -181,7 +181,7 @@ class LabAPI:
                     "positionmode": position_mode,
                     "marginmode": margin_mode,
                 }
-            for endpoint in ("/LabsAPI.php", "/LabAPI.php"):
+            for endpoint in ("Labs",):
                 for channel in ("CREATE_LAB", "ADD_LAB"):
                     attempts.append((endpoint, channel, camel_payload()))
                     attempts.append((endpoint, channel, snake_payload()))
@@ -299,7 +299,7 @@ class LabAPI:
             }
             
             response = await self.client.post_json(
-                endpoint="/LabsAPI.php",
+                endpoint="Labs",
                 params={"channel": "GET_LABS"},
                 data=post_data
             )

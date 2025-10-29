@@ -59,7 +59,7 @@ class AccountAPI:
 
             # Use canonical PHP JSON endpoint only (avoid frontend HTML)
             endpoints = [
-                ("/AccountAPI.php", "GET"),
+                ("Account", "GET"),
             ]
             last_error: Optional[Exception] = None
             response: Dict[str, Any] = {}
@@ -156,7 +156,7 @@ class AccountAPI:
             
             # Execute account creation
             response = await self.client.post_json(
-                endpoint="/AccountAPI.php",
+                endpoint="Account",
                 data=payload
             )
             
@@ -318,7 +318,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving account data: {account_id}")
             
             response = await self.client.get_json(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 params={
                     "channel": "GET_ACCOUNT_DATA",
                     "accountid": account_id,
@@ -368,7 +368,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving balance for account: {account_id}")
             
             response = await self.client.get(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 params={
                     "channel": "GET_BALANCE",
                     "accountid": account_id,
@@ -396,7 +396,7 @@ class AccountAPI:
             self.logger.debug("Retrieving balances for all accounts")
             
             response = await self.client.get(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 params={
                     "channel": "GET_ALL_BALANCES",
                 }
@@ -427,7 +427,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving orders for account: {account_id}")
             
             response = await self.client.get(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 params={
                     "channel": "GET_ORDERS",
                     "accountid": account_id,
@@ -462,7 +462,7 @@ class AccountAPI:
             self.logger.debug(f"Retrieving margin settings for account {account_id}, market {market}")
             
             response = await self.client.get(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 params={
                     "channel": "GET_MARGIN_SETTINGS",
                     "accountid": account_id,
@@ -519,7 +519,7 @@ class AccountAPI:
                 params["leverage"] = leverage
             
             response = await self.client.post(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data=params
             )
             
@@ -550,7 +550,7 @@ class AccountAPI:
             self.logger.info(f"Setting position mode {position_mode} for account {account_id}, market {market}")
             
             response = await self.client.post(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "SET_POSITION_MODE",
                     "accountid": account_id,
@@ -586,7 +586,7 @@ class AccountAPI:
             self.logger.info(f"Setting margin mode {margin_mode} for account {account_id}, market {market}")
             
             response = await self.client.post(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "SET_MARGIN_MODE",
                     "accountid": account_id,
@@ -622,7 +622,7 @@ class AccountAPI:
             self.logger.info(f"Setting leverage {leverage} for account {account_id}, market {market}")
             
             response = await self.client.post(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "SET_LEVERAGE",
                     "accountid": account_id,
@@ -668,7 +668,7 @@ class AccountAPI:
             self.logger.info(f"Distributing {len(bot_ids)} bots across {len(account_ids)} accounts")
             
             response = await self.client.post(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "DISTRIBUTE_BOTS_TO_ACCOUNTS",
                     "bot_ids": bot_ids,
@@ -717,7 +717,7 @@ class AccountAPI:
             self.logger.info(f"Migrating bot {bot_id} to account {new_account_id}")
             
             response = await self.client.post(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "MIGRATE_BOT_TO_ACCOUNT",
                     "bot_id": bot_id,
@@ -754,7 +754,7 @@ class AccountAPI:
             self.logger.info(f"Changing bot {bot_id} account to {new_account_id}")
             
             response = await self.client.post_json(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "CHANGE_BOT_ACCOUNT",
                     "bot_id": bot_id,
@@ -808,7 +808,7 @@ class AccountAPI:
             self.logger.info(f"Setting bot {bot_id} account to {account_id}")
             
             response = await self.client.post_json(
-                endpoint="AccountAPI.php",
+                endpoint="Account",
                 data={
                     "channel": "SET_BOT_ACCOUNT",
                     "bot_id": bot_id,

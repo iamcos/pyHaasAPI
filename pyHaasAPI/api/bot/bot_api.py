@@ -70,7 +70,7 @@ class BotAPI:
                 raise BotCreationError("Not authenticated")
             
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "ADD_BOT_FROM_LABS",
                     "userid": session.user_id,
@@ -144,7 +144,7 @@ class BotAPI:
             # Allow tests to pass 'market_tag' instead of 'market'
             effective_market = safe_get_dict_field(kwargs, "market_tag") or market
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "ADD_BOT",
                     "userid": session.user_id,
@@ -206,7 +206,7 @@ class BotAPI:
                 raise BotCreationError("Not authenticated")
             
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "ADD_BOT_FROM_LABS",
                     "userid": session.user_id,
@@ -254,7 +254,7 @@ class BotAPI:
                 raise BotError("Not authenticated")
             
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "DELETE_BOT",
                     "userid": session.user_id,
@@ -292,7 +292,7 @@ class BotAPI:
             
             # Use the correct client method with required auth parameters
             response = await self.client.get_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 params={
                     "channel": "GET_BOTS",
                     "userid": self.auth_manager.user_id,
@@ -380,7 +380,7 @@ class BotAPI:
             self.logger.debug(f"Retrieving bot details: {bot_id}")
             
             response = await self.client.get_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 params={
                     "channel": "GET_BOT",
                     "botid": bot_id,
@@ -439,7 +439,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "ACTIVATE_BOT",
                     "userid": session.user_id,
@@ -485,7 +485,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "DEACTIVATE_BOT",
                     "userid": session.user_id,
@@ -530,7 +530,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "PAUSE_BOT",
                     "userid": session.user_id,
@@ -574,7 +574,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "RESUME_BOT",
                     "userid": session.user_id,
@@ -614,7 +614,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "DEACTIVATE_ALL_BOTS",
                     "userid": session.user_id,
@@ -656,7 +656,7 @@ class BotAPI:
             if not session:
                 raise BotConfigurationError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "EDIT_SETTINGS",
                     "userid": session.user_id,
@@ -697,7 +697,7 @@ class BotAPI:
             self.logger.debug(f"Retrieving orders for bot: {bot_id}")
             
             response = await self.client.get_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 params={
                     "channel": "GET_BOT_ORDERS",
                     "botid": bot_id,
@@ -733,7 +733,7 @@ class BotAPI:
             self.logger.debug(f"Retrieving positions for bot: {bot_id}")
             
             response = await self.client.get_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 params={
                     "channel": "GET_BOT_POSITIONS",
                     "botid": bot_id,
@@ -769,7 +769,7 @@ class BotAPI:
         try:
             self.logger.info(f"Updating notes for bot: {bot_id}")
             response = await self.client.post(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "CHANGE_BOT_NOTES",
                     "botid": bot_id,
@@ -805,7 +805,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "CANCEL_BOT_ORDER",
                     "userid": session.user_id,
@@ -844,7 +844,7 @@ class BotAPI:
             if not session:
                 raise BotError("Not authenticated")
             response = await self.client.post_json(
-                endpoint="/BotAPI.php",
+                endpoint="Bot",
                 data={
                     "channel": "CANCEL_ALL_BOT_ORDERS",
                     "userid": session.user_id,

@@ -51,7 +51,7 @@ class MarketAPI:
             
             # Use canonical PHP JSON endpoint only
             raw = await self.client.get_json(
-                endpoint="/PriceAPI.php",
+                endpoint="Price",
                 params={"channel": "MARKETLIST"}
             )
             
@@ -105,7 +105,7 @@ class MarketAPI:
             self.logger.debug(f"Retrieving markets for price source: {price_source}")
             
             response = await self.client.get_json(
-                endpoint="PriceAPI.php",
+                endpoint="Price",
                 params={
                     "channel": "MARKETLIST",
                     "pricesource": price_source,
@@ -163,7 +163,7 @@ class MarketAPI:
             # If exchange_code provided, use TRADE_MARKETS, otherwise MARKETLIST
             if exchange_code:
                 response = await self.client.get_json(
-                    endpoint="/PriceAPI.php",
+                    endpoint="Price",
                     params={
                         "channel": "TRADE_MARKETS",
                         "pricesource": exchange_code,
@@ -172,7 +172,7 @@ class MarketAPI:
                 payload = safe_get_dict_field(response, "Data", response) if isinstance(response, dict) else response
             else:
                 response = await self.client.get_json(
-                    endpoint="/PriceAPI.php",
+                    endpoint="Price",
                     params={
                         "channel": "MARKETLIST",
                     }
@@ -221,7 +221,7 @@ class MarketAPI:
             self.logger.debug(f"Retrieving price data for market: {market}")
             
             response = await self.client.get_json(
-                endpoint="PriceAPI.php",
+                endpoint="Price",
                 params={
                     "channel": "PRICE",
                     "market": market,
@@ -277,7 +277,7 @@ class MarketAPI:
             self.logger.debug(f"Retrieving historical data for market: {market}")
             
             response = await self.client.get(
-                endpoint="PriceAPI.php",
+                endpoint="Price",
                 params={
                     "channel": "HISTORICAL",
                     "market": market,

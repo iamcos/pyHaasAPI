@@ -73,7 +73,7 @@ class BacktestAPI:
             }
             
             raw = await self.client.post_json(
-                endpoint="/LabsAPI.php",
+                endpoint="Labs",
                 params={"channel": "GET_BACKTEST_RESULT_PAGE"},
                 data=post_data
             )
@@ -158,7 +158,7 @@ class BacktestAPI:
             }
             
             response = await self.client.post_json(
-                endpoint="/LabsAPI.php",
+                endpoint="Labs",
                 params={"channel": "GET_BACKTEST_RUNTIME"},
                 data=post_data
             )
@@ -240,7 +240,7 @@ class BacktestAPI:
             }
             
             response = await self.client.post_json(
-                endpoint="/LabsAPI.php",
+                endpoint="Labs",
                 params={"channel": "GET_BACKTEST_CHART"},
                 data=post_data
             )
@@ -281,7 +281,7 @@ class BacktestAPI:
             }
             
             response = await self.client.post_json(
-                endpoint="/LabsAPI.php",
+                endpoint="Labs",
                 params={"channel": "GET_BACKTEST_LOG"},
                 data=post_data
             )
@@ -324,7 +324,7 @@ class BacktestAPI:
             }
             
             response = await self.client.execute(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 method="POST",
                 query_params={"channel": "EXECUTE_BACKTEST"},
                 data=data,
@@ -394,7 +394,7 @@ class BacktestAPI:
                 query_params['enddate'] = request.end_date
             
             response = await self.client.execute(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 query_params=query_params
             )
             
@@ -429,7 +429,7 @@ class BacktestAPI:
             }
             
             response = await self.client.execute(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 method="POST",
                 query_params={"channel": "EDIT_BACKTEST_TAG"},
                 data=data,
@@ -467,7 +467,7 @@ class BacktestAPI:
             }
             
             response = await self.client.execute(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 method="POST",
                 query_params={"channel": "ARCHIVE_BACKTEST"},
                 data=data,
@@ -506,7 +506,7 @@ class BacktestAPI:
                 pass
             
             response = await self.client.get_json(
-                endpoint="/SetupAPI.php",
+                endpoint="Setup",
                 params=params
             )
             
@@ -541,7 +541,7 @@ class BacktestAPI:
             self.logger.info(f"Setting history depth for {market_tag} to {months} months")
             
             response = await self.client.execute(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 query_params={
                     "channel": "SET_HISTORY_DEPTH",
                     "market": market_tag,

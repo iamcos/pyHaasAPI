@@ -215,7 +215,7 @@ class ScriptAPI:
             self.logger.debug(f"Retrieving script record: {script_id}")
             
             response = await self.client.get_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 params={
                     "channel": "GET_SCRIPT_RECORD",
                     "scriptid": script_id,
@@ -250,7 +250,7 @@ class ScriptAPI:
             self.logger.debug(f"Retrieving script item: {script_id}")
             
             response = await self.client.get_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 params={
                     "channel": "GET_SCRIPT_ITEM",
                     "scriptid": script_id,
@@ -334,7 +334,7 @@ class ScriptAPI:
             self.logger.info(f"Creating new script: {script_name}")
             
             response = await self.client.post_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 data={
                     "channel": "ADD_SCRIPT",
                     "name": script_name,
@@ -398,7 +398,7 @@ class ScriptAPI:
             params["userid"] = self.auth_manager.user_id
             params["interfacekey"] = self.auth_manager.interface_key
             response = await self.client.post_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 data=params
             )
             
@@ -441,7 +441,7 @@ class ScriptAPI:
             self.logger.info(f"Editing script source code: {script_id}")
             
             response = await self.client.post_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 data={
                     "channel": "EDIT_SCRIPT_SOURCECODE",
                     "scriptid": script_id,
@@ -477,7 +477,7 @@ class ScriptAPI:
             self.logger.info(f"Deleting script: {script_id}")
             
             response = await self.client.post_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 data={
                     "channel": "DELETE_SCRIPT",
                     "scriptid": script_id,
@@ -516,7 +516,7 @@ class ScriptAPI:
             self.logger.info(f"Publishing script: {script_id}")
             
             response = await self.client.post_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 data={
                     "channel": "PUBLISH_SCRIPT",
                     "scriptid": script_id,
@@ -551,7 +551,7 @@ class ScriptAPI:
             self.logger.debug("Retrieving HaasScript commands")
             
             response = await self.client.get_json(
-                endpoint="/HaasScriptAPI.php",
+                endpoint="HaasScript",
                 params={
                     "channel": "GET_COMMANDS",
                     "userid": self.auth_manager.user_id,
@@ -591,7 +591,7 @@ class ScriptAPI:
             self.logger.info(f"Executing debug test for script: {script_id}")
             
             response = await self.client.post_json(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 data={
                     "channel": "EXECUTE_DEBUGTEST",
                     "scriptid": script_id,
@@ -634,7 +634,7 @@ class ScriptAPI:
             self.logger.info(f"Executing quicktest for script: {script_id}")
             
             response = await self.client.post_json(
-                endpoint="/BacktestAPI.php",
+                endpoint="Backtest",
                 data={
                     "channel": "EXECUTE_QUICKTEST",
                     "backtestid": backtest_id,
