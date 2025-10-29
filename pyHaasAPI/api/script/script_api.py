@@ -49,10 +49,10 @@ class ScriptAPI:
         try:
             self.logger.debug("Retrieving all scripts")
             
-            # Prefer PHP JSON endpoint, fallback to route
+            # Use canonical endpoint; resolver in client will normalize
             try:
                 response = await self.client.get_json(
-                    endpoint="/HaasScriptAPI.php",
+                    endpoint="HaasScript",
                     params={
                         "channel": "GET_ALL_SCRIPT_ITEMS",
                         "userid": self.auth_manager.user_id,
@@ -61,7 +61,7 @@ class ScriptAPI:
                 )
             except Exception:
                 response = await self.client.get_json(
-                    endpoint="/HaasScriptAPI.php",
+                    endpoint="HaasScript",
                     params={
                         "channel": "GET_ALL_SCRIPT_ITEMS",
                         "userid": self.auth_manager.user_id,

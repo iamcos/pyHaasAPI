@@ -360,6 +360,13 @@ class AsyncHaasClient:
         timeout: Optional[float] = None
     ) -> Dict[str, Any]:
         """Make request and return JSON response"""
+        # Normalize endpoint to canonical PHP API path to avoid HTML responses
+        try:
+            from .endpoints import resolve_endpoint
+            endpoint = resolve_endpoint(endpoint)
+        except Exception:
+            pass
+
         response = await self._make_request(method, endpoint, params, data, headers, timeout)
 
         try:
