@@ -6,7 +6,7 @@ Provides comprehensive data models for lab management operations.
 
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
 
 class LabConfig(BaseModel):
@@ -133,24 +133,27 @@ class LabDetails(BaseModel):
 
 class StartLabExecutionRequest(BaseModel):
     """Request to start lab execution"""
+    model_config = ConfigDict(populate_by_name=True)
+    
     lab_id: str = Field(alias="labId", description="Lab ID to execute")
     start_unix: int = Field(alias="startUnix", description="Start time in Unix timestamp")
     end_unix: int = Field(alias="endUnix", description="End time in Unix timestamp")
     send_email: bool = Field(alias="sendEmail", default=False, description="Whether to send email notification")
     
     @field_validator("start_unix", "end_unix")
-    def validate_unix_timestamps(cls, v, info):
+    @classmethod
+    def validate_unix_timestamps(cls, v):
         """Validate Unix timestamps"""
         if v <= 0:
             raise ValueError("Unix timestamp must be positive")
         return v
     
-    @field_validator("end_unix")
-    def validate_end_after_start(cls, v, values):
+    @model_validator(mode='after')
+    def validate_end_after_start(self):
         """Validate that end time is after start time"""
-        if "start_unix" in values and v <= values["start_unix"]:
+        if self.end_unix <= self.start_unix:
             raise ValueError("End time must be after start time")
-        return v
+        return self
 
 
 class LabExecutionUpdate(BaseModel):

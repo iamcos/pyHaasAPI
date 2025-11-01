@@ -672,8 +672,8 @@ class LabAPI:
             
             response = await self.client.post_json(
                 "/LabsAPI.php",
+                params={"channel": "DELETE_LAB"},
                 data={
-                    "channel": "DELETE_LAB",
                     "userid": session.user_id,
                     "interfacekey": session.interface_key,
                     "labid": lab_id
