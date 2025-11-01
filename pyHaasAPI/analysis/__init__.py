@@ -21,6 +21,23 @@ from .extraction import (
     TradeData
 )
 
+from .wfo import (
+    WFOMode,
+    WFOPeriod,
+    WFOResult,
+    WFOConfig,
+    WFOAnalysisResult,
+    WFOAnalyzer
+)
+
+from .robustness import (
+    DrawdownEvent,
+    DrawdownAnalysis,
+    TimePeriodAnalysis,
+    RobustnessMetrics,
+    StrategyRobustnessAnalyzer
+)
+
 __all__ = [
     # Metrics
     'RunMetrics',
@@ -33,4 +50,19 @@ __all__ = [
     'BacktestDataExtractor',
     'BacktestSummary',
     'TradeData',
+    
+    # Walk Forward Optimization
+    'WFOMode',
+    'WFOPeriod',
+    'WFOResult',
+    'WFOConfig',
+    'WFOAnalysisResult',
+    'WFOAnalyzer',
+    
+    # Robustness Analysis
+    'DrawdownEvent',
+    'DrawdownAnalysis',
+    'TimePeriodAnalysis',
+    'RobustnessMetrics',
+    'StrategyRobustnessAnalyzer',
 ]

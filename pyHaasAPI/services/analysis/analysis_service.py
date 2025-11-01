@@ -23,6 +23,8 @@ from ...core.logging import get_logger
 from ...models.backtest import BacktestResult, BacktestRuntimeData
 from ...analysis.metrics import RunMetrics, compute_metrics, calculate_risk_score, calculate_stability_score
 from ...analysis.extraction import BacktestDataExtractor, BacktestSummary, TradeData
+from ...analysis.wfo import WFOAnalyzer, WFOConfig, WFOMode, WFOAnalysisResult
+from ...analysis.robustness import StrategyRobustnessAnalyzer, RobustnessMetrics
 from ...config.analysis_config import get_analysis_config, get_drawdown_policy, validate_drawdown_requirement, get_drawdown_score
 
 logger = get_logger("analysis_service")
@@ -912,3 +914,190 @@ class AnalysisService:
         except Exception as e:
             self.logger.error(f"Error analyzing data distribution: {e}")
             return {"error": f"Distribution analysis failed: {e}"}
+
+    async def analyze_wfo(
+        self,
+        lab_id: str,
+        start_date: datetime,
+        end_date: datetime,
+        training_days: int = 365,
+        testing_days: int = 90,
+        step_days: int = 30,
+        mode: WFOMode = WFOMode.ROLLING_WINDOW,
+        min_trades: int = 10,
+        min_win_rate: float = 0.4,
+        max_drawdown_threshold: float = 0.3
+    ) -> WFOAnalysisResult:
+        """
+        Perform Walk Forward Optimization analysis on a lab.
+        
+        Args:
+            lab_id: ID of the lab to analyze
+            start_date: Start date for WFO analysis
+            end_date: End date for WFO analysis
+            training_days: Duration of training period in days (default: 365)
+            testing_days: Duration of testing period in days (default: 90)
+            step_days: Step size between periods in days (default: 30)
+            mode: WFO mode (ROLLING_WINDOW, FIXED_WINDOW, EXPANDING_WINDOW)
+            min_trades: Minimum number of trades required (default: 10)
+            min_win_rate: Minimum win rate required (default: 0.4)
+            max_drawdown_threshold: Maximum drawdown threshold (default: 0.3)
+            
+        Returns:
+            WFOAnalysisResult with complete WFO analysis
+            
+        Raises:
+            AnalysisError: If WFO analysis fails
+        """
+        try:
+            self.logger.info(f"🚀 Starting WFO analysis for lab {lab_id[:8]}")
+            self.logger.info(f"   Period: {start_date.date()} to {end_date.date()}")
+            self.logger.info(f"   Training: {training_days} days, Testing: {testing_days} days")
+            self.logger.info(f"   Mode: {mode.value}")
+            
+            # Create WFO configuration
+            config = WFOConfig(
+                total_start_date=start_date,
+                total_end_date=end_date,
+                training_duration_days=training_days,
+                testing_duration_days=testing_days,
+                step_size_days=step_days,
+                mode=mode,
+                min_trades=min_trades,
+                min_win_rate=min_win_rate,
+                max_drawdown_threshold=max_drawdown_threshold
+            )
+            
+            # Initialize WFO analyzer
+            wfo_analyzer = WFOAnalyzer(
+                lab_api=self.lab_api,
+                backtest_api=self.backtest_api
+            )
+            
+            # Perform WFO analysis
+            result = await wfo_analyzer.analyze_lab_wfo(lab_id, config)
+            
+            self.logger.info(f"✅ WFO analysis completed: {result.successful_periods}/{result.total_periods} successful periods")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to perform WFO analysis: {e}")
+            raise AnalysisError(f"WFO analysis failed for lab {lab_id}: {e}") from e
+
+    async def analyze_robustness(
+        self,
+        backtest_id: str,
+        lab_id: str,
+        roi_percentage: float,
+        win_rate: float,
+        total_trades: int,
+        max_drawdown: float,
+        starting_balance: float = 10000.0,
+        final_balance: Optional[float] = None,
+        realized_profits_usdt: float = 0.0
+    ) -> RobustnessMetrics:
+        """
+        Perform robustness analysis on a backtest.
+        
+        Args:
+            backtest_id: ID of the backtest to analyze
+            lab_id: ID of the lab
+            roi_percentage: ROI percentage from backtest
+            win_rate: Win rate (0-1)
+            total_trades: Total number of trades
+            max_drawdown: Maximum drawdown percentage
+            starting_balance: Starting account balance (default: 10000.0)
+            final_balance: Final account balance (calculated if not provided)
+            realized_profits_usdt: Realized profits in USDT
+            
+        Returns:
+            RobustnessMetrics with complete robustness analysis
+            
+        Raises:
+            AnalysisError: If robustness analysis fails
+        """
+        try:
+            self.logger.info(f"🔍 Starting robustness analysis for backtest {backtest_id[:8]}")
+            
+            # Initialize robustness analyzer
+            robustness_analyzer = StrategyRobustnessAnalyzer(
+                backtest_api=self.backtest_api
+            )
+            
+            # Perform robustness analysis
+            result = await robustness_analyzer.analyze_backtest_robustness(
+                backtest_id=backtest_id,
+                lab_id=lab_id,
+                roi_percentage=roi_percentage,
+                win_rate=win_rate,
+                total_trades=total_trades,
+                max_drawdown=max_drawdown,
+                starting_balance=starting_balance,
+                final_balance=final_balance,
+                realized_profits_usdt=realized_profits_usdt
+            )
+            
+            self.logger.info(f"✅ Robustness analysis completed: Score={result.robustness_score:.1f}/100, Risk={result.risk_level}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to perform robustness analysis: {e}")
+            raise AnalysisError(f"Robustness analysis failed for backtest {backtest_id}: {e}") from e
+
+    async def analyze_lab_robustness(
+        self,
+        lab_id: str,
+        top_count: int = 10
+    ) -> Dict[str, RobustnessMetrics]:
+        """
+        Analyze robustness for top backtests in a lab.
+        
+        Args:
+            lab_id: ID of the lab to analyze
+            top_count: Number of top backtests to analyze (default: 10)
+            
+        Returns:
+            Dictionary mapping backtest_id to RobustnessMetrics
+            
+        Raises:
+            AnalysisError: If robustness analysis fails
+        """
+        try:
+            self.logger.info(f"🔍 Starting lab robustness analysis for lab {lab_id[:8]}")
+            
+            # Get lab analysis
+            lab_result = await self.analyze_lab_comprehensive(
+                lab_id=lab_id,
+                top_count=top_count
+            )
+            
+            # Analyze robustness for each top performer
+            robustness_results = {}
+            robustness_analyzer = StrategyRobustnessAnalyzer(
+                backtest_api=self.backtest_api
+            )
+            
+            for backtest in lab_result.top_performers:
+                try:
+                    result = await robustness_analyzer.analyze_backtest_robustness(
+                        backtest_id=backtest.backtest_id,
+                        lab_id=lab_id,
+                        roi_percentage=backtest.roi_percentage,
+                        win_rate=backtest.win_rate,
+                        total_trades=backtest.total_trades,
+                        max_drawdown=backtest.max_drawdown,
+                        starting_balance=backtest.starting_balance,
+                        final_balance=backtest.final_balance,
+                        realized_profits_usdt=backtest.realized_profits_usdt
+                    )
+                    robustness_results[backtest.backtest_id] = result
+                except Exception as e:
+                    self.logger.warning(f"Failed to analyze robustness for backtest {backtest.backtest_id[:8]}: {e}")
+                    continue
+            
+            self.logger.info(f"✅ Lab robustness analysis completed: {len(robustness_results)} backtests analyzed")
+            return robustness_results
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to perform lab robustness analysis: {e}")
+            raise AnalysisError(f"Lab robustness analysis failed for lab {lab_id}: {e}") from e

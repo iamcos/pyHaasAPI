@@ -271,19 +271,24 @@ Examples:
                 end_date=end_date
             )
             
-            if result.success:
+            if result and result.successful_periods > 0:
                 self.logger.info(f"Successfully completed WFO analysis for lab {args.lab_id}")
+                self.logger.info(f"  Total Periods: {result.total_periods}")
+                self.logger.info(f"  Successful Periods: {result.successful_periods}")
+                self.logger.info(f"  Failed Periods: {result.failed_periods}")
+                self.logger.info(f"  Average Period ROI: {result.average_period_roi:.1f}%")
+                self.logger.info(f"  Stability Score: {result.stability_score:.2f}")
                 
                 # Display results
-                self._display_wfo_results(result.data, args)
+                self._display_wfo_results(result, args)
                 
                 # Generate report if requested
                 if args.generate_reports and self.reporting_service:
-                    await self._generate_wfo_report(result.data, args)
+                    await self._generate_wfo_report(result, args)
                 
                 return 0
             else:
-                self.logger.error(f"Failed to perform WFO analysis: {result.error}")
+                self.logger.error(f"WFO analysis completed but no successful periods")
                 return 1
                 
         except Exception as e:
@@ -414,13 +419,42 @@ Examples:
 
     def _display_wfo_results(self, result: Any, args: argparse.Namespace) -> None:
         """Display WFO analysis results"""
-        print(f"\nWalk Forward Optimization Results:")
-        print("=" * 80)
+        from ...analysis.wfo import WFOAnalysisResult
+        
+        if not isinstance(result, WFOAnalysisResult):
+            self.logger.warning("Unexpected result type for WFO display")
+            return
+        
+        print(f"\n{'='*80}")
+        print(f"Walk Forward Optimization Analysis Results")
+        print(f"{'='*80}")
         print(f"Lab ID: {result.lab_id}")
-        print(f"Periods: {len(result.periods)}")
-        print(f"Average Performance: {result.average_performance}")
-        print(f"Stability Score: {result.stability_score}")
-        print("-" * 80)
+        print(f"Analysis Timestamp: {result.analysis_timestamp}")
+        print(f"\nPeriod Summary:")
+        print(f"  Total Periods: {result.total_periods}")
+        print(f"  Successful Periods: {result.successful_periods}")
+        print(f"  Failed Periods: {result.failed_periods}")
+        print(f"\nPerformance Metrics:")
+        print(f"  Average Period ROI: {result.average_period_roi:.2f}%")
+        print(f"  Best Period ROI: {result.best_period_roi:.2f}%")
+        print(f"  Worst Period ROI: {result.worst_period_roi:.2f}%")
+        print(f"  Stability Score: {result.stability_score:.2f}")
+        print(f"  Out-of-Sample Performance: {result.out_of_sample_performance:.2f}%")
+        
+        if result.summary_metrics:
+            print(f"\nSummary Metrics:")
+            for key, value in result.summary_metrics.items():
+                if isinstance(value, float):
+                    print(f"  {key}: {value:.2f}")
+                else:
+                    print(f"  {key}: {value}")
+        
+        if result.recommendations:
+            print(f"\nRecommendations:")
+            for i, rec in enumerate(result.recommendations, 1):
+                print(f"  {i}. {rec}")
+        
+        print(f"{'='*80}\n")
 
     def _display_performance_metrics(self, metrics: Any, args: argparse.Namespace) -> None:
         """Display performance metrics"""
