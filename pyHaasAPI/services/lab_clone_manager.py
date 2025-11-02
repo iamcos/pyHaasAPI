@@ -1,7 +1,7 @@
 """
 Lab Clone Manager for pyHaasAPI v2
 
-Handles cloning labs to different markets and assigning accounts using v1 API pattern.
+Handles cloning labs to different markets and assigning accounts using v2 APIs.
 """
 
 import asyncio
@@ -16,7 +16,7 @@ logger = get_logger("lab_clone_manager")
 
 
 class LabCloneManager:
-    """Manages cloning labs to different markets and assigning accounts using v1 API pattern."""
+    """Manages cloning labs to different markets and assigning accounts using v2 APIs."""
     
     def __init__(self, lab_api: LabAPI, client: Optional[AsyncHaasClient] = None, auth_manager: Optional[AuthenticationManager] = None):
         self.lab_api = lab_api
@@ -32,7 +32,7 @@ class LabCloneManager:
         stage_label: str,
     ) -> Dict[str, str]:
         """
-        Clone template lab to target markets and assign account using v1 API pattern.
+        Clone template lab to target markets and assign account using v2 APIs.
         
         Args:
             template_lab_id: ID of the template lab to clone
@@ -46,22 +46,8 @@ class LabCloneManager:
         try:
             self.logger.info(f"🔄 Cloning template lab {template_lab_id} to {len(target_markets)} markets")
             
-            # Use the v1 API pattern like in longest_backtest.py
-            from pyHaasAPI_v1 import api
-            
-            # Create v1 executor using the same pattern as longest_backtest.py
-            executor = api.RequestsExecutor(
-                host='127.0.0.1',
-                port=8090,
-                state=api.Guest()
-            )
-            
-            # Authenticate using the same pattern
-            import os
-            executor = executor.authenticate(
-                os.getenv('API_EMAIL'), 
-                os.getenv('API_PASSWORD')
-            )
+            # Get template lab details
+            template_lab = await self.lab_api.get_lab_details(template_lab_id)
             
             cloned_map = {}
             
@@ -69,33 +55,28 @@ class LabCloneManager:
                 try:
                     self.logger.info(f"📋 Cloning for {coin} ({market_tag})")
                     
-                    # Clone the lab using v1 API like in longest_backtest.py
-                    clone_result = api.clone_lab(executor, template_lab_id)
+                    # Clone the lab using v2 LabAPI
+                    clone_result = await self.lab_api.clone_lab(
+                        template_lab_id,
+                        new_name=f"{template_lab.name} - {coin} ({stage_label})" if hasattr(template_lab, 'name') else f"{coin} ({stage_label})"
+                    )
                     
                     if not clone_result or not hasattr(clone_result, 'lab_id'):
                         raise LabError(f"Failed to clone lab for {coin}")
                     
-                    lab_id = clone_result.lab_id
+                    lab_id = getattr(clone_result, 'lab_id', None)
+                    if not lab_id:
+                        raise LabError(f"Clone result missing lab_id for {coin}")
+                    
                     self.logger.info(f"✅ Cloned lab {lab_id} for {coin}")
                     
-                    # Set market and account using v1 API
+                    # Update market and account using v2 API
                     try:
-                        # Get lab details and update settings
-                        lab_details = api.get_lab_details(executor, lab_id)
-                        
-                        # Update market and account in settings
-                        if hasattr(lab_details, 'settings'):
-                            lab_details.settings.market_tag = market_tag
-                            lab_details.settings.account_id = account_id
-                        else:
-                            # Create settings if they don't exist
-                            from pyHaasAPI_v1.model import LabSettings
-                            lab_details.settings = LabSettings()
-                            lab_details.settings.market_tag = market_tag
-                            lab_details.settings.account_id = account_id
-                        
-                        # Update the lab
-                        api.update_lab_details(executor, lab_details)
+                        await self.lab_api.update_lab_details(
+                            lab_id,
+                            market=market_tag,
+                            account_id=account_id
+                        )
                         
                         self.logger.info(f"✅ Set market {market_tag} and account {account_id} for {coin}")
                             

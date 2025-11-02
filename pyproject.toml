@@ -12,7 +12,6 @@ license = "MIT"
 readme = "README.md"
 packages = [
     {include = "pyHaasAPI"},
-    {include = "pyHaasAPI_v1"},
     {include = "mcp_server"},
 ]
 
@@ -80,5 +79,3 @@ haas-lab = "pyHaasAPI.cli.lab_cli:main"
 haas-bot = "pyHaasAPI.cli.bot_cli:main"
 haas-analysis = "pyHaasAPI.cli.analysis_cli:main"
 haas-backtest = "pyHaasAPI.cli.backtest_cli:main"
-# Legacy v1 CLI
-haas-v1-analyze = "pyHaasAPI_v1.cli.main:main"
