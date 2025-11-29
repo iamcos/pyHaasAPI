@@ -383,8 +383,14 @@ async def main_async(args: argparse.Namespace) -> int:
             summary = {
                 "timestamp": datetime.now().isoformat(),
                 "total_labs": len(lab_ids),
-                "successful": sum(1 for r in results.values() if r.get('status') == 'success'),
-                "failed": sum(1 for r in results.values() if 'error' in r),
+                "successful": sum(
+                    1 for r in results.values() 
+                    if BaseCLI.safe_get(r, 'status') == 'success'
+                ),
+                "failed": sum(
+                    1 for r in results.values() 
+                    if BaseCLI.safe_has(r, 'error')
+                ),
                 "results": {}
             }
             
@@ -402,23 +408,27 @@ async def main_async(args: argparse.Namespace) -> int:
                     }
                     print(f"  {lab_id}: ❌ {result['error']}")
                 else:
-                    # Extract metrics from result
-                    attempts = result.get('attempts', [])
-                    earliest_start = result.get('approx_start_date')
-                    end_date = result.get('end_date')
+                    # Extract metrics from result using utility method
+                    attempts = BaseCLI.safe_get(result, 'attempts', [])
+                    earliest_start = BaseCLI.safe_get(result, 'approx_start_date')
+                    end_date = BaseCLI.safe_get(result, 'end_date')
+                    status = BaseCLI.safe_get(result, 'status', 'unknown')
+                    elapsed_seconds = BaseCLI.safe_get(result, 'elapsed_seconds', 0)
+                    notes = BaseCLI.safe_get(result, 'notes', '')
                     
                     summary["results"][lab_id] = {
-                        "status": result.get('status', 'unknown'),
+                        "status": status,
                         "earliest_start": earliest_start,
                         "end": end_date,
                         "attempts": attempts,
                         "total_attempts": len(attempts),
-                        "total_elapsed_seconds": result.get('elapsed_seconds', 0),
-                        "notes": result.get('notes', '')
+                        "total_elapsed_seconds": elapsed_seconds,
+                        "notes": notes
                     }
                     
-                    status_icon = "🔄" if result['status'] == 'running' else "⏳" if result['status'] == 'queued' else "✅"
-                    print(f"  {lab_id}: {status_icon} {result['status']} | {earliest_start or 'N/A'} → {end_date or 'N/A'} | {len(attempts)} attempts")
+                    result_status = BaseCLI.safe_get(result, 'status', 'unknown')
+                    status_icon = "🔄" if result_status == 'running' else "⏳" if result_status == 'queued' else "✅"
+                    print(f"  {lab_id}: {status_icon} {result_status} | {earliest_start or 'N/A'} → {end_date or 'N/A'} | {len(attempts)} attempts")
             
             # Print JSON summary to stdout
             print("\n" + "="*50)

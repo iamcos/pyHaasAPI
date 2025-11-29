@@ -248,9 +248,12 @@ class LongestBacktestService:
             self.logger.info(f"📊 Status: {status['status']} | Running: {status['is_running']} | Progress: {status['progress']}%")
             
             # Simple check: if running, it works
-            is_running = (status['status'] == 'RUNNING' or 
-                         status['status'] == 2 or 
-                         status['is_running'])
+            from ...models.enumerations import UserLabStatus
+            is_running = (
+                status['status'] == 'RUNNING' or 
+                status['status'] == UserLabStatus.RUNNING.value or 
+                status.get('is_running', False)
+            )
             
             if is_running:
                 self.logger.info(f"✅ {period_name} WORKS! Backtest is running.")

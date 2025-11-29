@@ -316,8 +316,11 @@ class LabAPI:
             APIError: If API call fails
         """
         try:
+            from ...models.enumerations import UserLabStatus
             labs = await self.get_labs()
-            return [lab for lab in labs if lab.get("status") == "3"]  # Status 3 = completed
+            # Filter by completed status - handle both string and int status values
+            completed_status = str(UserLabStatus.COMPLETED.value)
+            return [lab for lab in labs if str(lab.get("status", "")) == completed_status]
         except Exception as e:
             raise APIError(f"Failed to get complete labs: {e}")
     

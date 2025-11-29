@@ -113,16 +113,17 @@ class BacktestWorkflowCLI(BaseCLI):
             if args.verbose:
                 print(f"\n📋 Bot Details:")
                 for bot_id, details in progress_info['bot_details'].items():
-                    status = details.get('status', 'unknown')
-                    roe = details.get('roe_pct', 'N/A')
-                    wr = details.get('winrate_pct', 'N/A')
-                    trades = details.get('trades', 'N/A')
+                    # Use utility method for field access
+                    status = BaseCLI.safe_get(details, 'status', 'unknown')
+                    roe = BaseCLI.safe_get(details, 'roe_pct', 'N/A')
+                    wr = BaseCLI.safe_get(details, 'winrate_pct', 'N/A')
+                    trades = BaseCLI.safe_get(details, 'trades', 'N/A')
+                    error_msg = BaseCLI.safe_get(details, 'error_message', 'Unknown error')
                     
                     print(f"  {bot_id}: {status}")
                     if status == 'completed':
                         print(f"    ROE: {roe}%, WR: {wr}%, Trades: {trades}")
                     elif status == 'error':
-                        error_msg = details.get('error_message', 'Unknown error')
                         print(f"    Error: {error_msg}")
             
             # Save results if requested

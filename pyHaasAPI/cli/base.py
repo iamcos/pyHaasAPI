@@ -55,6 +55,11 @@ class CLIConfig:
     max_concurrent_requests: int = 10
     log_level: str = "INFO"
     strict_mode: bool = False
+    
+    def __post_init__(self):
+        """Set log_level if not provided"""
+        if not hasattr(self, 'log_level') or not self.log_level:
+            self.log_level = "INFO"
 
 
 class BaseCLI(ABC):
@@ -87,6 +92,19 @@ class BaseCLI(ABC):
         self.bot_service: Optional[BotService] = None
         self.analysis_service: Optional[AnalysisService] = None
         self.reporting_service: Optional[ReportingService] = None
+        
+        # Managers
+        self.server_manager: Optional[ServerManager] = None
+        self.server_content_manager: Optional[ServerContentManager] = None
+        self.account_manager: Optional[AccountManager] = None
+        self.bot_manager: Optional[BotManager] = None
+        self.sync_history_manager: Optional[SyncHistoryManager] = None
+        self.lab_clone_manager: Optional[LabCloneManager] = None
+        self.lab_config_manager: Optional[LabConfigManager] = None
+        self.backtesting_manager: Optional[BacktestingManager] = None
+        
+        # Settings (for managers that need it)
+        self.settings: Optional[Settings] = None
         
         # Setup
         self._setup_logging()
@@ -157,6 +175,9 @@ class BaseCLI(ABC):
             # Initialize services
             await self._initialize_services()
             
+            # Initialize managers
+            await self._initialize_managers()
+            
             self.logger.info("Successfully connected to HaasOnline API")
             return True
             
@@ -198,6 +219,76 @@ class BaseCLI(ABC):
             self.client, self.auth_manager
         )
         self.reporting_service = ReportingService()
+    
+    async def _initialize_managers(self) -> None:
+        """Initialize managers"""
+        if not self.client or not self.auth_manager:
+            raise RuntimeError("Client and auth manager not initialized")
+        
+        # Import managers
+        from ...core.server_manager import ServerManager
+        from ...services.server_content_manager import ServerContentManager
+        from ...services.account_manager import AccountManager
+        from ...services.bot_manager import BotManager
+        from ...services.sync_history_manager import SyncHistoryManager
+        from ...services.lab_clone_manager import LabCloneManager
+        from ...services.lab_config_manager import LabConfigManager
+        from ...core.backtesting_manager import BacktestingManager
+        from ...config.settings import Settings
+        
+        # Initialize settings
+        self.settings = Settings()
+        
+        # Initialize ServerManager
+        self.server_manager = ServerManager(self.settings)
+        
+        # Initialize ServerContentManager (needs server name - use default)
+        self.server_content_manager = ServerContentManager(
+            server=self.settings.default_server,
+            lab_api=self.lab_api,
+            bot_api=self.bot_api,
+            backtest_api=self.backtest_api,
+            account_api=self.account_api
+        )
+        
+        # Initialize AccountManager
+        self.account_manager = AccountManager(
+            account_api=self.account_api,
+            server=self.settings.default_server
+        )
+        
+        # Initialize BotManager
+        self.bot_manager = BotManager(bot_service=self.bot_service)
+        
+        # Initialize SyncHistoryManager
+        self.sync_history_manager = SyncHistoryManager(
+            market_api=self.market_api,
+            backtest_api=self.backtest_api,
+            client=self.client,
+            auth_manager=self.auth_manager
+        )
+        
+        # Initialize LabCloneManager
+        self.lab_clone_manager = LabCloneManager(
+            lab_api=self.lab_api,
+            client=self.client,
+            auth_manager=self.auth_manager
+        )
+        
+        # Initialize LabConfigManager
+        self.lab_config_manager = LabConfigManager(
+            lab_api=self.lab_api,
+            market_api=self.market_api,
+            client=self.client,
+            auth_manager=self.auth_manager
+        )
+        
+        # Initialize BacktestingManager
+        self.backtesting_manager = BacktestingManager(
+            client=self.client,
+            auth_manager=self.auth_manager,
+            server_manager=self.server_manager
+        )
 
     async def disconnect(self) -> None:
         """Disconnect from the API and cleanup resources"""
@@ -344,3 +435,240 @@ class BaseCLI(ABC):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
         await self.disconnect()
+
+    # Utility methods for common patterns
+
+    @staticmethod
+    def safe_get(obj: Any, field: str, default: Any = None) -> Any:
+        """
+        Safely get a field from an object or dictionary.
+        
+        Args:
+            obj: Object or dictionary
+            field: Field name to get
+            default: Default value if field not found
+            
+        Returns:
+            Field value or default
+        """
+        if isinstance(obj, dict):
+            return obj.get(field, default)
+        return getattr(obj, field, default)
+
+    @staticmethod
+    def safe_has(obj: Any, field: str) -> bool:
+        """
+        Safely check if an object or dictionary has a field.
+        
+        Args:
+            obj: Object or dictionary
+            field: Field name to check
+            
+        Returns:
+            True if field exists, False otherwise
+        """
+        if isinstance(obj, dict):
+            return field in obj
+        return hasattr(obj, field)
+
+    def format_output(
+        self,
+        data: List[Any],
+        format_type: str,
+        output_file: Optional[str] = None,
+        field_mapping: Optional[Dict[str, str]] = None
+    ) -> None:
+        """
+        Format and output data in JSON, CSV, or table format.
+        
+        Args:
+            data: List of data objects/dictionaries to format
+            format_type: Output format ('json', 'csv', or 'table')
+            output_file: Optional output file path
+            field_mapping: Optional mapping of field names for CSV/table headers
+        """
+        if format_type == 'json':
+            import json
+            # Convert objects to dicts if needed
+            json_data = [
+                item if isinstance(item, dict) else item.model_dump() if hasattr(item, 'model_dump') else item.dict() if hasattr(item, 'dict') else vars(item)
+                for item in data
+            ]
+            output = json.dumps(json_data, indent=2, default=str)
+            
+            if output_file:
+                with open(output_file, 'w') as f:
+                    f.write(output)
+            else:
+                print(output)
+                
+        elif format_type == 'csv':
+            import csv
+            
+            if not data:
+                return
+                
+            # Get fieldnames from first item
+            first_item = data[0]
+            if isinstance(first_item, dict):
+                fieldnames = list(first_item.keys())
+            elif hasattr(first_item, 'model_dump'):
+                fieldnames = list(first_item.model_dump().keys())
+            elif hasattr(first_item, 'dict'):
+                fieldnames = list(first_item.dict().keys())
+            else:
+                fieldnames = list(vars(first_item).keys())
+            
+            # Apply field mapping if provided
+            if field_mapping:
+                fieldnames = [field_mapping.get(f, f) for f in fieldnames]
+            
+            # Convert items to dicts
+            rows = []
+            for item in data:
+                if isinstance(item, dict):
+                    rows.append(item)
+                elif hasattr(item, 'model_dump'):
+                    rows.append(item.model_dump())
+                elif hasattr(item, 'dict'):
+                    rows.append(item.dict())
+                else:
+                    rows.append(vars(item))
+            
+            if output_file:
+                with open(output_file, 'w', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(rows)
+            else:
+                # Print CSV to stdout
+                print(','.join(fieldnames))
+                for row in rows:
+                    print(','.join(str(row.get(f, '')) for f in fieldnames))
+                    
+        else:  # table format
+            if not data:
+                return
+                
+            # Get fieldnames from first item
+            first_item = data[0]
+            if isinstance(first_item, dict):
+                fieldnames = list(first_item.keys())
+            elif hasattr(first_item, 'model_dump'):
+                fieldnames = list(first_item.model_dump().keys())
+            elif hasattr(first_item, 'dict'):
+                fieldnames = list(first_item.dict().keys())
+            else:
+                fieldnames = list(vars(first_item).keys())
+            
+            # Apply field mapping if provided
+            if field_mapping:
+                fieldnames = [field_mapping.get(f, f) for f in fieldnames]
+            
+            # Calculate column widths
+            col_widths = {f: len(f) for f in fieldnames}
+            for item in data:
+                if isinstance(item, dict):
+                    item_dict = item
+                elif hasattr(item, 'model_dump'):
+                    item_dict = item.model_dump()
+                elif hasattr(item, 'dict'):
+                    item_dict = item.dict()
+                else:
+                    item_dict = vars(item)
+                    
+                for field in fieldnames:
+                    value = str(item_dict.get(field, ''))[:50]  # Truncate long values
+                    col_widths[field] = max(col_widths[field], len(value))
+            
+            # Print header
+            header = ' | '.join(f"{f:<{col_widths[f]}}" for f in fieldnames)
+            print(header)
+            print('-' * len(header))
+            
+            # Print rows
+            for item in data:
+                if isinstance(item, dict):
+                    item_dict = item
+                elif hasattr(item, 'model_dump'):
+                    item_dict = item.model_dump()
+                elif hasattr(item, 'dict'):
+                    item_dict = item.dict()
+                else:
+                    item_dict = vars(item)
+                    
+                row = ' | '.join(
+                    f"{str(item_dict.get(f, ''))[:50]:<{col_widths[f]}}"
+                    for f in fieldnames
+                )
+                print(row)
+
+    def check_status_enum(
+        self,
+        status_value: Any,
+        enum_class: type,
+        target_status: str
+    ) -> bool:
+        """
+        Check if a status value matches an enum status.
+        
+        Args:
+            status_value: Status value to check (int, str, or enum)
+            enum_class: Enum class to check against
+            target_status: Name of target status in enum
+            
+        Returns:
+            True if status matches, False otherwise
+        """
+        if not hasattr(enum_class, target_status):
+            return False
+            
+        target_enum_value = getattr(enum_class, target_status).value
+        
+        # Handle different status_value types
+        if isinstance(status_value, enum_class):
+            return status_value.value == target_enum_value
+        elif isinstance(status_value, int):
+            return status_value == target_enum_value
+        elif isinstance(status_value, str):
+            # Try to match by name or value
+            try:
+                return enum_class[status_value.upper()].value == target_enum_value
+            except (KeyError, AttributeError):
+                return False
+        return False
+
+    def filter_by_status(
+        self,
+        items: List[Any],
+        status_field: str,
+        target_status: str,
+        enum_class: Optional[type] = None
+    ) -> List[Any]:
+        """
+        Filter items by status using enum comparison.
+        
+        Args:
+            items: List of items to filter
+            status_field: Field name containing status
+            target_status: Target status name (enum name or string)
+            enum_class: Optional enum class for status comparison
+            
+        Returns:
+            Filtered list of items
+        """
+        if not enum_class:
+            # Simple string comparison
+            return [
+                item for item in items
+                if self.safe_get(item, status_field, '').lower() == target_status.lower()
+            ]
+        
+        return [
+            item for item in items
+            if self.check_status_enum(
+                self.safe_get(item, status_field),
+                enum_class,
+                target_status
+            )
+        ]

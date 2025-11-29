@@ -12,7 +12,6 @@ from datetime import datetime
 
 from .base import BaseCLI, CLIConfig
 from ..core.logging import get_logger
-from ..core.type_definitions import BotID, BotStatus
 from ..exceptions import APIError, ValidationError
 
 logger = get_logger("bot_cli")
@@ -141,42 +140,32 @@ Examples:
             
             # Filter by status if specified
             if args.status:
-                bots = [bot for bot in bots if bot.status == args.status]
+                from ..models.enumerations import AccountStatus
+                bots = self.filter_by_status(
+                    bots,
+                    status_field='status',
+                    target_status=args.status.upper(),
+                    enum_class=AccountStatus
+                )
             
             if not bots:
                 self.logger.info("No bots found")
                 return 0
             
-            # Display results
-            if args.output_format == 'json':
-                import json
-                output = json.dumps([bot.dict() for bot in bots], indent=2)
-                if args.output_file:
-                    with open(args.output_file, 'w') as f:
-                        f.write(output)
-                else:
-                    print(output)
-            elif args.output_format == 'csv':
-                import csv
-                if args.output_file:
-                    with open(args.output_file, 'w', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=['id', 'name', 'status', 'account_id', 'market_tag', 'created_at'])
-                        writer.writeheader()
-                        for bot in bots:
-                            writer.writerow(bot.dict())
-                else:
-                    print("id,name,status,account_id,market_tag,created_at")
-                    for bot in bots:
-                        print(f"{bot.id},{bot.name},{bot.status},{bot.account_id},{bot.market_tag},{bot.created_at}")
-            else:
-                # Table format
-                print(f"\nFound {len(bots)} bots:")
-                print("-" * 120)
-                print(f"{'ID':<20} {'Name':<40} {'Status':<10} {'Account ID':<20} {'Market':<20}")
-                print("-" * 120)
-                for bot in bots:
-                    print(f"{bot.id:<20} {bot.name[:40]:<40} {bot.status:<10} {bot.account_id:<20} {bot.market_tag:<20}")
-                print("-" * 120)
+            # Display results using utility method
+            self.format_output(
+                bots,
+                format_type=args.output_format,
+                output_file=args.output_file,
+                field_mapping={
+                    'bot_id': 'id',
+                    'bot_name': 'name',
+                    'status': 'status',
+                    'account_id': 'account_id',
+                    'market_tag': 'market_tag',
+                    'created_at': 'created_at'
+                }
+            )
             
             return 0
             
@@ -270,8 +259,15 @@ Examples:
                 bot_ids = [bid.strip() for bid in args.bot_ids.split(',')]
             elif args.all:
                 # Get all inactive bots
+                from ..models.enumerations import AccountStatus
                 bots = await self.bot_service.get_all_bots()
-                bot_ids = [bot.id for bot in bots if bot.status == 'inactive']
+                inactive_bots = self.filter_by_status(
+                    bots,
+                    status_field='status',
+                    target_status='INACTIVE',
+                    enum_class=AccountStatus
+                )
+                bot_ids = [bot.id for bot in inactive_bots]
             else:
                 self.logger.error("Either --bot-ids or --all is required for activation")
                 return 1
@@ -310,8 +306,15 @@ Examples:
                 bot_ids = [bid.strip() for bid in args.bot_ids.split(',')]
             elif args.all:
                 # Get all active bots
+                from ..models.enumerations import AccountStatus
                 bots = await self.bot_service.get_all_bots()
-                bot_ids = [bot.id for bot in bots if bot.status == 'active']
+                active_bots = self.filter_by_status(
+                    bots,
+                    status_field='status',
+                    target_status='ACTIVE',
+                    enum_class=AccountStatus
+                )
+                bot_ids = [bot.id for bot in active_bots]
             else:
                 self.logger.error("Either --bot-ids or --all is required for deactivation")
                 return 1
@@ -411,7 +414,7 @@ Examples:
                 self.logger.error("Bot service not initialized")
                 return 1
             bot = await self.bot_service.get_bot_details(args.bot_id)
-            notes = getattr(bot, 'notes', '')
+            notes = self.safe_get(bot, 'notes', '')
             print(notes or '')
             return 0
         except Exception as e:
@@ -541,9 +544,9 @@ Examples:
                             bot_name = f"{lab_name} - Top {i} - ROE {roi:.1f}%"
                             
                             # Get lab configuration
-                            account_id = getattr(lab_details, 'account_id', '') or getattr(lab_details, 'accountId', '')
-                            market_tag = getattr(lab_details, 'market_tag', '') or getattr(lab_details, 'marketTag', '')
-                            leverage = getattr(lab_details, 'leverage', 20.0) or 20.0
+                            account_id = self.safe_get(lab_details, 'account_id') or self.safe_get(lab_details, 'accountId', '')
+                            market_tag = self.safe_get(lab_details, 'market_tag') or self.safe_get(lab_details, 'marketTag', '')
+                            leverage = self.safe_get(lab_details, 'leverage', 20.0) or 20.0
                             
                             if not account_id or not market_tag:
                                 print(f"   ❌ Missing lab config (account_id: {account_id}, market_tag: {market_tag})")
@@ -582,14 +585,18 @@ Examples:
                                 'status': 'failed'
                             })
                     
+                    # Count bots using utility method
+                    bots_created = len([r for r in lab_bot_results if self.safe_get(r, 'status') == 'created'])
+                    bots_failed = len([r for r in lab_bot_results if self.safe_get(r, 'status') == 'failed'])
+                    
                     bot_creation_results[lab_id] = {
                         'lab_name': lab_name,
-                        'bots_created': len([r for r in lab_bot_results if r.get('status') == 'created']),
-                        'bots_failed': len([r for r in lab_bot_results if r.get('status') == 'failed']),
+                        'bots_created': bots_created,
+                        'bots_failed': bots_failed,
                         'results': lab_bot_results
                     }
                     
-                    print(f"   📊 Lab {lab_name}: {len([r for r in lab_bot_results if r.get('status') == 'created'])} bots created, {len([r for r in lab_bot_results if r.get('status') == 'failed'])} failed")
+                    print(f"   📊 Lab {lab_name}: {bots_created} bots created, {bots_failed} failed")
                     
                 except Exception as e:
                     print(f"   ❌ Error processing lab {lab_name}: {e}")
@@ -613,8 +620,8 @@ Examples:
                 'summary': {
                     'labs_processed': len(results),
                     'total_bots_created': total_bots_created,
-                    'total_bots_failed': sum(result.get('bots_failed', 0) for result in bot_creation_results.values()),
-                    'labs_with_success': len([r for r in bot_creation_results.values() if r.get('bots_created', 0) > 0])
+                    'total_bots_failed': sum(self.safe_get(result, 'bots_failed', 0) for result in bot_creation_results.values()),
+                    'labs_with_success': len([r for r in bot_creation_results.values() if self.safe_get(r, 'bots_created', 0) > 0])
                 },
                 'results': bot_creation_results
             }
@@ -627,19 +634,25 @@ Examples:
             print(f"📊 Summary:")
             print(f"   - Labs processed: {len(results)}")
             print(f"   - Total bots created: {total_bots_created}")
-            print(f"   - Total bots failed: {sum(result.get('bots_failed', 0) for result in bot_creation_results.values())}")
-            print(f"   - Labs with successful bot creation: {len([r for r in bot_creation_results.values() if r.get('bots_created', 0) > 0])}")
+            total_failed = sum(self.safe_get(result, 'bots_failed', 0) for result in bot_creation_results.values())
+            labs_with_success = len([r for r in bot_creation_results.values() if self.safe_get(r, 'bots_created', 0) > 0])
+            print(f"   - Total bots failed: {total_failed}")
+            print(f"   - Labs with successful bot creation: {labs_with_success}")
             print(f"   - Results saved: {results_file}")
             
             # Show per-lab results
             print(f"\n📋 Per-lab results:")
             for lab_id, result in bot_creation_results.items():
-                if result.get('bots_created', 0) > 0:
-                    print(f"   ✅ {result['lab_name']}: {result['bots_created']} bots created")
-                elif result.get('error'):
-                    print(f"   ❌ {result['lab_name']}: ERROR - {result['error']}")
+                bots_created = self.safe_get(result, 'bots_created', 0)
+                lab_name = self.safe_get(result, 'lab_name', 'Unknown')
+                error = self.safe_get(result, 'error')
+                
+                if bots_created > 0:
+                    print(f"   ✅ {lab_name}: {bots_created} bots created")
+                elif error:
+                    print(f"   ❌ {lab_name}: ERROR - {error}")
                 else:
-                    print(f"   ⚠️  {result['lab_name']}: No bots created")
+                    print(f"   ⚠️  {lab_name}: No bots created")
             
             return 0
             

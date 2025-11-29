@@ -7,6 +7,7 @@ using the new async architecture and type-safe components.
 
 from .base import BaseCLI, CLIConfig
 from .main import main, create_parser
+from .unified_cli import UnifiedCLI, create_parser as create_unified_parser, main as unified_main
 from .lab_cli import LabCLI
 from .bot_cli import BotCLI
 from .analysis_cli import AnalysisCLI
@@ -22,6 +23,9 @@ __all__ = [
     "CLIConfig",
     "main",
     "create_parser",
+    "UnifiedCLI",
+    "create_unified_parser",
+    "unified_main",
     "LabCLI",
     "BotCLI",
     "AnalysisCLI",

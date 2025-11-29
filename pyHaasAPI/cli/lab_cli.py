@@ -12,7 +12,7 @@ from datetime import datetime
 
 from .base import BaseCLI, CLIConfig
 from ..core.logging import get_logger
-from ..core.type_definitions import LabID, LabStatus
+from ..models.enumerations import UserLabStatus
 from ..exceptions import APIError, ValidationError
 
 logger = get_logger("lab_cli")
@@ -133,36 +133,19 @@ Examples:
                 self.logger.info("No labs found")
                 return 0
             
-            # Display results
-            if args.output_format == 'json':
-                import json
-                output = json.dumps([lab.dict() for lab in labs], indent=2)
-                if args.output_file:
-                    with open(args.output_file, 'w') as f:
-                        f.write(output)
-                else:
-                    print(output)
-            elif args.output_format == 'csv':
-                import csv
-                if args.output_file:
-                    with open(args.output_file, 'w', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=['id', 'name', 'script_id', 'status', 'created_at'])
-                        writer.writeheader()
-                        for lab in labs:
-                            writer.writerow(lab.dict())
-                else:
-                    print("id,name,script_id,status,created_at")
-                    for lab in labs:
-                        print(f"{lab.lab_id},{lab.name},{lab.script_id},{lab.status},{lab.created_at}")
-            else:
-                # Table format
-                print(f"\nFound {len(labs)} labs:")
-                print("-" * 80)
-                print(f"{'ID':<20} {'Name':<30} {'Script ID':<20} {'Status':<10}")
-                print("-" * 80)
-                for lab in labs:
-                    print(f"{lab.lab_id:<20} {lab.name[:30]:<30} {lab.script_id:<20} {lab.status:<10}")
-                print("-" * 80)
+            # Display results using utility method
+            self.format_output(
+                labs,
+                format_type=args.output_format,
+                output_file=args.output_file,
+                field_mapping={
+                    'lab_id': 'id',
+                    'name': 'name',
+                    'script_id': 'script_id',
+                    'status': 'status',
+                    'created_at': 'created_at'
+                }
+            )
             
             return 0
             
@@ -254,58 +237,30 @@ Examples:
             if result.success:
                 self.logger.info(f"Successfully analyzed lab: {args.lab_id}")
                 
-                # Display results
-                if args.output_format == 'json':
-                    import json
-                    output = json.dumps({
-                        'lab_id': result.lab_id,
-                        'lab_name': result.lab_name,
-                        'total_backtests': result.total_backtests,
-                        'average_roi': result.average_roi,
-                        'best_roi': result.best_roi,
-                        'average_win_rate': result.average_win_rate,
-                        'top_performers': [
-                            {
-                                'backtest_id': bt.backtest_id,
-                                'roi_percentage': bt.roi_percentage,
-                                'win_rate': bt.win_rate,
-                                'total_trades': bt.total_trades,
-                                'realized_profits_usdt': bt.realized_profits_usdt
-                            } for bt in result.top_performers
-                        ]
-                    }, indent=2)
-                    if args.output_file:
-                        with open(args.output_file, 'w') as f:
-                            f.write(output)
-                    else:
-                        print(output)
-                elif args.output_format == 'csv':
-                    import csv
-                    if args.output_file:
-                        with open(args.output_file, 'w', newline='') as f:
-                            writer = csv.DictWriter(f, fieldnames=['backtest_id', 'roi', 'win_rate', 'trades', 'profit'])
-                            writer.writeheader()
-                            for backtest in result.top_performers:
-                                writer.writerow({
-                                    'backtest_id': backtest.backtest_id,
-                                    'roi': backtest.roi_percentage,
-                                    'win_rate': backtest.win_rate,
-                                    'trades': backtest.total_trades,
-                                    'profit': backtest.realized_profits_usdt
-                                })
-                    else:
-                        print("backtest_id,roi,win_rate,trades,profit")
-                        for backtest in result.top_performers:
-                            print(f"{backtest.backtest_id},{backtest.roi_percentage},{backtest.win_rate},{backtest.total_trades},{backtest.realized_profits_usdt}")
-                else:
-                    # Table format
-                    print(f"\nLab Analysis Results for {args.lab_id}:")
-                    print("-" * 100)
-                    print(f"{'Backtest ID':<20} {'ROI %':<10} {'Win Rate':<10} {'Trades':<10} {'Profit USDT':<15}")
-                    print("-" * 100)
-                    for backtest in result.top_performers:
-                        print(f"{backtest.backtest_id:<20} {backtest.roi_percentage:<10.2f} {backtest.win_rate:<10.2f} {backtest.total_trades:<10} {backtest.realized_profits_usdt:<15.2f}")
-                    print("-" * 100)
+                # Display results using utility method
+                # Convert top_performers to dict format for output
+                top_performers_data = [
+                    {
+                        'backtest_id': bt.backtest_id,
+                        'roi_percentage': bt.roi_percentage,
+                        'win_rate': bt.win_rate,
+                        'total_trades': bt.total_trades,
+                        'realized_profits_usdt': bt.realized_profits_usdt
+                    } for bt in result.top_performers
+                ]
+                
+                self.format_output(
+                    top_performers_data,
+                    format_type=args.output_format,
+                    output_file=args.output_file,
+                    field_mapping={
+                        'backtest_id': 'Backtest ID',
+                        'roi_percentage': 'ROI %',
+                        'win_rate': 'Win Rate',
+                        'total_trades': 'Trades',
+                        'realized_profits_usdt': 'Profit USDT'
+                    }
+                )
                 
                 # Generate reports if requested
                 if args.generate_reports and self.reporting_service:

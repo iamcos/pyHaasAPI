@@ -629,14 +629,16 @@ class AnalysisService:
                 "statistics_timestamp": datetime.now().isoformat()
             }
 
+            from ...models.enumerations import UserLabStatus
+            
             for lab in all_labs:
                 # Count by status
                 if hasattr(lab, 'status'):
-                    if lab.status.value == 3:  # COMPLETED
+                    if lab.status.value == UserLabStatus.COMPLETED.value:
                         stats["completed_labs"] += 1
-                    elif lab.status.value == 2:  # RUNNING
+                    elif lab.status.value == UserLabStatus.RUNNING.value:
                         stats["running_labs"] += 1
-                    elif lab.status.value == 4:  # FAILED
+                    elif lab.status.value == UserLabStatus.CANCELLED.value:  # Using CANCELLED as failure indicator
                         stats["failed_labs"] += 1
 
                 # Count backtests

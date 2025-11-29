@@ -218,10 +218,21 @@ class BotPerformanceReporter:
         
         # Position and order metrics
         open_positions = len(positions)
-        active_orders = sum(1 for order in orders if order.get('status') in ['NEW', 'PARTIALLY_FILLED'])
+        # Use enum values for order status comparison
+        from ...models.enumerations import HaasOrderStatus
+        # Use utility method for field access
+        from .base import BaseCLI
+        active_orders = sum(
+            1 for order in orders 
+            if BaseCLI.safe_get(order, 'status') 
+            in [HaasOrderStatus.OPEN.value, HaasOrderStatus.PENDING.value]
+        )
         
-        # Calculate total exposure
-        total_exposure = sum(pos.get('size', 0) * pos.get('entry_price', 0) for pos in positions)
+        # Calculate total exposure using utility method
+        total_exposure = sum(
+            BaseCLI.safe_get(pos, 'size', 0) * BaseCLI.safe_get(pos, 'entry_price', 0)
+            for pos in positions
+        )
         
         # Time metrics
         uptime_hours = self._calculate_uptime_hours(bot.created_at)
@@ -271,8 +282,12 @@ class BotPerformanceReporter:
         if not orders:
             return 0.0, 0.0
         
-        # Sort orders by timestamp
-        sorted_orders = sorted(orders, key=lambda x: x.get('timestamp', 0))
+        # Sort orders by timestamp using utility method
+        from .base import BaseCLI
+        sorted_orders = sorted(
+            orders, 
+            key=lambda x: BaseCLI.safe_get(x, 'timestamp', 0)
+        )
         
         # Calculate running balance
         running_balance = starting_balance
@@ -281,7 +296,8 @@ class BotPerformanceReporter:
         max_drawdown_pct = 0.0
         
         for order in sorted_orders:
-            running_balance += order.get('profit_loss', 0)
+            profit_loss = BaseCLI.safe_get(order, 'profit_loss', 0)
+            running_balance += profit_loss
             
             if running_balance > peak_balance:
                 peak_balance = running_balance
@@ -306,9 +322,13 @@ class BotPerformanceReporter:
         if not orders:
             return None
         
-        # Find most recent order
-        last_order = max(orders, key=lambda x: x.get('timestamp', 0))
-        timestamp = last_order.get('timestamp')
+        # Find most recent order using utility method
+        from .base import BaseCLI
+        last_order = max(
+            orders, 
+            key=lambda x: BaseCLI.safe_get(x, 'timestamp', 0)
+        )
+        timestamp = BaseCLI.safe_get(last_order, 'timestamp')
         
         if timestamp:
             return datetime.fromtimestamp(timestamp).isoformat()
@@ -362,8 +382,13 @@ class BotPerformanceReporter:
             return
         
         # Calculate summary statistics
+        from ...models.enumerations import AccountStatus
+        from .base import BaseCLI
         total_bots = len(metrics)
-        active_bots = sum(1 for m in metrics if m.status == 'ACTIVE')
+        active_bots = sum(
+            1 for m in metrics 
+            if BaseCLI.safe_get(m, 'status') == AccountStatus.ACTIVE.value
+        )
         total_profit = sum(m.total_profit for m in metrics)
         avg_win_rate = sum(m.win_rate for m in metrics) / total_bots if total_bots > 0 else 0
         

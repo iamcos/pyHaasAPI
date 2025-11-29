@@ -12,7 +12,6 @@ from datetime import datetime
 
 from .base import BaseCLI, CLIConfig
 from ..core.logging import get_logger
-from ..core.type_definitions import LabID, BotID
 from ..exceptions import APIError, ValidationError
 
 logger = get_logger("analysis_cli")

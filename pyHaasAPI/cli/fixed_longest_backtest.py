@@ -227,15 +227,21 @@ class FixedLongestBacktest:
             status = self.check_status_after_wait(lab_id, 5)
             print(f"📊 Status: {status['status']} | Running: {status['is_running']} | Progress: {status['progress']}%")
             
-            # FIXED: Proper status detection using LabStatus enum
-            from pyHaasAPI_v1.model import LabStatus
+            # FIXED: Proper status detection using UserLabStatus enum
+            from ...models.enumerations import UserLabStatus
             
             # Check if status is RUNNING (value 2) or if is_running is True
-            is_running = (status['status'] == LabStatus.RUNNING or 
-                         status['status'] == 2 or 
-                         status['is_running'])
-            is_queued = (status['status'] == LabStatus.QUEUED or 
-                       status['status'] == 1)
+            status_value = status.get('status') if isinstance(status, dict) else getattr(status, 'status', None)
+            is_running = (
+                status_value == UserLabStatus.RUNNING.value or 
+                status_value == 2 or 
+                (isinstance(status, dict) and status.get('is_running', False)) or
+                (not isinstance(status, dict) and getattr(status, 'is_running', False))
+            )
+            is_queued = (
+                status_value == UserLabStatus.QUEUED.value if hasattr(UserLabStatus, 'QUEUED') else False or
+                status_value == 1
+            )
             
             if is_running:
                 print(f"✅ {period_name} WORKS! Backtest is running.")
