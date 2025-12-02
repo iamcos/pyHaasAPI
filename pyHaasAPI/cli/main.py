@@ -260,6 +260,11 @@ Examples:
     )
     download_parser.add_argument('--server-name', help='Server name (for server action)')
     download_parser.add_argument('--lab-id', help='Lab ID (for lab action)')
+    
+    # Analyze subcommand
+    analyze_parser = subparsers.add_parser('analyze', help='Analyze downloaded backtest data')
+    analyze_parser.add_argument('json_file', nargs='?', help='Path to JSON database file (defaults to latest)')
+    analyze_parser.add_argument('--output', '-o', help='Output CSV file path')
 
     # Utils subcommand (direct runners for helper tools)
     utils_parser = subparsers.add_parser('utils', help='Utility tools')
@@ -463,6 +468,30 @@ async def main_async(args: argparse.Namespace) -> int:
             cli_instance = OrderCLI(config)
         elif args.command == 'download':
             cli_instance = DownloadCLI()
+        elif args.command == 'analyze':
+            # Handle analyze command
+            from .analyze_backtests import BacktestAnalyzer
+            import sys
+            
+            json_file = args.json_file
+            if not json_file:
+                # Find latest JSON file
+                from pathlib import Path
+                json_files = sorted(Path('.').glob('COMPLETE_BACKTEST_DATABASE_*.json'), reverse=True)
+                if not json_files:
+                    logger.error("No backtest database JSON file found!")
+                    return 1
+                json_file = str(json_files[0])
+                logger.info(f"Using latest file: {json_file}")
+            
+            analyzer = BacktestAnalyzer(json_file)
+            analyzer.analyze()
+            output_file = analyzer.generate_spreadsheet(args.output)
+            
+            print(f"\n✅ Analysis complete!")
+            print(f"📊 Analyzed {len(analyzer.analysis_results)} labs")
+            print(f"📈 Spreadsheet: {output_file}")
+            return 0
         elif args.command == 'orchestrator':
             # Handle orchestrator command using SimpleOrchestratorCLI
             from .simple_orchestrator_cli import SimpleOrchestratorCLI

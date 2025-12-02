@@ -17,7 +17,15 @@ from ...core.field_utils import (
     safe_get_field, safe_get_nested_field, safe_get_dict_field,
     safe_get_success_flag, safe_get_status, log_field_mapping_issues
 )
-from ...models.bot import BotDetails, BotRecord, BotConfiguration
+
+# Optional import - use Dict if models not available
+try:
+    from ...models.bot import BotDetails, BotRecord, BotConfiguration
+except ImportError:
+    # Use Dict[str, Any] as fallback
+    BotDetails = Dict[str, Any]
+    BotRecord = Dict[str, Any]
+    BotConfiguration = Dict[str, Any]
 
 
 class BotAPI:

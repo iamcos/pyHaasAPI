@@ -15,7 +15,14 @@ from ...core.auth import AuthenticationManager
 from ...exceptions import MarketError, MarketNotFoundError, PriceDataError
 from ...core.logging import get_logger
 from ...core.field_utils import safe_get_dict_field
-from ...models.market import MarketData, PriceData, CloudMarket
+
+# Optional model imports
+try:
+    from ...models.market import MarketData, PriceData, CloudMarket
+except ImportError:
+    MarketData = Dict[str, Any]
+    PriceData = Dict[str, Any]
+    CloudMarket = Dict[str, Any]
 
 
 class MarketAPI:

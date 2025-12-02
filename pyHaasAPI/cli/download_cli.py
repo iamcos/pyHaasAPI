@@ -16,6 +16,8 @@ from pyHaasAPI.config.api_config import APIConfig
 from pyHaasAPI.api.backtest.backtest_api import BacktestAPI
 from pyHaasAPI.api.lab.lab_api import LabAPI
 from pyHaasAPI.cli.base import BaseCLI
+from pyHaasAPI.core.server_manager import ServerManager
+from pyHaasAPI.config.settings import Settings
 
 
 class DownloadCLI(BaseCLI):
@@ -26,6 +28,12 @@ class DownloadCLI(BaseCLI):
         self.results = {}
         self.total_backtests = 0
         self.total_labs = 0
+    
+    async def connect(self) -> bool:
+        """Override connect to skip tunnel check - we manage tunnels ourselves"""
+        # DownloadCLI manages its own connections via ServerManager
+        # Don't call parent connect() which checks for tunnel
+        return True
         
     async def run(self, args: List[str]) -> int:
         """Run the download CLI"""
@@ -71,60 +79,88 @@ class DownloadCLI(BaseCLI):
         print("📥 Download CLI - Comprehensive Backtest Downloader")
         print()
         print("Usage:")
-        print("  download everything                    - Download ALL backtests from ALL servers")
-        print("  download server <server_name>          - Download from specific server")
+        print("  download everything                    - Download ALL backtests from ALL servers (srv01, srv02, srv03)")
+        print("  download server <server_name>          - Download from specific server (srv01, srv02, or srv03)")
         print("  download lab <lab_id>                  - Download from specific lab")
         print("  download backtests-for-labs --server <name> - Download backtests for labs without bots")
         print("  download help                          - Show this help")
         print()
         print("Examples:")
         print("  download everything")
+        print("  download server srv01")
         print("  download server srv02")
+        print("  download server srv03")
         print("  download lab 272bbb66-f2b3-4eae-8c32-714747dcb827")
+        print()
+        print("Note: Uses SSH tunnels managed by ServerManager. Authentication via API_EMAIL and API_PASSWORD from .env")
     
     async def download_everything(self) -> int:
-        """Download everything from everywhere"""
+        """Download everything from everywhere - all 3 servers (srv01, srv02, srv03)"""
         print("🚀 DOWNLOADING EVERYTHING FROM EVERYWHERE...")
-        print("🎯 Target: EVERY backtest from EVERY lab on EVERY server")
+        print("🎯 Target: EVERY backtest from EVERY lab on EVERY server (srv01, srv02, srv03)")
         
         # Define all servers
-        servers = [
-            {'name': 'srv02', 'port': 8090, 'tunnel_cmd': None},  # Already running
-            {'name': 'srv03', 'port': 8091, 'tunnel_cmd': 'ssh -N -L 8091:127.0.0.1:8090 -L 8093:127.0.0.1:8092 prod@srv03'},
-        ]
+        servers = ['srv01', 'srv02', 'srv03']
+        
+        # Initialize ServerManager
+        settings = Settings()
+        server_manager = ServerManager(settings)
         
         successful_servers = []
         
-        # Test and establish connections to each server
-        for server in servers:
-            print(f"\n🌐 Testing connection to {server['name']}...")
+        # Process each server sequentially (single-tunnel policy)
+        for server_name in servers:
+            print(f"\n{'='*60}")
+            print(f"🌐 Processing server: {server_name}")
+            print(f"{'='*60}")
+            
             try:
-                if await self._setup_server_connection(server):
-                    print(f"✅ {server['name']} is accessible")
-                    successful_servers.append(server)
+                # Connect to server using ServerManager
+                print(f"🔗 Establishing SSH tunnel to {server_name}...")
+                if await server_manager.connect_server(server_name):
+                    print(f"✅ Connected to {server_name}")
+                    
+                    # Preflight check
+                    if await server_manager.preflight_check():
+                        print(f"✅ Preflight check passed for {server_name}")
+                        
+                        # Download everything from this server
+                        print(f"📥 Downloading EVERYTHING from {server_name}...")
+                        server_results = await self._download_everything_from_server_via_manager(server_name, server_manager)
+                        self.results[server_name] = server_results
+                        self.total_labs += server_results.get('total_labs', 0)
+                        self.total_backtests += server_results.get('total_backtests', 0)
+                        print(f"✅ {server_name}: {server_results.get('total_labs', 0)} labs, {server_results.get('total_backtests', 0)} backtests")
+                        successful_servers.append(server_name)
+                    else:
+                        print(f"❌ Preflight check failed for {server_name}")
+                        self.results[server_name] = {'error': 'Preflight check failed', 'labs': [], 'total_labs': 0, 'total_backtests': 0}
                 else:
-                    print(f"❌ {server['name']} is not accessible")
+                    print(f"❌ Failed to connect to {server_name}")
+                    self.results[server_name] = {'error': 'Connection failed', 'labs': [], 'total_labs': 0, 'total_backtests': 0}
+                
+                # Disconnect from current server before moving to next (single-tunnel policy)
+                print(f"🔌 Disconnecting from {server_name}...")
+                await server_manager.disconnect_server(server_name)
+                await asyncio.sleep(2)  # Brief pause between servers
+                
             except Exception as e:
-                print(f"❌ Error connecting to {server['name']}: {e}")
+                print(f"❌ Error processing {server_name}: {e}")
+                import traceback
+                traceback.print_exc()
+                self.results[server_name] = {'error': str(e), 'labs': [], 'total_labs': 0, 'total_backtests': 0}
+                
+                # Ensure cleanup
+                try:
+                    await server_manager.disconnect_server(server_name)
+                except Exception:
+                    pass
         
         if not successful_servers:
-            print("❌ No servers are accessible!")
+            print("\n❌ No servers were successfully processed!")
             return 1
         
-        print(f"\n🎯 Found {len(successful_servers)} accessible servers: {[s['name'] for s in successful_servers]}")
-        
-        # Download from each server
-        for server in successful_servers:
-            print(f"\n📥 Downloading EVERYTHING from {server['name']}...")
-            try:
-                server_results = await self._download_everything_from_server(server)
-                self.results[server['name']] = server_results
-                self.total_labs += server_results.get('total_labs', 0)
-                self.total_backtests += server_results.get('total_backtests', 0)
-                print(f"✅ {server['name']}: {server_results.get('total_labs', 0)} labs, {server_results.get('total_backtests', 0)} backtests")
-            except Exception as e:
-                print(f"❌ Error downloading from {server['name']}: {e}")
-                self.results[server['name']] = {'error': str(e), 'labs': [], 'total_labs': 0, 'total_backtests': 0}
+        print(f"\n🎯 Successfully processed {len(successful_servers)} servers: {successful_servers}")
         
         # Save results
         filename = self._save_results()
@@ -139,43 +175,60 @@ class DownloadCLI(BaseCLI):
         """Download everything from a specific server"""
         print(f"🚀 Downloading everything from {server_name}...")
         
-        # Define server config
-        servers = {
-            'srv02': {'name': 'srv02', 'port': 8090, 'tunnel_cmd': None},
-            'srv03': {'name': 'srv03', 'port': 8091, 'tunnel_cmd': 'ssh -N -L 8091:127.0.0.1:8090 -L 8093:127.0.0.1:8092 prod@srv03'},
-        }
-        
-        if server_name not in servers:
+        # Validate server name
+        valid_servers = ['srv01', 'srv02', 'srv03']
+        if server_name not in valid_servers:
             print(f"❌ Unknown server: {server_name}")
-            print("Available servers: srv02, srv03")
+            print(f"Available servers: {', '.join(valid_servers)}")
             return 1
         
-        server = servers[server_name]
+        # Initialize ServerManager
+        settings = Settings()
+        server_manager = ServerManager(settings)
         
         try:
-            if await self._setup_server_connection(server):
-                print(f"✅ {server['name']} is accessible")
+            # Connect to server using ServerManager
+            print(f"🔗 Establishing SSH tunnel to {server_name}...")
+            if await server_manager.connect_server(server_name):
+                print(f"✅ Connected to {server_name}")
                 
-                server_results = await self._download_everything_from_server(server)
-                self.results[server['name']] = server_results
-                self.total_labs += server_results.get('total_labs', 0)
-                self.total_backtests += server_results.get('total_backtests', 0)
-                print(f"✅ {server['name']}: {server_results.get('total_labs', 0)} labs, {server_results.get('total_backtests', 0)} backtests")
-                
-                # Save results
-                filename = self._save_results()
-                print(f"\n💾 Results saved to: {filename}")
-                
-                # Print summary
-                self._print_summary()
-                
-                return 0
+                # Preflight check
+                if await server_manager.preflight_check():
+                    print(f"✅ Preflight check passed for {server_name}")
+                    
+                    # Download everything from this server
+                    print(f"📥 Downloading EVERYTHING from {server_name}...")
+                    server_results = await self._download_everything_from_server_via_manager(server_name, server_manager)
+                    self.results[server_name] = server_results
+                    self.total_labs += server_results.get('total_labs', 0)
+                    self.total_backtests += server_results.get('total_backtests', 0)
+                    print(f"✅ {server_name}: {server_results.get('total_labs', 0)} labs, {server_results.get('total_backtests', 0)} backtests")
+                    
+                    # Save results
+                    filename = self._save_results()
+                    print(f"\n💾 Results saved to: {filename}")
+                    
+                    # Print summary
+                    self._print_summary()
+                    
+                    return 0
+                else:
+                    print(f"❌ Preflight check failed for {server_name}")
+                    return 1
             else:
-                print(f"❌ {server['name']} is not accessible")
+                print(f"❌ Failed to connect to {server_name}")
                 return 1
         except Exception as e:
-            print(f"❌ Error downloading from {server['name']}: {e}")
+            print(f"❌ Error downloading from {server_name}: {e}")
+            import traceback
+            traceback.print_exc()
             return 1
+        finally:
+            # Disconnect from server
+            try:
+                await server_manager.disconnect_server(server_name)
+            except Exception:
+                pass
     
     async def download_from_lab(self, lab_id: str) -> int:
         """Download everything from a specific lab"""
@@ -305,14 +358,14 @@ class DownloadCLI(BaseCLI):
         except Exception:
             return False
     
-    async def _download_everything_from_server(self, server: Dict[str, str]) -> Dict[str, Any]:
-        """Download everything from a specific server"""
-        print(f"🔗 Connecting to {server['name']}...")
+    async def _download_everything_from_server_via_manager(self, server_name: str, server_manager: ServerManager) -> Dict[str, Any]:
+        """Download everything from a specific server using ServerManager"""
+        print(f"🔗 Setting up connection to {server_name}...")
         
-        # Create config for this server
+        # Create config - using standard localhost ports (8090, 8092) via tunnel
         server_config = APIConfig()
         server_config.host = "127.0.0.1"
-        server_config.port = server['port']
+        server_config.port = 8090  # Standard port via tunnel
         
         # Setup client for this server
         client = AsyncHaasClient(server_config)
@@ -322,21 +375,27 @@ class DownloadCLI(BaseCLI):
             # Connect and authenticate
             await client.connect()
             await auth_manager.authenticate()
-            print(f"✅ Authenticated with {server['name']}")
+            print(f"✅ Authenticated with {server_name}")
             
             # Get ALL labs
             lab_api = LabAPI(client, auth_manager)
             labs = await lab_api.get_labs()
-            print(f"📊 Found {len(labs)} labs on {server['name']}")
+            print(f"📊 Found {len(labs)} labs on {server_name}")
             
-            # Filter labs with backtests
-            labs_with_backtests = [lab for lab in labs if lab.completed_backtests > 0]
-            print(f"🎯 {len(labs_with_backtests)} labs have backtests on {server['name']}")
+            # Filter labs with backtests - handle both dict and object access
+            def get_completed_backtests(lab):
+                if isinstance(lab, dict):
+                    # API returns 'CB' for completed backtests
+                    return lab.get('CB', 0) or lab.get('completed_backtests', 0) or lab.get('completedBacktests', 0) or 0
+                return getattr(lab, 'completed_backtests', 0) or getattr(lab, 'completedBacktests', 0) or getattr(lab, 'CB', 0) or 0
+            
+            labs_with_backtests = [lab for lab in labs if get_completed_backtests(lab) > 0]
+            print(f"🎯 {len(labs_with_backtests)} labs have backtests on {server_name}")
             
             if not labs_with_backtests:
-                print(f"⚠️  No labs with backtests found on {server['name']}")
+                print(f"⚠️  No labs with backtests found on {server_name}")
                 return {
-                    'server': server['name'],
+                    'server': server_name,
                     'total_labs': 0,
                     'total_backtests': 0,
                     'labs': [],
@@ -349,14 +408,34 @@ class DownloadCLI(BaseCLI):
             server_total_backtests = 0
             
             for i, lab in enumerate(labs_with_backtests):
-                print(f"\n📥 Lab {i+1}/{len(labs_with_backtests)}: {lab.name}")
-                print(f"   Expected: {lab.completed_backtests} backtests")
+                # Get lab attributes - handle both dict and object
+                def get_lab_attr(lab, attr, default=''):
+                    if isinstance(lab, dict):
+                        # Map common field names to API keys
+                        field_map = {
+                            'lab_id': 'LID',
+                            'name': 'N',
+                            'script_id': 'SID',
+                            'status': 'S',
+                            'scheduled_backtests': 'SB',
+                            'completed_backtests': 'CB'
+                        }
+                        api_key = field_map.get(attr, attr)
+                        return lab.get(api_key, lab.get(attr, lab.get(attr.replace('_', ''), default)))
+                    return getattr(lab, attr, default)
+                
+                lab_name = get_lab_attr(lab, 'name', 'Unknown')
+                lab_id = get_lab_attr(lab, 'lab_id', '')
+                completed_backtests = get_completed_backtests(lab)
+                
+                print(f"\n📥 Lab {i+1}/{len(labs_with_backtests)}: {lab_name}")
+                print(f"   Expected: {completed_backtests} backtests")
                 
                 try:
                     # Download ALL backtests for this lab - NO LIMITS
-                    print(f"   🔄 Downloading ALL backtests (no pagination limits)...")
+                    print(f"   🔄 Downloading ALL backtests (max_pages=1000)...")
                     backtests = await backtest_api.get_all_backtests_for_lab(
-                        lab.lab_id, 
+                        lab_id, 
                         max_pages=1000  # Massive limit to get everything
                     )
                     
@@ -365,12 +444,12 @@ class DownloadCLI(BaseCLI):
                     
                     # Process backtest data
                     lab_data = {
-                        'lab_id': lab.lab_id,
-                        'lab_name': lab.name,
-                        'script_id': lab.script_id,
-                        'status': lab.status,
-                        'completed_backtests': lab.completed_backtests,
-                        'scheduled_backtests': lab.scheduled_backtests,
+                        'lab_id': lab_id,
+                        'lab_name': lab_name,
+                        'script_id': get_lab_attr(lab, 'script_id', ''),
+                        'status': get_lab_attr(lab, 'status', ''),
+                        'completed_backtests': completed_backtests,
+                        'scheduled_backtests': get_lab_attr(lab, 'scheduled_backtests', 0),
                         'downloaded_backtests': len(backtests),
                         'backtests': []
                     }
@@ -424,16 +503,18 @@ class DownloadCLI(BaseCLI):
                             print(f"   📊 Avg Trades: {avg_trades:.1f}")
                 
                 except Exception as e:
-                    print(f"   ❌ Error downloading from lab {lab.name}: {e}")
+                    print(f"   ❌ Error downloading from lab {lab_name}: {e}")
+                    import traceback
+                    traceback.print_exc()
                     server_labs.append({
-                        'lab_id': lab.lab_id,
-                        'lab_name': lab.name,
+                        'lab_id': lab_id,
+                        'lab_name': lab_name,
                         'error': str(e),
                         'backtests': []
                     })
             
             return {
-                'server': server['name'],
+                'server': server_name,
                 'total_labs': len(server_labs),
                 'total_backtests': server_total_backtests,
                 'labs': server_labs,
@@ -441,9 +522,11 @@ class DownloadCLI(BaseCLI):
             }
             
         except Exception as e:
-            print(f"❌ Error with {server['name']}: {e}")
+            print(f"❌ Error with {server_name}: {e}")
+            import traceback
+            traceback.print_exc()
             return {
-                'server': server['name'],
+                'server': server_name,
                 'error': str(e),
                 'total_labs': 0,
                 'total_backtests': 0,
@@ -452,6 +535,12 @@ class DownloadCLI(BaseCLI):
             }
         finally:
             await client.close()
+    
+    async def _download_everything_from_server(self, server: Dict[str, str]) -> Dict[str, Any]:
+        """Legacy method - kept for compatibility"""
+        # This method is deprecated in favor of _download_everything_from_server_via_manager
+        # But kept for backward compatibility
+        return await self._download_everything_from_server_via_manager(server['name'], None)
     
     def _save_results(self) -> str:
         """Save all results to a comprehensive JSON file"""

@@ -26,11 +26,26 @@ from ..api.account.account_api import AccountAPI
 from ..api.script.script_api import ScriptAPI
 from ..api.market.market_api import MarketAPI
 from ..api.backtest.backtest_api import BacktestAPI
-from ..api.order.order_api import OrderAPI
-from ..services.lab.lab_service import LabService
-from ..services.bot.bot_service import BotService
-from ..services.analysis.analysis_service import AnalysisService
-from ..services.reporting.reporting_service import ReportingService
+try:
+    from ..api.order.order_api import OrderAPI
+except ImportError:
+    OrderAPI = None
+try:
+    from ..services.lab.lab_service import LabService
+except ImportError:
+    LabService = None
+try:
+    from ..services.bot.bot_service import BotService
+except ImportError:
+    BotService = None
+try:
+    from ..services.analysis.analysis_service import AnalysisService
+except ImportError:
+    AnalysisService = None
+try:
+    from ..services.reporting.reporting_service import ReportingService
+except ImportError:
+    ReportingService = None
 from ..exceptions import APIError, AuthenticationError, ValidationError
 from ..core.logging import get_logger
 

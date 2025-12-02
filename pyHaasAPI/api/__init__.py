@@ -10,7 +10,10 @@ from .account import AccountAPI
 from .script import ScriptAPI
 from .market import MarketAPI
 from .backtest import BacktestAPI
-from .order import OrderAPI
+try:
+    from .order import OrderAPI
+except ImportError:
+    OrderAPI = None
 
 __all__ = [
     "LabAPI",

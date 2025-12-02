@@ -17,7 +17,14 @@ from ...core.field_utils import (
     safe_get_field, safe_get_nested_field, safe_get_dict_field,
     safe_get_success_flag, safe_get_status, log_field_mapping_issues
 )
-from ...models.account import AccountDetails, AccountRecord, AccountBalance
+
+# Optional model imports
+try:
+    from ...models.account import AccountDetails, AccountRecord, AccountBalance
+except ImportError:
+    AccountDetails = Dict[str, Any]
+    AccountRecord = Dict[str, Any]
+    AccountBalance = Dict[str, Any]
 
 
 class AccountAPI:

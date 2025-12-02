@@ -12,7 +12,21 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-from .type_definitions import ValidationLevel, ValidationConfig
+# Optional import from type_definitions - use stubs if not available
+try:
+    from .type_definitions import ValidationLevel, ValidationConfig
+except ImportError:
+    # Stub definitions if type_definitions is not available
+    class ValidationLevel(Enum):
+        NONE = "none"
+        BASIC = "basic"
+        STRICT = "strict"
+    
+    @dataclass
+    class ValidationConfig:
+        level: ValidationLevel = ValidationLevel.BASIC
+        enable_runtime: bool = True
+        enable_decorator: bool = True
 
 
 class TypeCheckingMode(Enum):

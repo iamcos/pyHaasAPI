@@ -15,12 +15,56 @@ from ...core.client import AsyncHaasClient
 from ...core.auth import AuthenticationManager
 from ...exceptions import BacktestError, BacktestNotFoundError, BacktestExecutionError
 from ...core.logging import get_logger
-from ...models.backtest import (
-    BacktestResult, BacktestRuntimeData, BacktestChart, BacktestLog,
-    ExecuteBacktestRequest, BacktestHistoryRequest, EditBacktestTagRequest,
-    ArchiveBacktestRequest, BacktestExecutionResult, BacktestValidationResult
-)
-from ...models.common import PaginatedResponse
+
+# Optional model imports
+try:
+    from ...models.backtest import (
+        BacktestResult, BacktestRuntimeData, BacktestChart, BacktestLog,
+        ExecuteBacktestRequest, BacktestHistoryRequest, EditBacktestTagRequest,
+        ArchiveBacktestRequest, BacktestExecutionResult, BacktestValidationResult
+    )
+    from ...models.common import PaginatedResponse
+except ImportError:
+    # Fallback - create stub classes
+    from typing import Generic, TypeVar, List, Optional, Dict, Any
+    from dataclasses import dataclass, field
+    from datetime import datetime
+    
+    @dataclass
+    class BacktestResult:
+        backtest_id: str = ""
+        lab_id: str = ""
+        status: int = 0
+        generation_idx: int = 0
+        population_idx: int = 0
+        total_trades: int = 0
+        winning_trades: int = 0
+        losing_trades: int = 0
+        total_profit: float = 0.0
+        total_fees: float = 0.0
+        roi: float = 0.0
+        parameters: Dict[str, Any] = field(default_factory=dict)
+        settings: Dict[str, Any] = field(default_factory=dict)
+        created_at: Optional[datetime] = None
+        updated_at: Optional[datetime] = None
+    
+    BacktestRuntimeData = Dict[str, Any]
+    BacktestChart = Dict[str, Any]
+    BacktestLog = Dict[str, Any]
+    ExecuteBacktestRequest = Dict[str, Any]
+    BacktestHistoryRequest = Dict[str, Any]
+    EditBacktestTagRequest = Dict[str, Any]
+    ArchiveBacktestRequest = Dict[str, Any]
+    BacktestExecutionResult = Dict[str, Any]
+    BacktestValidationResult = Dict[str, Any]
+    
+    T = TypeVar('T')
+    @dataclass
+    class PaginatedResponse(Generic[T]):
+        items: List[T] = field(default_factory=list)
+        totalCount: int = 0
+        hasNext: bool = False
+        next_page_id: Optional[int] = None
 
 logger = get_logger("backtest_api")
 
@@ -42,7 +86,7 @@ class BacktestAPI:
         self, 
         lab_id: str, 
         next_page_id: int = 0, 
-        page_length: int = 100
+        page_length: int = 1500
     ) -> PaginatedResponse[BacktestResult]:
         """
         Get paginated backtest results for a specific lab.
@@ -78,11 +122,13 @@ class BacktestAPI:
                 data=post_data
             )
             
-            # Response structure: {"Success":true,"Data":{"I":[...items...]}}
+            # Response structure: {"Success":true,"Data":{"I":[...items...],"NP":...}}
             # Extract the items array from Data.I
+            # Note: Data.NP might be pagination info (NextPage or NextPageId)
             data = raw.get('Data', {}) if isinstance(raw, dict) else {}
             items_raw = data.get('I', []) if isinstance(data, dict) else []
-            self.logger.info(f"Found {len(items_raw)} raw backtest items")
+            data_np = data.get('NP') if isinstance(data, dict) else None  # Might be next page ID
+            self.logger.info(f"Found {len(items_raw)} raw backtest items, Data.NP={data_np}")
             
             items: List[BacktestResult] = []
             if isinstance(items_raw, list):
@@ -115,12 +161,24 @@ class BacktestAPI:
             has_more = bool((raw.get('HasMore') if isinstance(raw, dict) else False))
             next_id = raw.get('NextPageId') if isinstance(raw, dict) else None
             
-            # Create PaginatedResponse with required fields using aliases
+            # If no NextPageId at top level, check Data.NP - it might be the next page ID
+            if next_id is None and data_np is not None and isinstance(data_np, (int, str)):
+                # Try using Data.NP as next_page_id if we got a full page
+                if len(items) >= 1000:  # Got max page size, there might be more
+                    try:
+                        next_id = int(data_np) if isinstance(data_np, str) else data_np
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Log pagination info at debug level
+            if self.logger.isEnabledFor(10):  # DEBUG level
+                self.logger.debug(f"Pagination: HasMore={has_more}, NextPageId={next_id}, Items={len(items)}, PageLength={page_length}")
+            
+            # Create PaginatedResponse with required fields
             return PaginatedResponse[BacktestResult](
                 items=items,
-                totalCount=len(items),  # Use alias for total_count
-                totalPages=1 if not has_more else 2,  # Use alias for total_pages
-                hasNext=has_more,  # Use alias for has_next
+                totalCount=len(items),
+                hasNext=has_more or (len(items) >= 1000 and next_id is not None),  # Assume more if we got full page and have next_id
                 next_page_id=next_id
             )
             
@@ -736,19 +794,11 @@ class BacktestAPI:
             BacktestError: If the API request fails
         """
         try:
-            all_backtests = []
-            next_page_id = 0
-            page_count = 0
-            
-            while page_count < max_pages:
-                response = await self.get_backtest_result(lab_id, next_page_id, 100)
-                all_backtests.extend(response.items)
-                
-                if not response.has_next or not response.next_page_id:
-                    break
-                    
-                next_page_id = response.next_page_id
-                page_count += 1
+            # Simple: Get first 1000 backtests (API max page size)
+            # API doesn't support proper pagination beyond first 1000
+            page_length = 1000
+            response = await self.get_backtest_result(lab_id, next_page_id=0, page_length=page_length)
+            all_backtests = response.items
             
             self.logger.info(f"Retrieved {len(all_backtests)} backtests for lab {lab_id}")
             return all_backtests

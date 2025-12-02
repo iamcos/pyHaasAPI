@@ -36,12 +36,14 @@ from .type_validation import (
     ValidationResult, TypeValidationError,
     validate_type, convert_to_type, safe_convert
 )
-from .type_definitions import (
-    JSONValue, JSONDict, JSONList,
-    LabID, BotID, AccountID, ScriptID, MarketTag, BacktestID, OrderID,
-    LabStatus, BotStatus, OrderStatus, PositionMode, MarginMode,
-    AsyncClientProtocol, AuthenticationProtocol, CacheProtocol, LoggerProtocol,
-    TimeRange, PaginationParams, FilterParams, SortParams,
+# Optional type_definitions import
+try:
+    from .type_definitions import (
+        JSONValue, JSONDict, JSONList,
+        LabID, BotID, AccountID, ScriptID, MarketTag, BacktestID, OrderID,
+        LabStatus, BotStatus, OrderStatus, PositionMode, MarginMode,
+        AsyncClientProtocol, AuthenticationProtocol, CacheProtocol, LoggerProtocol,
+        TimeRange, PaginationParams, FilterParams, SortParams,
     APIRequest, APIResponse, ClientConfig, AuthConfig, CacheConfig,
     ErrorCode, APIError, PerformanceMetrics, RequestMetrics,
     ValidationLevel, ValidationConfig, FileType, FileInfo,
@@ -52,13 +54,21 @@ from .type_definitions import (
     AsyncIterator, SyncIterator, Factory, AsyncFactory, Registry,
     Configurable, Observable, Stateful, Lifecycle, HealthCheck, Metrics, Timer
 )
-from .type_config import (
-    TypeCheckingMode, TypeCheckingConfig, TypeValidationSettings, TypeConfigManager,
-    get_type_config, get_validation_settings, is_type_checking_enabled,
-    is_runtime_validation_enabled, is_decorator_validation_enabled,
-    is_async_validation_enabled, is_module_excluded, is_function_excluded,
-    update_type_config, save_type_config, get_config_summary
-)
+except ImportError:
+    # type_definitions not available - define minimal stubs if needed
+    pass
+
+try:
+    from .type_config import (
+        TypeCheckingMode, TypeCheckingConfig, TypeValidationSettings, TypeConfigManager,
+        get_type_config, get_validation_settings, is_type_checking_enabled,
+        is_runtime_validation_enabled, is_decorator_validation_enabled,
+        is_async_validation_enabled, is_module_excluded, is_function_excluded,
+        update_type_config, save_type_config, get_config_summary
+    )
+except ImportError:
+    pass
+
 from .type_decorators import (
     TypeChecked, TypeValidated, TypeConverted,
     type_checked, type_validated, type_converted,

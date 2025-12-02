@@ -20,7 +20,11 @@ from ...core.client import AsyncHaasClient
 from ...core.auth import AuthenticationManager
 from ...exceptions import AnalysisError, LabNotFoundError
 from ...core.logging import get_logger
-from ...models.backtest import BacktestResult, BacktestRuntimeData
+try:
+    from ...models.backtest import BacktestResult, BacktestRuntimeData
+except ImportError:
+    BacktestResult = Dict[str, Any]
+    BacktestRuntimeData = Dict[str, Any]
 from ...analysis.metrics import RunMetrics, compute_metrics, calculate_risk_score, calculate_stability_score
 from ...analysis.extraction import BacktestDataExtractor, BacktestSummary, TradeData
 from ...config.analysis_config import get_analysis_config, get_drawdown_policy, validate_drawdown_requirement, get_drawdown_score

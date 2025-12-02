@@ -18,7 +18,14 @@ from ...core.field_utils import (
     safe_get_field, safe_get_nested_field, safe_get_dict_field,
     safe_get_success_flag, log_field_mapping_issues
 )
-from ...models.script import ScriptRecord, ScriptItem, ScriptParameter
+
+# Optional model imports
+try:
+    from ...models.script import ScriptRecord, ScriptItem, ScriptParameter
+except ImportError:
+    ScriptRecord = Dict[str, Any]
+    ScriptItem = Dict[str, Any]
+    ScriptParameter = Dict[str, Any]
 
 
 class ScriptAPI:

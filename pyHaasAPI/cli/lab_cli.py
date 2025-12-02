@@ -12,7 +12,7 @@ from datetime import datetime
 
 from .base import BaseCLI, CLIConfig
 from ..core.logging import get_logger
-from ..models.enumerations import UserLabStatus
+from ..models.enumerations import EnumUserLabStatus as UserLabStatus
 from ..exceptions import APIError, ValidationError
 
 logger = get_logger("lab_cli")
