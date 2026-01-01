@@ -45,7 +45,7 @@ async def test_authentication():
     # Server configuration (using srv03 as default)
     server_config = {
         "host": "127.0.0.1",
-        "port": 8092,  # srv03 port
+        "port": 8090,  # Standard API port
         "timeout": 30.0
     }
     
@@ -65,6 +65,7 @@ async def test_authentication():
         
         # Create client and auth manager
         print("\n🏗️  Creating client and authentication manager...")
+        from pyHaasAPI.core.logging import get_logger
         client = AsyncHaasClient(config)
         auth_manager = AuthenticationManager(client, config)
         
@@ -76,36 +77,25 @@ async def test_authentication():
         
         print("   ✅ Authentication successful!")
         print(f"   👤 User ID: {session.user_id}")
-        print(f"   🔑 Session Key: {session.session_key[:20]}...")
+        print(f"   🔑 Interface Key: {session.interface_key}")
         print(f"   🕒 Authenticated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Test session validity
         print("\n🧪 Testing session validity...")
-        is_authenticated = await auth_manager.is_authenticated()
-        print(f"   Session valid: {'✅ Yes' if is_authenticated else '❌ No'}")
+        valid = await auth_manager.validate_session()
+        print(f"   Session valid: {'✅ Yes' if valid else '❌ No'}")
         
         return True
-        
+    
     except AuthenticationError as e:
         print(f"❌ Authentication failed: {e}")
-        print("   Possible causes:")
-        print("   • Invalid email or password")
-        print("   • Account not found")
-        print("   • Server authentication service unavailable")
         return False
-        
-    except NetworkError as e:
-        print(f"❌ Network error: {e}")
-        print("   Possible causes:")
-        print("   • Server not running")
-        print("   • SSH tunnel not established")
-        print("   • Firewall blocking connection")
-        return False
-        
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
-        print("   This might be a server-side issue or API change")
         return False
+    finally:
+        if 'client' in locals():
+            await client.close()
 
 
 async def main():

@@ -37,8 +37,6 @@ from pyHaasAPI.api.order import OrderAPI
 from pyHaasAPI.services.lab import LabService
 from pyHaasAPI.services.bot import BotService
 from pyHaasAPI.services.analysis import AnalysisService
-from pyHaasAPI.services.analysis_manager import AnalysisManager
-from pyHaasAPI.services.bot_manager import BotManager
 from pyHaasAPI.config.api_config import APIConfig
 from pyHaasAPI.config.logging_config import LoggingConfig
 from pyHaasAPI.core.logging import get_logger
@@ -76,10 +74,6 @@ class ConsolidatedCLI:
         self.lab_service: Optional[LabService] = None
         self.bot_service: Optional[BotService] = None
         self.analysis_service: Optional[AnalysisService] = None
-        
-        # Centralized managers
-        self.analysis_manager: Optional[AnalysisManager] = None
-        self.bot_manager: Optional[BotManager] = None
         
     async def connect(self) -> bool:
         """Connect using v2 authentication and server manager"""
@@ -123,22 +117,36 @@ class ConsolidatedCLI:
             await self.auth_manager.authenticate(email, password)
             
             # Initialize API modules
-            self.lab_api = LabAPI(self.client)
-            self.bot_api = BotAPI(self.client)
-            self.account_api = AccountAPI(self.client)
-            self.backtest_api = BacktestAPI(self.client)
-            self.market_api = MarketAPI(self.client)
-            self.script_api = ScriptAPI(self.client)
-            self.order_api = OrderAPI(self.client)
+            self.lab_api = LabAPI(self.client, self.auth_manager)
+            self.bot_api = BotAPI(self.client, self.auth_manager)
+            self.account_api = AccountAPI(self.client, self.auth_manager)
+            self.backtest_api = BacktestAPI(self.client, self.auth_manager)
+            self.market_api = MarketAPI(self.client, self.auth_manager)
+            self.script_api = ScriptAPI(self.client, self.auth_manager)
+            self.order_api = OrderAPI(self.client, self.auth_manager)
             
             # Initialize services
-            self.lab_service = LabService(self.client)
-            self.bot_service = BotService(self.client)
-            self.analysis_service = AnalysisService(self.client)
-            
-            # Initialize centralized managers
-            self.analysis_manager = AnalysisManager(self.lab_api, self.analysis_service)
-            self.bot_manager = BotManager(self.bot_service)
+            self.lab_service = LabService(
+                self.lab_api, 
+                self.backtest_api, 
+                self.script_api, 
+                self.account_api
+            )
+            self.bot_service = BotService(
+                self.bot_api,
+                self.account_api,
+                self.backtest_api,
+                self.market_api,
+                self.client,
+                self.auth_manager
+            )
+            self.analysis_service = AnalysisService(
+                self.lab_api,
+                self.backtest_api,
+                self.bot_api,
+                self.client,
+                self.auth_manager
+            )
             
             logger.info("✅ Successfully connected to HaasOnline API using v2 client")
             return True
@@ -147,32 +155,78 @@ class ConsolidatedCLI:
             logger.error(f"❌ Failed to connect to HaasOnline API: {e}")
             return False
     
-    async def list_labs(self) -> List[Dict[str, Any]]:
+    async def list_labs(self) -> List[Any]:
         """List all labs using v2 API"""
+        if not self.lab_api:
+            return []
         try:
-            labs = await self.lab_api.get_all_labs()
+            labs = await self.lab_api.get_labs()
             logger.info(f"📋 Found {len(labs)} labs")
             return labs
         except Exception as e:
             logger.error(f"❌ Failed to list labs: {e}")
             return []
     
-    async def analyze_lab(self, lab_id: str, min_winrate: float = 55.0, sort_by: str = "roe") -> Dict[str, Any]:
-        """Analyze a single lab with zero drawdown requirement using centralized manager"""
-        return await self.analysis_manager.analyze_lab_with_zero_drawdown(lab_id, min_winrate, sort_by)
+    async def analyze_lab(self, lab_id: str, min_winrate: float = 0.55, sort_by: str = "roe") -> Any:
+        """Analyze a single lab with zero drawdown requirement"""
+        if not self.analysis_service:
+            return None
+        return await self.analysis_service.analyze_lab_comprehensive(
+            lab_id=lab_id, 
+            min_win_rate=min_winrate, 
+            sort_by=sort_by
+        )
     
-    async def analyze_all_labs(self, min_winrate: float = 55.0, sort_by: str = "roe") -> Dict[str, Any]:
-        """Analyze all labs with zero drawdown requirement using centralized manager"""
-        return await self.analysis_manager.analyze_all_labs_with_zero_drawdown(min_winrate, sort_by)
+    async def analyze_all_labs(self, min_winrate: float = 0.55, sort_by: str = "roe") -> List[Any]:
+        """Analyze all labs with zero drawdown requirement"""
+        if not self.analysis_service or not self.lab_api:
+            return []
+        
+        labs = await self.lab_api.get_labs()
+        results = []
+        for lab in labs:
+            result = await self.analyze_lab(lab.lab_id, min_winrate, sort_by)
+            if result:
+                results.append(result)
+        return results
     
-    async def create_bot_from_backtest(self, backtest_id: str, lab_name: str, script_name: str, 
-                                     roi_percentage: float, win_rate: float) -> Dict[str, Any]:
-        """Create a bot from a backtest using centralized manager"""
-        return await self.bot_manager.create_bot_from_backtest(backtest_id, lab_name, script_name, roi_percentage, win_rate)
-    
-    async def create_bots_from_analysis(self, lab_results: Dict[str, Any], bots_per_lab: int = 2) -> List[Dict[str, Any]]:
-        """Create top bots for each lab with zero drawdown using centralized manager"""
-        return await self.bot_manager.create_bots_from_analysis(lab_results, bots_per_lab)
+    async def create_bot_from_backtest(self, lab_id: str, backtest_id: str, account_id: str, bot_name: Optional[str] = None) -> Any:
+        """Create a bot from a backtest"""
+        if not self.bot_service:
+            return None
+        return await self.bot_service.create_bot_from_lab_analysis(
+            lab_id=lab_id,
+            backtest_id=backtest_id,
+            account_id=account_id,
+            bot_name=bot_name
+        )
+
+    async def create_bots_from_analysis(self, lab_results: List[Any], bots_per_lab: int = 2) -> List[Any]:
+        """Create top bots for each lab from analysis results"""
+        if not self.bot_service or not self.account_api:
+            return []
+            
+        accounts = await self.account_api.get_accounts()
+        if not accounts:
+            logger.error("❌ No accounts found for bot creation")
+            return []
+        
+        account_id = accounts[0].account_id
+        created_bots = []
+        
+        for result in lab_results:
+            # result is LabAnalysisResult
+            for perf in result.top_performers[:bots_per_lab]:
+                bot_result = await self.bot_service.create_bot_from_lab_analysis(
+                    lab_id=result.lab_id,
+                    backtest_id=perf.backtest_id,
+                    account_id=account_id,
+                    lab_name=result.lab_name
+                )
+                if bot_result.success:
+                    created_bots.append(bot_result)
+                    
+        return created_bots
     
     def print_analysis_report(self, lab_results: Dict[str, Any]):
         """Print analysis report"""

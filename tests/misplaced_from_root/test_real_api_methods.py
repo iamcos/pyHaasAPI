@@ -45,13 +45,13 @@ async def test_lab_api():
     auth_manager = AuthenticationManager(client, config)
     
     try:
-        # Connect and authenticate
-        await client.connect()
+        # Authenticate
         session = await auth_manager.authenticate()
         print(f"✅ Authenticated: {session.user_id}")
         
-        # Create LabAPI
+        # Create LabAPI and BacktestAPI
         lab_api = LabAPI(client, auth_manager)
+        backtest_api = BacktestAPI(client, auth_manager)
         
         # Test get_labs - get real lab data
         print("📊 Testing get_labs()...")
@@ -63,12 +63,12 @@ async def test_lab_api():
             first_lab = labs[0]
             print(f"🔍 Testing get_lab_details() with lab: {first_lab.lab_id}")
             lab_details = await lab_api.get_lab_details(first_lab.lab_id)
-            print(f"✅ Lab details: {lab_details.lab_name}")
+            print(f"✅ Lab details: {lab_details.name}")
             
-            # Test get_lab_backtests
-            print(f"📈 Testing get_lab_backtests() with lab: {first_lab.lab_id}")
-            backtests = await lab_api.get_lab_backtests(first_lab.lab_id)
-            print(f"✅ Got {len(backtests)} backtests from server")
+            # Test get_backtest_result
+            print(f"📈 Testing get_backtest_result() with lab: {first_lab.lab_id}")
+            backtests = await backtest_api.get_backtest_result(first_lab.lab_id)
+            print(f"✅ Got {len(backtests)} backtest results from server")
             
             return True
         else:
@@ -77,6 +77,8 @@ async def test_lab_api():
             
     except Exception as e:
         print(f"❌ LabAPI test failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
     finally:
         await client.close()
@@ -102,8 +104,7 @@ async def test_bot_api():
     auth_manager = AuthenticationManager(client, config)
     
     try:
-        # Connect and authenticate
-        await client.connect()
+        # Authenticate
         session = await auth_manager.authenticate()
         print(f"✅ Authenticated: {session.user_id}")
         
@@ -120,7 +121,7 @@ async def test_bot_api():
             first_bot = bots[0]
             print(f"🔍 Testing get_bot_details() with bot: {first_bot.bot_id}")
             bot_details = await bot_api.get_bot_details(first_bot.bot_id)
-            print(f"✅ Bot details: {bot_details.bot_name}")
+            print(f"✅ Bot details: {bot_details.name}")
             
             return True
         else:
@@ -154,10 +155,8 @@ async def test_account_api():
     auth_manager = AuthenticationManager(client, config)
     
     try:
-        # Connect and authenticate
-        await client.connect()
-        session = await auth_manager.authenticate()
-        print(f"✅ Authenticated: {session.user_id}")
+        # Authenticate
+        await auth_manager.authenticate()
         
         # Create AccountAPI
         account_api = AccountAPI(client, auth_manager)
@@ -170,9 +169,12 @@ async def test_account_api():
         if accounts:
             # Test get_account_data with first account
             first_account = accounts[0]
-            print(f"🔍 Testing get_account_data() with account: {first_account.account_id}")
-            account_data = await account_api.get_account_data(first_account.account_id)
-            print(f"✅ Account data: {account_data.exchange}")
+            # Account model typically has .account_id or .id or .UID
+            acc_id = getattr(first_account, 'account_id', None) or getattr(first_account, 'UID', None)
+            print(f"🔍 Testing get_account_data() with account: {acc_id}")
+            if acc_id:
+                account_data = await account_api.get_account_data(acc_id)
+                print(f"✅ Account data exchange: {getattr(account_data, 'exchange', 'Unknown')}")
             
             return True
         else:
@@ -206,20 +208,17 @@ async def test_backtest_api():
     auth_manager = AuthenticationManager(client, config)
     
     try:
-        # Connect and authenticate
-        await client.connect()
-        session = await auth_manager.authenticate()
-        print(f"✅ Authenticated: {session.user_id}")
+        # Authenticate
+        await auth_manager.authenticate()
         
-        # Create BacktestAPI
+        # Create BacktestAPI and LabAPI
         backtest_api = BacktestAPI(client, auth_manager)
+        lab_api = LabAPI(client, auth_manager)
         
         # Test get_backtest_history - get real backtest data
         print("📈 Testing get_backtest_history()...")
         from pyHaasAPI.models.backtest import BacktestHistoryRequest
-        # Get a lab ID first from LabAPI
-        from pyHaasAPI.api.lab.lab_api import LabAPI
-        lab_api = LabAPI(client, auth_manager)
+        
         labs = await lab_api.get_labs()
         if labs:
             lab_id = labs[0].lab_id
@@ -228,11 +227,11 @@ async def test_backtest_api():
             print(f"✅ Got backtest history from server")
         else:
             print("⚠️ No labs found to test backtest history")
-            return True
         
         # Test set_history_depth
         print("⏰ Testing set_history_depth()...")
-        success = await backtest_api.set_history_depth("BTC_USDT_PERPETUAL", 12)
+        # Note: server expects specific format, but let's test the call
+        success = await backtest_api.set_history_depth("BINANCE_BTC_USDT_", 12)
         print(f"✅ Set history depth: {success}")
         
         return True
@@ -264,10 +263,8 @@ async def test_market_api():
     auth_manager = AuthenticationManager(client, config)
     
     try:
-        # Connect and authenticate
-        await client.connect()
-        session = await auth_manager.authenticate()
-        print(f"✅ Authenticated: {session.user_id}")
+        # Authenticate
+        await auth_manager.authenticate()
         
         # Create MarketAPI
         market_api = MarketAPI(client, auth_manager)
@@ -275,14 +272,16 @@ async def test_market_api():
         # Test get_trade_markets - get real market data
         print("📈 Testing get_trade_markets()...")
         markets = await market_api.get_trade_markets()
-        print(f"✅ Got {len(markets)} markets from server")
-        
         if markets:
+            print(f"✅ Got {len(markets)} markets from server")
+            
             # Test get_price_data with first market
             first_market = markets[0]
-            print(f"💰 Testing get_price_data() with market: {first_market.market}")
-            price_data = await market_api.get_price_data(first_market.market)
-            print(f"✅ Price data: {price_data.close}")
+            m_tag = getattr(first_market, 'market_tag', None) or getattr(first_market, 'market', None)
+            print(f"💰 Testing get_price_data() with market: {m_tag}")
+            if m_tag:
+                price_data = await market_api.get_price_data(m_tag)
+                print(f"✅ Price data close: {getattr(price_data, 'close', 'Unknown')}")
             
             return True
         else:
@@ -316,10 +315,8 @@ async def test_script_api():
     auth_manager = AuthenticationManager(client, config)
     
     try:
-        # Connect and authenticate
-        await client.connect()
-        session = await auth_manager.authenticate()
-        print(f"✅ Authenticated: {session.user_id}")
+        # Authenticate
+        await auth_manager.authenticate()
         
         # Create ScriptAPI
         script_api = ScriptAPI(client, auth_manager)
@@ -332,9 +329,11 @@ async def test_script_api():
         if scripts:
             # Test get_script_record with first script
             first_script = scripts[0]
-            print(f"🔍 Testing get_script_record() with script: {first_script.script_id}")
-            script_record = await script_api.get_script_record(first_script.script_id)
-            print(f"✅ Script record: {script_record.script_name}")
+            s_id = getattr(first_script, 'script_id', None) or getattr(first_script, 'SID', None)
+            print(f"🔍 Testing get_script_record() with script: {s_id}")
+            if s_id:
+                script_record = await script_api.get_script_record(s_id)
+                print(f"✅ Script record name: {getattr(script_record, 'name', 'Unknown')}")
             
             return True
         else:

@@ -34,109 +34,11 @@ class ServerOverview:
     """Comprehensive server overview utility."""
     
     def __init__(self):
-        self.servers = {
-            "srv01": {"host": "127.0.0.1", "port": 8090},
-            "srv02": {"host": "127.0.0.1", "port": 8091}, 
-            "srv03": {"host": "127.0.0.1", "port": 8092}
-        }
-        self.results = {}
-    
-    async def analyze_server(self, server_name: str, config: APIConfig) -> Dict[str, Any]:
-        """Analyze a specific server for labs and bots."""
-        print(f"\n🔍 Analyzing {server_name}...")
+        self.host = "127.0.0.1"
+        self.port = 8090
         
-        try:
-            # Create client and auth manager
-            client = AsyncHaasClient(config)
-            auth_manager = AuthenticationManager(client, config)
-            
-            # Authenticate
-            print(f"   Authenticating with {server_name}...")
-            session = await auth_manager.authenticate()
-            print(f"   ✅ Authentication successful: {session.user_id}")
-            
-            # Create APIs
-            lab_api = LabAPI(client, auth_manager)
-            bot_api = BotAPI(client, auth_manager)
-            
-            # Get labs
-            print(f"   📋 Fetching labs from {server_name}...")
-            labs = await lab_api.get_labs()
-            print(f"   ✅ Found {len(labs)} labs")
-            
-            # Get bots
-            print(f"   🤖 Fetching bots from {server_name}...")
-            bots = await bot_api.get_all_bots()
-            print(f"   ✅ Found {len(bots)} bots")
-            
-            # Analyze data
-            active_bots = [bot for bot in bots if bot.is_active]
-            inactive_bots = [bot for bot in bots if not bot.is_active]
-            
-            # Get unique markets and scripts
-            markets = set()
-            scripts = set()
-            
-            for lab in labs:
-                if hasattr(lab, 'market_tag') and lab.market_tag:
-                    markets.add(lab.market_tag)
-                if hasattr(lab, 'script_name') and lab.script_name:
-                    scripts.add(lab.script_name)
-            
-            for bot in bots:
-                if hasattr(bot, 'market_tag') and bot.market_tag:
-                    markets.add(bot.market_tag)
-                if hasattr(bot, 'script_name') and bot.script_name:
-                    scripts.add(bot.script_name)
-            
-            return {
-                "server": server_name,
-                "success": True,
-                "user_id": session.user_id,
-                "labs": {
-                    "total": len(labs),
-                    "labs": labs
-                },
-                "bots": {
-                    "total": len(bots),
-                    "active": len(active_bots),
-                    "inactive": len(inactive_bots),
-                    "bots": bots
-                },
-                "markets": {
-                    "count": len(markets),
-                    "list": list(markets)
-                },
-                "scripts": {
-                    "count": len(scripts),
-                    "list": list(scripts)
-                }
-            }
-            
-        except AuthenticationError as e:
-            print(f"   ❌ Authentication failed for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Authentication failed: {e}"
-            }
-        except NetworkError as e:
-            print(f"   ❌ Network error for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Network error: {e}"
-            }
-        except Exception as e:
-            print(f"   ❌ Unexpected error for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Unexpected error: {e}"
-            }
-    
     async def generate_overview(self) -> Dict[str, Any]:
-        """Generate comprehensive overview of all servers."""
+        """Generate comprehensive overview of the server."""
         print("🚀 pyHaasAPI v2 - Comprehensive Server Overview")
         print("=" * 60)
         
@@ -146,153 +48,90 @@ class ServerOverview:
         
         if not email or not password:
             print("❌ Error: API_EMAIL and API_PASSWORD environment variables must be set")
-            print("   Please create a .env file with your credentials:")
-            print("   API_EMAIL=your_email@example.com")
-            print("   API_PASSWORD=your_password")
             return {"error": "Missing credentials"}
         
-        results = {}
-        total_labs = 0
-        total_bots = 0
-        total_active_bots = 0
-        all_markets = set()
-        all_scripts = set()
-        
-        # Analyze each server
-        for server_name, server_config in self.servers.items():
+        try:
+            # Create configuration
             config = APIConfig(
                 email=email,
                 password=password,
-                host=server_config["host"],
-                port=server_config["port"],
+                host=self.host,
+                port=self.port,
                 timeout=30.0
             )
             
-            result = await self.analyze_server(server_name, config)
-            results[server_name] = result
+            # Create client and auth manager
+            client = AsyncHaasClient(config)
+            auth_manager = AuthenticationManager(client, config)
             
-            if result["success"]:
-                total_labs += result["labs"]["total"]
-                total_bots += result["bots"]["total"]
-                total_active_bots += result["bots"]["active"]
-                all_markets.update(result["markets"]["list"])
-                all_scripts.update(result["scripts"]["list"])
-        
-        # Display comprehensive summary
-        print("\n" + "=" * 60)
-        print("📊 COMPREHENSIVE SUMMARY")
-        print("=" * 60)
-        
-        successful_servers = 0
-        for server_name, result in results.items():
-            if result["success"]:
-                successful_servers += 1
-                print(f"✅ {server_name}:")
-                print(f"   🧪 Labs: {result['labs']['total']}")
-                print(f"   🤖 Bots: {result['bots']['total']} ({result['bots']['active']} active)")
-                print(f"   📈 Markets: {result['markets']['count']}")
-                print(f"   📜 Scripts: {result['scripts']['count']}")
-                print(f"   👤 User: {result['user_id']}")
-            else:
-                print(f"❌ {server_name}: Failed - {result['error']}")
-        
-        print(f"\n🎯 GLOBAL TOTALS:")
-        print(f"   🌐 Servers: {successful_servers}/{len(self.servers)} connected")
-        print(f"   🧪 Total Labs: {total_labs}")
-        print(f"   🤖 Total Bots: {total_bots} ({total_active_bots} active)")
-        print(f"   📈 Unique Markets: {len(all_markets)}")
-        print(f"   📜 Unique Scripts: {len(all_scripts)}")
-        
-        # Display detailed information
-        if successful_servers > 0:
+            # Authenticate
+            print(f"🔗 Connecting to Haas API at {self.host}:{self.port}...")
+            await auth_manager.authenticate()
+            print(f"✅ Authentication successful")
+            
+            # Create APIs
+            lab_api = LabAPI(client, auth_manager)
+            bot_api = BotAPI(client, auth_manager)
+            
+            # Get data
+            print("📋 Fetching labs...")
+            labs = await lab_api.get_labs()
+            print("🤖 Fetching bots...")
+            bots = await bot_api.get_all_bots()
+            
+            # Analyze
+            active_bots = [b for b in bots if getattr(b, 'is_active', False)]
+            
+            markets = set()
+            scripts = set()
+            
+            for lab in labs:
+                # lab is LabRecord
+                if getattr(lab, 'market_tag', None):
+                    markets.add(lab.market_tag)
+                if getattr(lab, 'script_name', None):
+                    scripts.add(lab.script_name)
+                    
+            for bot in bots:
+                # bot is BotDetails
+                if getattr(bot, 'market_tag', None):
+                    markets.add(bot.market_tag)
+                if getattr(bot, 'script_name', None):
+                    scripts.add(bot.script_name)
+            
+            # Display results
             print("\n" + "=" * 60)
-            print("📋 DETAILED BREAKDOWN")
+            print("📊 SERVER SUMMARY")
             print("=" * 60)
+            print(f"🧪 Total Labs: {len(labs)}")
+            print(f"🤖 Total Bots: {len(bots)} ({len(active_bots)} active)")
+            print(f"📈 Unique Markets: {len(markets)}")
+            print(f"📜 Unique Scripts: {len(scripts)}")
             
-            # Markets breakdown
-            if all_markets:
-                print(f"\n📈 MARKETS ({len(all_markets)} total):")
-                for market in sorted(all_markets):
-                    print(f"   • {market}")
-            
-            # Scripts breakdown
-            if all_scripts:
-                print(f"\n📜 SCRIPTS ({len(all_scripts)} total):")
-                for script in sorted(all_scripts):
-                    print(f"   • {script}")
-            
-            # Server-specific details
-            for server_name, result in results.items():
-                if result["success"]:
-                    print(f"\n📡 {server_name.upper()} DETAILS:")
-                    print("-" * 40)
+            if markets:
+                print("\n📈 MARKETS:")
+                for m in sorted(list(markets)):
+                    print(f"   • {m}")
                     
-                    # Labs
-                    if result["labs"]["labs"]:
-                        print(f"🧪 LABS ({result['labs']['total']}):")
-                        for i, lab in enumerate(result["labs"]["labs"][:5], 1):  # Show first 5
-                            print(f"   {i}. {lab.name} ({lab.market_tag})")
-                        if result["labs"]["total"] > 5:
-                            print(f"   ... and {result['labs']['total'] - 5} more")
-                    
-                    # Bots
-                    if result["bots"]["bots"]:
-                        print(f"🤖 BOTS ({result['bots']['total']}):")
-                        active_bots = [bot for bot in result["bots"]["bots"] if bot.is_active]
-                        inactive_bots = [bot for bot in result["bots"]["bots"] if not bot.is_active]
-                        
-                        if active_bots:
-                            print(f"   🟢 Active ({len(active_bots)}):")
-                            for i, bot in enumerate(active_bots[:3], 1):  # Show first 3
-                                print(f"      {i}. {bot.name} ({bot.market_tag})")
-                            if len(active_bots) > 3:
-                                print(f"      ... and {len(active_bots) - 3} more")
-                        
-                        if inactive_bots:
-                            print(f"   🔴 Inactive ({len(inactive_bots)}):")
-                            for i, bot in enumerate(inactive_bots[:3], 1):  # Show first 3
-                                print(f"      {i}. {bot.name} ({bot.market_tag})")
-                            if len(inactive_bots) > 3:
-                                print(f"      ... and {len(inactive_bots) - 3} more")
-        
-        return {
-            "total_servers": len(self.servers),
-            "successful_servers": successful_servers,
-            "total_labs": total_labs,
-            "total_bots": total_bots,
-            "total_active_bots": total_active_bots,
-            "unique_markets": len(all_markets),
-            "unique_scripts": len(all_scripts),
-            "results": results
-        }
-
+            if scripts:
+                print("\n📜 SCRIPTS:")
+                for s in sorted(list(scripts)):
+                    print(f"   • {s}")
+            
+            await client.close()
+            return {"success": True}
+            
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            if 'client' in locals():
+                await client.close()
+            return {"success": False, "error": str(e)}
 
 async def main():
     """Main function to run the comprehensive overview example."""
     overview = ServerOverview()
-    
-    try:
-        results = await overview.generate_overview()
-        
-        if "error" in results:
-            print(f"\n❌ Example failed: {results['error']}")
-            return 1
-        
-        print(f"\n✅ Comprehensive overview completed successfully!")
-        print(f"   Connected to {results['successful_servers']}/{results['total_servers']} servers")
-        print(f"   Found {results['total_labs']} labs and {results['total_bots']} bots")
-        print(f"   Active bots: {results['total_active_bots']}")
-        print(f"   Unique markets: {results['unique_markets']}")
-        print(f"   Unique scripts: {results['unique_scripts']}")
-        
-        return 0
-        
-    except KeyboardInterrupt:
-        print("\n\n⏹️  Example interrupted by user")
-        return 1
-    except Exception as e:
-        print(f"\n❌ Example failed with unexpected error: {e}")
-        return 1
+    result = await overview.generate_overview()
+    return 0 if result.get("success") else 1
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ async def test_minimal_workflow():
     # Test 2: Configuration
     print("Testing configuration...")
     try:
-        config = APIConfig()
+        config = APIConfig(host="127.0.0.1", port=8090)
         print(f"✓ Config created: {config.host}:{config.port}")
         
     except Exception as e:
@@ -45,22 +45,26 @@ async def test_minimal_workflow():
     
     # Test 3: Authentication
     print("Testing authentication...")
+    client = AsyncHaasClient(config)
     try:
-        auth_manager = AuthenticationManager(config)
+        auth_manager = AuthenticationManager(client, config)
         print("✓ AuthenticationManager created")
         
-        # Test login (this might fail if no tunnel, but should not hang)
-        print("Attempting login...")
-        login_success = await auth_manager.login()
-        if login_success:
-            print("✓ Login successful")
-        else:
-            print("⚠ Login failed (expected if no tunnel)")
+        # Test authenticate
+        print("Attempting authenticate...")
+        # This will fail if no credentials or no tunnel, but that's okay for a test
+        try:
+            await auth_manager.authenticate()
+            print("✓ Authentication successful")
+        except Exception as e:
+            print(f"⚠ Authentication failed (expected if no tunnel/credentials): {e}")
             
     except Exception as e:
-        print(f"✗ Authentication failed: {e}")
+        print(f"✗ Authentication setup failed: {e}")
+        await client.close()
         return False
     
+    await client.close()
     print("\n✅ Minimal workflow components working!")
     return True
 

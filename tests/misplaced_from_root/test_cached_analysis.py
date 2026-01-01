@@ -10,9 +10,14 @@ from pyHaasAPI.services.analysis.cached_analysis_service import CachedAnalysisSe
 async def test_cached_analysis():
     """Test the cached analysis service"""
     try:
-        # Set up cache directory
-        cache_dir = Path("/Users/georgiigavrilenko/Documents/GitHub/pyHaasAPI/unified_cache")
+        # Set up cache directory - use relative path to project root
+        project_root = Path(__file__).parent.parent.parent
+        cache_dir = project_root / "unified_cache"
         
+        if not cache_dir.exists():
+            print(f"⚠ Cache directory {cache_dir} does not exist. Using current directory/unified_cache instead.")
+            cache_dir = Path("unified_cache")
+            
         # Create service
         service = CachedAnalysisService(cache_dir)
         

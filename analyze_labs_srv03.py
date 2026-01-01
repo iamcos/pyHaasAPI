@@ -19,11 +19,23 @@ async def analyze_labs():
         from pyHaasAPI.api.lab import LabAPI
         from pyHaasAPI.config.api_config import APIConfig
         from pyHaasAPI.config.logging_config import LoggingConfig
+        from pyHaasAPI.core.server_manager import ServerManager
+        from pyHaasAPI.config.settings import Settings
         
-        # Set credentials
-        os.environ['API_EMAIL'] = 'your_email@example.com'
-        os.environ['API_PASSWORD'] = 'your_password'
+        # Set credentials from environment
+        email = os.getenv('API_EMAIL')
+        password = os.getenv('API_PASSWORD')
         
+        if not email or not password:
+            print("❌ Error: API_EMAIL and API_PASSWORD environment variables are required")
+            return
+        
+        # Ensure tunnel
+        sm = ServerManager(Settings())
+        if not await sm.ensure_srv03_tunnel():
+            print("❌ Failed to establish tunnel to srv03")
+            return
+            
         # Create config
         logging_config = LoggingConfig()
         config = APIConfig(host='127.0.0.1', port=8090, logging=logging_config)
@@ -35,7 +47,7 @@ async def analyze_labs():
         print("🔐 Authenticating with srv03...")
         
         # Authenticate
-        await auth_manager.authenticate('your_email@example.com', 'your_password')
+        await auth_manager.authenticate(email, password)
         print("✅ Authentication successful")
         
         # Get labs
@@ -54,9 +66,9 @@ async def analyze_labs():
         cached_labs = []
         
         for i, lab in enumerate(labs, 1):
-            lab_id = getattr(lab, 'id', 'Unknown')
-            lab_name = getattr(lab, 'name', 'Unknown')
-            market_tag = getattr(lab, 'market_tag', 'Unknown')
+            lab_id = lab.lab_id
+            lab_name = lab.name
+            market_tag = lab.settings.market_tag if hasattr(lab, 'settings') else "Unknown"
             status = getattr(lab, 'status', 'Unknown')
             
             print(f"\n{i:2d}. Lab ID: {lab_id}")
@@ -67,10 +79,11 @@ async def analyze_labs():
             # Check if lab has backtests (indicating it's cached)
             try:
                 # Try to get lab details to check for backtests
-                lab_details = await lab_api.get_lab(lab_id)
+                lab_details = await lab_api.get_lab_details(lab_id)
                 if lab_details:
                     # Check if lab has backtest data
-                    has_backtests = hasattr(lab_details, 'backtests') or hasattr(lab_details, 'backtest_count')
+                    # In v2 models, LabDetails might have backtest_count or similar
+                    has_backtests = getattr(lab_details, 'backtest_count', 0) > 0
                     if has_backtests:
                         cached_labs.append({
                             'id': lab_id,
@@ -78,7 +91,7 @@ async def analyze_labs():
                             'market': market_tag,
                             'status': status
                         })
-                        print(f"    📊 Status: CACHED (has backtests)")
+                        print(f"    📊 Status: CACHED ({lab_details.backtest_count} backtests)")
                     else:
                         uncached_labs.append({
                             'id': lab_id,
@@ -135,13 +148,15 @@ async def analyze_labs():
         else:
             print("All labs are already cached. Consider running backtests on existing labs.")
         
-        await auth_manager.logout()
+        await client.close()
         print("\n✅ Analysis complete!")
         
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
+        if 'client' in locals():
+            await client.close()
 
 if __name__ == "__main__":
     asyncio.run(analyze_labs())

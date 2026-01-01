@@ -29,124 +29,18 @@ from pyHaasAPI.exceptions import LabError, AuthenticationError, NetworkError
 
 
 class LabLister:
-    """Lab listing utility for multiple servers."""
+    """Lab listing utility for HaasOnline servers."""
     
     def __init__(self):
-        self.servers = {
-            "srv01": {"host": "127.0.0.1", "port": 8090},
-            "srv02": {"host": "127.0.0.1", "port": 8091}, 
-            "srv03": {"host": "127.0.0.1", "port": 8092}
-        }
-        self.results = {}
-    
-    async def list_labs_for_server(self, server_name: str, config: APIConfig) -> Dict[str, Any]:
-        """List all labs for a specific server."""
-        print(f"\n🔍 Connecting to {server_name}...")
+        # Default to srv03 as it is the most reliable in this environment
+        self.default_server = "srv03"
+        self.host = "127.0.0.1"
+        self.port = 8090
         
-        try:
-            # Create client and auth manager
-            client = AsyncHaasClient(config)
-            auth_manager = AuthenticationManager(client, config)
-            
-            # Authenticate
-            print(f"   Authenticating with {server_name}...")
-            session = await auth_manager.authenticate()
-            print(f"   ✅ Authentication successful: {session.user_id}")
-            
-            # Create lab API
-            lab_api = LabAPI(client, auth_manager)
-            
-            # Get all labs
-            print(f"   📋 Fetching labs from {server_name}...")
-            labs = await lab_api.get_labs()
-            
-            print(f"   ✅ Found {len(labs)} labs on {server_name}")
-            
-            # Get detailed information for each lab
-            lab_details = []
-            for lab in labs:
-                try:
-                    details = await lab_api.get_lab_details(lab.lab_id)
-                    lab_details.append(details)
-                except Exception as e:
-                    print(f"   ⚠️  Could not get details for lab {lab.lab_id}: {e}")
-                    lab_details.append(lab)  # Use basic lab record
-            
-            return {
-                "server": server_name,
-                "success": True,
-                "lab_count": len(labs),
-                "labs": lab_details,
-                "user_id": session.user_id
-            }
-            
-        except AuthenticationError as e:
-            print(f"   ❌ Authentication failed for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Authentication failed: {e}",
-                "lab_count": 0,
-                "labs": []
-            }
-        except NetworkError as e:
-            print(f"   ❌ Network error for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Network error: {e}",
-                "lab_count": 0,
-                "labs": []
-            }
-        except LabError as e:
-            print(f"   ❌ Lab API error for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Lab API error: {e}",
-                "lab_count": 0,
-                "labs": []
-            }
-        except Exception as e:
-            print(f"   ❌ Unexpected error for {server_name}: {e}")
-            return {
-                "server": server_name,
-                "success": False,
-                "error": f"Unexpected error: {e}",
-                "lab_count": 0,
-                "labs": []
-            }
-    
-    def format_lab_info(self, lab) -> str:
-        """Format lab information for display."""
-        info_lines = []
-        
-        # Basic info
-        info_lines.append(f"      Name: {lab.name}")
-        info_lines.append(f"      ID: {lab.lab_id}")
-        info_lines.append(f"      Script: {lab.script_name}")
-        info_lines.append(f"      Market: {lab.market_tag}")
-        
-        # Status info
-        if hasattr(lab, 'status'):
-            status_emoji = "🟢" if lab.status == "ACTIVE" else "🔴" if lab.status == "INACTIVE" else "🟡"
-            info_lines.append(f"      Status: {status_emoji} {lab.status}")
-        
-        # Configuration info
-        if hasattr(lab, 'config') and lab.config:
-            info_lines.append(f"      Max Generations: {lab.config.max_generations}")
-            info_lines.append(f"      Max Parallel: {lab.config.max_parallel}")
-        
-        # Creation date
-        if hasattr(lab, 'created_at') and lab.created_at:
-            info_lines.append(f"      Created: {lab.created_at}")
-        
-        return "\n".join(info_lines)
-    
-    async def list_all_labs(self) -> Dict[str, Any]:
-        """List all labs across all available servers."""
-        print("🚀 pyHaasAPI v2 - List All Labs Example")
-        print("=" * 50)
+    async def list_labs(self) -> Dict[str, Any]:
+        """List all labs and their details."""
+        print(f"🚀 pyHaasAPI v2 - List All Labs")
+        print("=" * 60)
         
         # Load environment variables
         email = os.getenv('API_EMAIL')
@@ -154,93 +48,83 @@ class LabLister:
         
         if not email or not password:
             print("❌ Error: API_EMAIL and API_PASSWORD environment variables must be set")
-            print("   Please create a .env file with your credentials:")
-            print("   API_EMAIL=your_email@example.com")
-            print("   API_PASSWORD=your_password")
             return {"error": "Missing credentials"}
         
-        results = {}
-        total_labs = 0
-        
-        # Try each server
-        for server_name, server_config in self.servers.items():
+        try:
+            # Create configuration
             config = APIConfig(
                 email=email,
                 password=password,
-                host=server_config["host"],
-                port=server_config["port"],
+                host=self.host,
+                port=self.port,
                 timeout=30.0
             )
             
-            result = await self.list_labs_for_server(server_name, config)
-            results[server_name] = result
+            # Create client and auth manager
+            client = AsyncHaasClient(config)
+            auth_manager = AuthenticationManager(client, config)
             
-            if result["success"]:
-                total_labs += result["lab_count"]
-        
-        # Display summary
-        print("\n" + "=" * 50)
-        print("📊 SUMMARY")
-        print("=" * 50)
-        
-        successful_servers = 0
-        for server_name, result in results.items():
-            if result["success"]:
-                successful_servers += 1
-                print(f"✅ {server_name}: {result['lab_count']} labs (User: {result.get('user_id', 'Unknown')})")
-            else:
-                print(f"❌ {server_name}: Failed - {result['error']}")
-        
-        print(f"\n🎯 Total: {successful_servers}/{len(self.servers)} servers connected")
-        print(f"🧪 Total labs found: {total_labs}")
-        
-        # Display detailed lab information
-        if total_labs > 0:
-            print("\n" + "=" * 50)
-            print("🧪 LAB DETAILS")
-            print("=" * 50)
+            # Authenticate
+            print(f"🔗 Connecting to Haas API at {self.host}:{self.port}...")
+            await auth_manager.authenticate()
+            print(f"✅ Authentication successful")
             
-            for server_name, result in results.items():
-                if result["success"] and result["labs"]:
-                    print(f"\n📡 {server_name.upper()} ({result['lab_count']} labs):")
-                    print("-" * 30)
-                    
-                    for i, lab in enumerate(result["labs"], 1):
-                        print(f"  {i:2d}. 🧪 {lab.name}")
-                        print(self.format_lab_info(lab))
-                        print()
-        
-        return {
-            "total_servers": len(self.servers),
-            "successful_servers": successful_servers,
-            "total_labs": total_labs,
-            "results": results
-        }
-
+            # Create lab API
+            lab_api = LabAPI(client, auth_manager)
+            
+            # Get all labs
+            print(f"📋 Fetching labs...")
+            labs = await lab_api.get_labs()
+            print(f"✅ Found {len(labs)} labs")
+            
+            detailed_labs = []
+            for lab in labs:
+                try:
+                    # lab here is a LabRecord, it has .name, .lab_id, etc. (mapped from N, LID)
+                    print(f"   🔍 Getting details for: {lab.name} ({lab.lab_id[:8]})")
+                    details = await lab_api.get_lab_details(lab.lab_id)
+                    detailed_labs.append(details)
+                except Exception as e:
+                    print(f"   ⚠️  Could not get details for {lab.lab_id}: {e}")
+                    detailed_labs.append(lab)
+            
+            # Display summary
+            print("\n" + "=" * 60)
+            print(f"🧪 LAB DETAILS ({len(detailed_labs)} labs)")
+            print("=" * 60)
+            
+            for i, lab in enumerate(detailed_labs, 1):
+                status_emoji = "🟢" if getattr(lab, 'status', '') == "ACTIVE" else "🟡"
+                print(f"{i:2d}. {status_emoji} {lab.name}")
+                print(f"      ID: {lab.lab_id}")
+                print(f"      Script: {getattr(lab, 'script_name', 'Unknown')}")
+                
+                if hasattr(lab, 'settings'):
+                    print(f"      Market: {lab.settings.market_tag}")
+                    print(f"      Trade Amount: {lab.settings.trade_amount}")
+                elif hasattr(lab, 'market_tag'): # Fallback for LabRecord
+                    print(f"      Market: {lab.market_tag}")
+                
+                if hasattr(lab, 'backtest_count'):
+                    print(f"      Backtests: {lab.backtest_count}")
+                elif hasattr(lab, 'completed_backtests'):
+                    print(f"      Backtests: {lab.completed_backtests}")
+                print()
+            
+            await client.close()
+            return {"success": True, "count": len(detailed_labs)}
+            
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            if 'client' in locals():
+                await client.close()
+            return {"success": False, "error": str(e)}
 
 async def main():
     """Main function to run the lab listing example."""
     lister = LabLister()
-    
-    try:
-        results = await lister.list_all_labs()
-        
-        if "error" in results:
-            print(f"\n❌ Example failed: {results['error']}")
-            return 1
-        
-        print(f"\n✅ Example completed successfully!")
-        print(f"   Connected to {results['successful_servers']}/{results['total_servers']} servers")
-        print(f"   Found {results['total_labs']} total labs")
-        
-        return 0
-        
-    except KeyboardInterrupt:
-        print("\n\n⏹️  Example interrupted by user")
-        return 1
-    except Exception as e:
-        print(f"\n❌ Example failed with unexpected error: {e}")
-        return 1
+    result = await lister.list_labs()
+    return 0 if result.get("success") else 1
 
 
 if __name__ == "__main__":

@@ -13,8 +13,8 @@ def timeout_handler(signum, frame):
     sys.exit(1)
 
 def main():
-    """Test project manager CLI import"""
-    print("=== Testing Project Manager CLI ===")
+    """Test consolidated CLI import"""
+    print("=== Testing Consolidated CLI ===")
     
     # Set up timeout
     signal.signal(signal.SIGALRM, timeout_handler)
@@ -24,22 +24,22 @@ def main():
         start_time = time.time()
         
         # Test direct import of the CLI module
-        from pyHaasAPI.cli_ref.project_manager_cli import ProjectManagerCLI
+        from pyHaasAPI.cli.consolidated_cli import ConsolidatedCLI
         
         end_time = time.time()
         signal.alarm(0)  # Cancel timeout
         
-        print(f"✓ ProjectManagerCLI imported successfully in {end_time - start_time:.2f}s")
+        print(f"✓ ConsolidatedCLI imported successfully in {end_time - start_time:.2f}s")
         
         # Test instantiation
-        cli = ProjectManagerCLI()
-        print("✓ ProjectManagerCLI instantiated successfully")
+        cli = ConsolidatedCLI()
+        print("✓ ConsolidatedCLI instantiated successfully")
         
         return 0
         
     except Exception as e:
         signal.alarm(0)  # Cancel timeout
-        print(f"✗ ProjectManagerCLI import failed: {e}")
+        print(f"✗ ConsolidatedCLI import failed: {e}")
         return 1
 
 if __name__ == "__main__":

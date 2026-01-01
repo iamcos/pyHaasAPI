@@ -88,9 +88,9 @@ class ProjectManagerCLI(BaseCLI):
             # Create client and auth
             client = AsyncHaasClient(api_config)
             auth_manager = AuthenticationManager(client, api_config)
-            # Set credentials explicitly (like working script)
-            os.environ['API_EMAIL'] = 'your_email@example.com'
-            os.environ['API_PASSWORD'] = 'your_password'
+            # Set credentials from environment
+            email = os.getenv('API_EMAIL')
+            password = os.getenv('API_PASSWORD')
             
             # Read credentials from env (standard across CLIs)
             email = os.getenv("API_EMAIL")

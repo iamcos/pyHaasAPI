@@ -59,12 +59,12 @@ async def test_cli_creation():
     print("\nTesting CLI creation...")
     
     try:
-        from pyHaasAPI.cli_ref.project_manager_cli import ProjectManagerCLI
-        print("✓ ProjectManagerCLI imported")
+        from pyHaasAPI.cli.consolidated_cli import ConsolidatedCLI
+        print("✓ ConsolidatedCLI imported")
         
         # Try to create CLI instance
-        cli = ProjectManagerCLI()
-        print("✓ ProjectManagerCLI created")
+        cli = ConsolidatedCLI()
+        print("✓ ConsolidatedCLI created")
         
         return True
         
@@ -74,7 +74,7 @@ async def test_cli_creation():
 
 async def main():
     """Main test function"""
-    print("=== Project Manager CLI Test ===")
+    print("=== Consolidated CLI Test ===")
     
     # Test 1: Basic imports
     if not await test_basic_imports():
