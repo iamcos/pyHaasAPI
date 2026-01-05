@@ -65,6 +65,7 @@ experiments/
 # Configuration files with sensitive data
 .env
 env.example
+.coverage
 
 # Google Sheets integration credentials
 gdocs/*.json
