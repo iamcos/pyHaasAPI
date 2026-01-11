@@ -92,5 +92,7 @@ archive/experimental/haasscripts_dump/
 archive/experimental/
 archive/cache/
 unified_cache/
+unified_cache.zip*
+backtest_data.parquet
 archive/bigger_projects_unfinished/
 archive/haasscripts_dump/
