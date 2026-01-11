@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import os
+import json
 
 # Page Configuration
 st.set_page_config(
@@ -56,8 +58,8 @@ def main():
     show_profitable = st.sidebar.checkbox("Show Profitable Only", value=True)
     min_trades = st.sidebar.slider("Min Trades (Reliability)", 0, 500, 50) 
     
-    min_dd_val = int(df["max_drawdown_custom"].min()) if not df.empty else -100
-    max_dd_cutoff = st.sidebar.slider("Max Drawdown Allowed (%)", min_dd_val, 0, -30)
+    min_dd_val = float(df["max_drawdown_custom"].min()) if not df.empty else -100.0
+    max_dd_cutoff = st.sidebar.slider("Max Drawdown Allowed (%)", min_dd_val, 0.0, -30.0, step=0.1)
 
     market_filter = st.sidebar.multiselect("Market", sorted(df["market"].unique()))
     
