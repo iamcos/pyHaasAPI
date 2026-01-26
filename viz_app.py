@@ -55,20 +55,37 @@ def main():
     # --- SIDEBAR FILTERS ---
     st.sidebar.header("🎯 Universe Filters")
     
+    # 1. Performance & Reliability
     show_profitable = st.sidebar.checkbox("Show Profitable Only", value=True)
+    # Get ROI range for slider
+    min_roi_possible = float(df["roi_custom"].min()) if not df.empty else 0.0
+    max_roi_possible = float(df["roi_custom"].max()) if not df.empty else 100.0
+    min_roi = st.sidebar.slider("Min ROI %", min_roi_possible, max_roi_possible, 0.0)
     min_trades = st.sidebar.slider("Min Trades (Reliability)", 0, 500, 50) 
     
+    # 2. Risk Management
     min_dd_val = float(df["max_drawdown_custom"].min()) if not df.empty else -100.0
     max_dd_cutoff = st.sidebar.slider("Max Drawdown Allowed (%)", min_dd_val, 0.0, -30.0, step=0.1)
 
-    market_filter = st.sidebar.multiselect("Market", sorted(df["market"].unique()))
+    # 3. Dimensional Filters
+    lab_filter = st.sidebar.multiselect("Labs", sorted(df["lab_id"].unique()))
+    market_filter = st.sidebar.multiselect("Markets", sorted(df["market"].unique()))
+    debug_mode = st.sidebar.checkbox("Debug Mode", value=False)
+    
+    # Check if cache directory exists
+    cache_dir = "unified_cache/backtests"
+    if not os.path.exists(cache_dir):
+        st.sidebar.error(f"Cache directory not found: {cache_dir}")
     
     # Apply Filters
     filtered_df = df[df["total_trades_custom"] >= min_trades]
     filtered_df = filtered_df[filtered_df["max_drawdown_custom"] >= max_dd_cutoff]
+    filtered_df = filtered_df[filtered_df["roi_custom"] >= min_roi]
     
     if show_profitable:
         filtered_df = filtered_df[filtered_df["roi_custom"] > 0]
+    if lab_filter:
+        filtered_df = filtered_df[filtered_df["lab_id"].isin(lab_filter)]
     if market_filter:
         filtered_df = filtered_df[filtered_df["market"].isin(market_filter)]
 
@@ -172,7 +189,13 @@ def main():
             all_trades = []
             with st.spinner("Parsing raw JSONs..."):
                 for _, row in top_10.iterrows():
-                    file_path = os.path.join("unified_cache/backtests", row["file"])
+                    file_path = os.path.join(cache_dir, row["file"])
+                    
+                    if not os.path.exists(file_path):
+                        if debug_mode:
+                            st.warning(f"File not found: {file_path}")
+                        continue
+                        
                     try:
                         with open(file_path, 'r') as f:
                             data = json.load(f)
@@ -183,7 +206,12 @@ def main():
                                 "time": pd.to_datetime(t.get("ct", 0), unit='s'),
                                 "profit": float(t.get("rp", 0.0))
                             })
-                    except:
+                    except json.JSONDecodeError:
+                        if debug_mode:
+                            st.error(f"Invalid JSON in file: {file_path}")
+                    except Exception as e:
+                        if debug_mode:
+                            st.error(f"Error reading {file_path}: {e}")
                         continue
             
             if all_trades:
