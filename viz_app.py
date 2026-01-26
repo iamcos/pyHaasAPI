@@ -5,6 +5,15 @@ import plotly.graph_objects as go
 import numpy as np
 import os
 import json
+import asyncio
+from dotenv import load_dotenv
+from pyHaasAPI.core.client import AsyncHaasClient
+from pyHaasAPI.core.auth import AuthenticationManager
+from pyHaasAPI.api.lab.lab_api import LabAPI
+from pyHaasAPI.api.script.script_api import ScriptAPI
+from pyHaasAPI.core.stage2_service import Stage2Service
+
+load_dotenv()
 
 # Page Configuration
 st.set_page_config(
@@ -43,6 +52,24 @@ def load_data():
     except Exception as e:
         st.error(f"Failed to load data: {e}")
         return pd.DataFrame()
+
+# --- LIVE API WRAPPERS ---
+async def get_services():
+    client = AsyncHaasClient(
+        base_url=f"http://{os.getenv('API_HOST')}:{os.getenv('API_PORT')}"
+    )
+    auth = AuthenticationManager(
+        client, 
+        email=os.getenv("API_EMAIL"), 
+        password=os.getenv("API_PASSWORD")
+    )
+    lab_api = LabAPI(client, auth)
+    script_api = ScriptAPI(client, auth)
+    stage2 = Stage2Service(lab_api, script_api)
+    return stage2, lab_api
+
+def run_async(coro):
+    return asyncio.run(coro)
 
 def main():
     st.title("🤖 Haas Data Viz: Final Frontier")
@@ -95,7 +122,7 @@ def main():
         filtered_df = filtered_df[filtered_df["market"].isin(market_filter)]
 
     # --- TABS ---
-    tab1, tab2, tab3 = st.tabs(["🌌 Dashboard", "📉 Advanced Analytics", "🏆 Hall of Fame"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🌌 Dashboard", "📉 Advanced Analytics", "🏆 Hall of Fame", "🎯 Stage 2: Finetune"])
 
     with tab1:
         # --- TOP METRICS ROW ---
@@ -260,6 +287,80 @@ def main():
             .style.format({"roi_custom": "{:.2f}%", "net_profit_custom": "${:,.2f}", "max_drawdown_custom": "{:.2f}%", "win_rate_custom": "{:.2f}%"}),
             use_container_width=True
         )
+
+    with tab4:
+        st.header("🎯 Stage 2: Actionable Finetuning")
+        st.markdown("Bridge the gap between analysis and action. Clone winning configurations into new Labs.")
+
+        # --- BOT PICKER ---
+        st.subheader("1. Select a Candidate for Finetuning")
+        
+        # Sort by ROI and trades to suggest candidates
+        candidates = filtered_df.sort_values("roi_custom", ascending=False).head(50)
+        # Use simple string for selection
+        bot_options = [f"{row['lab_id'][:8]} | {row['market']} | ROI: {row['roi_custom']:.1f}% | {row['file']}" for _, row in candidates.iterrows()]
+        
+        selected_bot_str = st.selectbox("Pick a bot from the 'Universe'", bot_options)
+        
+        if selected_bot_str:
+            # Extract file name from the string
+            fname = selected_bot_str.split(" | ")[-1]
+            winning_bot = filtered_df[filtered_df["file"] == fname].iloc[0]
+            
+            st.info(f"Targeting: **{winning_bot['market']}** from Lab **{winning_bot['lab_id']}**")
+            
+            col_bt1, col_bt2 = st.columns(2)
+            with col_bt1:
+                st.write("**Winning Parameters:**")
+                # In parquet, params are stored as a JSON string
+                try:
+                    params_json = winning_bot["parameters"]
+                    params = json.loads(params_json) if isinstance(params_json, str) else params_json
+                    st.json(params)
+                except:
+                    st.warning("Could not parse parameters for this bot.")
+            
+            with col_bt2:
+                st.write("**Actions**")
+                if st.button("🚀 Create Finetuning Lab"):
+                    with st.spinner("Cloning Lab and applying presets..."):
+                        try:
+                            stage2, lab_api = run_async(get_services())
+                            new_lab_id = run_async(stage2.clone_for_finetune(
+                                winning_bot["lab_id"], 
+                                f"{winning_bot['market']}_STG2", 
+                                params
+                            ))
+                            st.success(f"Lab Created! ID: {new_lab_id}")
+                            st.balloons()
+                        except Exception as e:
+                            st.error(f"Failed to clone lab: {e}")
+
+        st.markdown("---")
+        # --- LAB BROWSER ---
+        st.subheader("📂 Server Lab Browser")
+        if st.checkbox("Show Live Labs from Server"):
+            try:
+                _, lab_api = run_async(get_services())
+                labs = run_async(lab_api.get_labs())
+                
+                lab_data = []
+                for l in labs:
+                    lab_data.append({
+                        "Name": l.name,
+                        "ID": l.lab_id,
+                        "Status": l.status,
+                        "Backtests": l.completed_backtests
+                    })
+                st.table(lab_data)
+            except Exception as e:
+                st.error(f"Failed to fetch labs: {e}")
+
+        # --- SCRIPT DEBUGGER ---
+        st.markdown("---")
+        st.subheader("🐛 Script Lab (Debugger)")
+        st.markdown("Identify and fix compilation or runtime errors for your scripts.")
+        st.caption("Coming Soon: Interactive error parsing and automated fixing loops.")
 
 if __name__ == "__main__":
     main()
