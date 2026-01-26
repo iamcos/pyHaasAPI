@@ -110,22 +110,20 @@ def parse_report(file_path):
             if not finished_positions:
                 continue
                 
+            parameters = r_data.get("P", {}) # Parameters
+            
+            # 4. Calculate Custom Metrics
             custom_metrics = calculate_metrics(finished_positions)
+            
             if not custom_metrics:
-                continue
+                continue # Skip reports with no trades
                 
-            # Fallback for lab/market
-            if lab_id == "Unknown" or market == "Unknown":
-                fname = os.path.basename(file_path).replace(".json", "")
-                parts = fname.split("_", 1)
-                if len(parts) == 2:
-                    if lab_id == "Unknown": lab_id = parts[0]
-                    if market == "Unknown": market = parts[1]
-
+            # Merge basic info with metrics
             result = {
                 "file": os.path.basename(file_path),
                 "lab_id": lab_id,
                 "market": market,
+                "parameters": json.dumps(parameters) # Store as JSON string for parity
             }
             result.update(custom_metrics)
             extracted_results.append(result)

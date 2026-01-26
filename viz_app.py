@@ -12,6 +12,7 @@ from pyHaasAPI.core.auth import AuthenticationManager
 from pyHaasAPI.api.lab.lab_api import LabAPI
 from pyHaasAPI.api.script.script_api import ScriptAPI
 from pyHaasAPI.core.stage2_service import Stage2Service
+from pyHaasAPI.core.data_science_service import DataScienceService
 
 load_dotenv()
 
@@ -66,7 +67,12 @@ async def get_services():
     lab_api = LabAPI(client, auth)
     script_api = ScriptAPI(client, auth)
     stage2 = Stage2Service(lab_api, script_api)
-    return stage2, lab_api
+    
+    # Initialize DS Service with actual data
+    df = load_data()
+    ds_service = DataScienceService(df)
+    
+    return stage2, lab_api, ds_service
 
 def run_async(coro):
     return asyncio.run(coro)
@@ -122,7 +128,13 @@ def main():
         filtered_df = filtered_df[filtered_df["market"].isin(market_filter)]
 
     # --- TABS ---
-    tab1, tab2, tab3, tab4 = st.tabs(["🌌 Dashboard", "📉 Advanced Analytics", "🏆 Hall of Fame", "🎯 Stage 2: Finetune"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🌌 Dashboard", 
+        "📉 Advanced Analytics", 
+        "🏆 Hall of Fame", 
+        "🎯 Stage 2: Finetune",
+        "🔬 Stage 3: Data Science"
+    ])
 
     with tab1:
         # --- TOP METRICS ROW ---
@@ -361,6 +373,115 @@ def main():
         st.subheader("🐛 Script Lab (Debugger)")
         st.markdown("Identify and fix compilation or runtime errors for your scripts.")
         st.caption("Coming Soon: Interactive error parsing and automated fixing loops.")
+
+    with tab5:
+        st.header("🔬 Stage 3: Statistical Modeling & Data Science")
+        st.markdown("Quantifying the influence of parameters on strategy performance.")
+        
+        try:
+            # Need fresh service instance with current filters or full data?
+            # Let's use filtered data for contextual analysis
+            ds = DataScienceService(filtered_df)
+            
+            with st.spinner("Crunching numbers (Training Random Forest)..."):
+                features_df = ds.prepare_features()
+                importance = ds.get_feature_importance()
+                correlations = ds.get_parameter_correlations()
+            
+            if importance.empty:
+                st.warning("Not enough variance in parameters to build models. Try expanding your Lab/Market filter.")
+            else:
+                col_ds1, col_ds2 = st.columns([1, 1])
+                
+                with col_ds1:
+                    st.subheader("🤖 Feature Importance")
+                    st.info("Which parameters actually drive ROI?")
+                    fig_imp = px.bar(
+                        importance, 
+                        orientation='h', 
+                        labels={'value': 'Score', 'index': 'Parameter'},
+                        title="Top Influencers (Random Forest)"
+                    )
+                    st.plotly_chart(fig_imp, use_container_width=True)
+
+                with col_ds2:
+                    st.subheader("🔗 Parameter Correlations")
+                    st.write(correlations.head(10))
+                
+                st.markdown("---")
+                # --- ADVANCED VISUALIZATIONS ---
+                st.subheader("📊 Advanced Parameter Visuals")
+                
+                viz_choice = st.radio("Select Strategy Insight Map", [
+                    "1. Parallel Coordinates (Success Corridors)",
+                    "2. Pareto Frontier (Efficiency Map)",
+                    "3. Tornado Sensitivity Analysis",
+                    "4. Clustering (Strategy DNA Profiles)",
+                    "5. Hexbin Joint Plot (Density of Success)",
+                    "6. Parameter ROI Box Plots",
+                    "7. 3D Surface Plot (TP vs SL vs ROI)"
+                ], horizontal=True)
+
+                if "Parallel Coordinates" in viz_choice:
+                    top_params = importance.head(6).index.tolist()
+                    fig_pc = px.parallel_coordinates(
+                        features_df, 
+                        color="roi_custom",
+                        dimensions=top_params + ["roi_custom"],
+                        title="Targeting Success Corridors"
+                    )
+                    st.plotly_chart(fig_pc, use_container_width=True)
+
+                elif "Pareto Frontier" in viz_choice:
+                    fig_pareto = px.scatter(
+                        filtered_df, x="max_drawdown_custom", y="roi_custom",
+                        color="profit_factor_custom", size="total_trades_custom",
+                        title="Efficiency Frontier (Risk vs Reward)"
+                    )
+                    st.plotly_chart(fig_pareto, use_container_width=True)
+                
+                elif "Tornado" in viz_choice:
+                    param_to_test = st.selectbox("Select Parameter to analyze sensitivity", importance.index.tolist())
+                    sens_stats = ds.get_sensitivity_scores(param_to_test)
+                    if not sens_stats.empty:
+                        # Convert Index bins to strings for plotting
+                        sens_stats.index = [str(x) for x in sens_stats.index]
+                        fig_tornado = px.bar(sens_stats, y="mean", error_y="std", title=f"Sensitivity: {param_to_test} vs ROI")
+                        st.plotly_chart(fig_tornado, use_container_width=True)
+
+                elif "Clustering" in viz_choice:
+                    n_c = st.slider("Number of Profile Clusters", 2, 8, 4)
+                    clusters = ds.cluster_bots(n_clusters=n_c)
+                    filtered_df["cluster"] = [str(c) for c in clusters] # Match length of filtered_df
+                    fig_cluster = px.scatter(
+                        filtered_df, x="win_rate_custom", y="profit_factor_custom",
+                        color="cluster", title="Strategy DNA Clusters"
+                    )
+                    st.plotly_chart(fig_cluster, use_container_width=True)
+                
+                elif "Hexbin" in viz_choice:
+                    p1 = st.selectbox("X Axis (Param)", importance.index.tolist(), index=0)
+                    p2 = st.selectbox("Y Axis (Param)", importance.index.tolist(), index=1 if len(importance)>1 else 0)
+                    fig_hex = px.density_heatmap(features_df, x=p1, y=p2, z="roi_custom", histfunc="avg", title="Density of Success Heatmap")
+                    st.plotly_chart(fig_hex, use_container_width=True)
+
+                elif "Box Plots" in viz_choice:
+                    p_box = st.selectbox("Target Parameter for ROI Distribution", importance.index.tolist())
+                    # Create bins for the parameter
+                    features_df["bin"] = pd.qcut(features_df[p_box], q=8, duplicates="drop").astype(str)
+                    fig_box = px.box(features_df, x="bin", y="roi_custom", points="all", title=f"ROI Distribution across {p_box}")
+                    st.plotly_chart(fig_box, use_container_width=True)
+
+                elif "3D Surface" in viz_choice:
+                    p1_3d = st.selectbox("X (Param)", importance.index.tolist(), index=0)
+                    p2_3d = st.selectbox("Y (Param)", importance.index.tolist(), index=1 if len(importance)>1 else 0)
+                    fig_3d = px.scatter_3d(features_df, x=p1_3d, y=p2_3d, z="roi_custom", color="roi_custom", title="ROI Landscape")
+                    st.plotly_chart(fig_3d, use_container_width=True)
+
+        except Exception as e:
+            st.error(f"Error generating Data Science insights: {e}")
+            if "parameters" not in filtered_df.columns:
+                st.info("💡 Data might be stale. Please wait for aggregation to finish or refresh.")
 
 if __name__ == "__main__":
     main()
