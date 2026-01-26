@@ -52,30 +52,35 @@ def main():
         st.warning("No data found. Please run `aggregate_backtests.py` first.")
         return
 
-    # --- SIDEBAR FILTERS ---
-    st.sidebar.header("🎯 Universe Filters")
-    
-    # 1. Performance & Reliability
-    show_profitable = st.sidebar.checkbox("Show Profitable Only", value=True)
-    # Get ROI range for slider
-    min_roi_possible = float(df["roi_custom"].min()) if not df.empty else 0.0
-    max_roi_possible = float(df["roi_custom"].max()) if not df.empty else 100.0
-    min_roi = st.sidebar.slider("Min ROI %", min_roi_possible, max_roi_possible, 0.0)
-    min_trades = st.sidebar.slider("Min Trades (Reliability)", 0, 500, 50) 
-    
-    # 2. Risk Management
-    min_dd_val = float(df["max_drawdown_custom"].min()) if not df.empty else -100.0
-    max_dd_cutoff = st.sidebar.slider("Max Drawdown Allowed (%)", min_dd_val, 0.0, -30.0, step=0.1)
+    # --- GLOBAL FILTERS (Main Body) ---
+    with st.expander("🎯 Filter & Refine Strategy", expanded=True):
+        f_col1, f_col2, f_col3 = st.columns(3)
+        
+        with f_col1:
+            st.markdown("##### 📈 Performance")
+            show_profitable = st.checkbox("Show Profitable Only", value=True)
+            min_roi_possible = float(df["roi_custom"].min()) if not df.empty else 0.0
+            max_roi_possible = float(df["roi_custom"].max()) if not df.empty else 100.0
+            min_roi = st.slider("Min ROI %", min_roi_possible, max_roi_possible, 0.0)
+            min_trades = st.slider("Min Trades (Reliability)", 0, 500, 50) 
+            
+        with f_col2:
+            st.markdown("##### 🛡️ Risk")
+            min_dd_val = float(df["max_drawdown_custom"].min()) if not df.empty else -100.0
+            max_dd_cutoff = st.slider("Max Drawdown Allowed (%)", min_dd_val, 0.0, -30.0, step=0.1)
+            debug_mode = st.checkbox("Debug Mode", value=False)
 
-    # 3. Dimensional Filters
-    lab_filter = st.sidebar.multiselect("Labs", sorted(df["lab_id"].unique()))
-    market_filter = st.sidebar.multiselect("Markets", sorted(df["market"].unique()))
-    debug_mode = st.sidebar.checkbox("Debug Mode", value=False)
-    
+        with f_col3:
+            st.markdown("##### 🧪 Dimensions")
+            unique_labs = sorted(df["lab_id"].unique())
+            lab_filter = st.multiselect("Select Labs", unique_labs)
+            unique_markets = sorted(df["market"].unique())
+            market_filter = st.multiselect("Select Markets", unique_markets)
+
     # Check if cache directory exists
     cache_dir = "unified_cache/backtests"
-    if not os.path.exists(cache_dir):
-        st.sidebar.error(f"Cache directory not found: {cache_dir}")
+    if not os.path.exists(cache_dir) and debug_mode:
+        st.error(f"Cache directory not found: {cache_dir}")
     
     # Apply Filters
     filtered_df = df[df["total_trades_custom"] >= min_trades]
