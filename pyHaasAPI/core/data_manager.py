@@ -63,6 +63,14 @@ class ComprehensiveDataManager:
     - Backtest result management
     """
     
+    
+    def _safe_to_dict(self, obj: Any) -> Dict[str, Any]:
+        """Safe serialization to dictionary"""
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+
+        return dict(obj)
+
     def __init__(self, settings: Settings, config: Optional[DataManagerConfig] = None):
         self.settings = settings
         self.config = config or DataManagerConfig()
@@ -177,7 +185,7 @@ class ComprehensiveDataManager:
             lab_api = LabAPI(client)
             
             labs = await lab_api.get_all_labs()
-            server_data.labs = [lab.model_dump() for lab in labs]
+            server_data.labs = [self._safe_to_dict(lab) for lab in labs]
             
             self.logger.info(f"Fetched {len(server_data.labs)} labs")
             
@@ -191,7 +199,7 @@ class ComprehensiveDataManager:
             bot_api = BotAPI(client)
             
             bots = await bot_api.get_all_bots()
-            server_data.bots = [bot.model_dump() for bot in bots]
+            server_data.bots = [self._safe_to_dict(bot) for bot in bots]
             
             self.logger.info(f"Fetched {len(server_data.bots)} bots")
             
@@ -205,7 +213,7 @@ class ComprehensiveDataManager:
             account_api = AccountAPI(client)
             
             accounts = await account_api.get_all_accounts()
-            server_data.accounts = [account.model_dump() for account in accounts]
+            server_data.accounts = [self._safe_to_dict(account) for account in accounts]
             
             self.logger.info(f"Fetched {len(server_data.accounts)} accounts")
             
@@ -227,7 +235,7 @@ class ComprehensiveDataManager:
                 try:
                     # Fetch backtests for this lab
                     backtests = await backtest_api.get_backtest_results(lab_id)
-                    server_data.backtests[lab_id] = [bt.model_dump() for bt in backtests]
+                    server_data.backtests[lab_id] = [self._safe_to_dict(bt) for bt in backtests]
                     total_backtests += len(server_data.backtests[lab_id])
                     
                     # Rate limiting

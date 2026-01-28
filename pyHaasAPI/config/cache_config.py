@@ -1,91 +1,74 @@
 """
 Cache configuration settings
 """
-
-from typing import Optional
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings
+from .env_utils import get_env
 
-
-class CacheConfig(BaseSettings):
+@dataclass
+class CacheConfig:
     """Cache configuration settings"""
     
     # Cache enablement
-    enabled: bool = Field(default=True, env="CACHE_ENABLED")
+    enabled: bool = field(default_factory=lambda: get_env("CACHE_ENABLED", True, bool))
     
     # Cache directory
-    directory: str = Field(default="unified_cache", env="CACHE_DIRECTORY")
+    directory: str = field(default_factory=lambda: get_env("CACHE_DIRECTORY", "unified_cache"))
     
     # Cache TTL settings
-    default_ttl: int = Field(default=3600, env="CACHE_DEFAULT_TTL")  # 1 hour
-    backtest_ttl: int = Field(default=86400, env="CACHE_BACKTEST_TTL")  # 24 hours
-    lab_ttl: int = Field(default=1800, env="CACHE_LAB_TTL")  # 30 minutes
-    bot_ttl: int = Field(default=300, env="CACHE_BOT_TTL")  # 5 minutes
-    account_ttl: int = Field(default=600, env="CACHE_ACCOUNT_TTL")  # 10 minutes
-    market_ttl: int = Field(default=60, env="CACHE_MARKET_TTL")  # 1 minute
+    default_ttl: int = field(default_factory=lambda: get_env("CACHE_DEFAULT_TTL", 3600, int))  # 1 hour
+    backtest_ttl: int = field(default_factory=lambda: get_env("CACHE_BACKTEST_TTL", 86400, int))  # 24 hours
+    lab_ttl: int = field(default_factory=lambda: get_env("CACHE_LAB_TTL", 1800, int))  # 30 minutes
+    bot_ttl: int = field(default_factory=lambda: get_env("CACHE_BOT_TTL", 300, int))  # 5 minutes
+    account_ttl: int = field(default_factory=lambda: get_env("CACHE_ACCOUNT_TTL", 600, int))  # 10 minutes
+    market_ttl: int = field(default_factory=lambda: get_env("CACHE_MARKET_TTL", 60, int))  # 1 minute
     
     # Cache size limits
-    max_size_mb: int = Field(default=1024, env="CACHE_MAX_SIZE_MB")  # 1GB
-    max_files: int = Field(default=10000, env="CACHE_MAX_FILES")
+    max_size_mb: int = field(default_factory=lambda: get_env("CACHE_MAX_SIZE_MB", 1024, int))  # 1GB
+    max_files: int = field(default_factory=lambda: get_env("CACHE_MAX_FILES", 10000, int))
     
     # Cache cleanup
-    cleanup_interval: int = Field(default=3600, env="CACHE_CLEANUP_INTERVAL")  # 1 hour
-    cleanup_threshold: float = Field(default=0.8, env="CACHE_CLEANUP_THRESHOLD")  # 80%
+    cleanup_interval: int = field(default_factory=lambda: get_env("CACHE_CLEANUP_INTERVAL", 3600, int))  # 1 hour
+    cleanup_threshold: float = field(default_factory=lambda: get_env("CACHE_CLEANUP_THRESHOLD", 0.8, float))  # 80%
     
     # Cache compression
-    compress: bool = Field(default=True, env="CACHE_COMPRESS")
-    compression_level: int = Field(default=6, env="CACHE_COMPRESSION_LEVEL")
+    compress: bool = field(default_factory=lambda: get_env("CACHE_COMPRESS", True, bool))
+    compression_level: int = field(default_factory=lambda: get_env("CACHE_COMPRESSION_LEVEL", 6, int))
     
     # Cache validation
-    validate_on_read: bool = Field(default=True, env="CACHE_VALIDATE_ON_READ")
-    validate_on_write: bool = Field(default=True, env="CACHE_VALIDATE_ON_WRITE")
+    validate_on_read: bool = field(default_factory=lambda: get_env("CACHE_VALIDATE_ON_READ", True, bool))
+    validate_on_write: bool = field(default_factory=lambda: get_env("CACHE_VALIDATE_ON_WRITE", True, bool))
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"    
-    @field_validator("default_ttl", "backtest_ttl", "lab_ttl", "bot_ttl", "account_ttl", "market_ttl")
-    @classmethod
-    def validate_ttl(cls, v):
-        """Validate TTL values"""
-        if v < 0:
-            raise ValueError("TTL must be non-negative")
-        return v
-    
-    @field_validator("max_size_mb")
-    @classmethod
-    def validate_max_size(cls, v):
-        """Validate max cache size"""
-        if v <= 0:
+    def __post_init__(self):
+        """Validate configuration"""
+        self.validate_ttl()
+        self.validate_max_size()
+        self.validate_max_files()
+        self.validate_cleanup_threshold()
+        self.validate_compression_level()
+        
+    def validate_ttl(self):
+        for v in [self.default_ttl, self.backtest_ttl, self.lab_ttl, self.bot_ttl, self.account_ttl, self.market_ttl]:
+            if v < 0:
+                raise ValueError("TTL must be non-negative")
+
+    def validate_max_size(self):
+        if self.max_size_mb <= 0:
             raise ValueError("Max cache size must be positive")
-        return v
-    
-    @field_validator("max_files")
-    @classmethod
-    def validate_max_files(cls, v):
-        """Validate max files"""
-        if v <= 0:
+
+    def validate_max_files(self):
+        if self.max_files <= 0:
             raise ValueError("Max files must be positive")
-        return v
-    
-    @field_validator("cleanup_threshold")
-    @classmethod
-    def validate_cleanup_threshold(cls, v):
-        """Validate cleanup threshold"""
-        if not 0.0 <= v <= 1.0:
+
+    def validate_cleanup_threshold(self):
+        if not 0.0 <= self.cleanup_threshold <= 1.0:
             raise ValueError("Cleanup threshold must be between 0.0 and 1.0")
-        return v
-    
-    @field_validator("compression_level")
-    @classmethod
-    def validate_compression_level(cls, v):
-        """Validate compression level"""
-        if not 1 <= v <= 9:
+
+    def validate_compression_level(self):
+        if not 1 <= self.compression_level <= 9:
             raise ValueError("Compression level must be between 1 and 9")
-        return v
-    
+
     @property
     def cache_path(self) -> Path:
         """Get cache directory path"""

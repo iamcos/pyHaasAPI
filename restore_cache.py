@@ -8,7 +8,12 @@ def restore_cache():
     extract_dir = "unified_cache"
     
     # 1. Find and sort parts correctly
-    parts = sorted(glob.glob(f"{prefix}*"))
+    parts = glob.glob(f"{prefix}*")
+    # Sort by the integer suffix to handle non-zero padded numbers correctly (part_2 vs part_10)
+    try:
+        parts.sort(key=lambda x: int(x.split('_')[-1]))
+    except ValueError:
+        parts.sort() # Fallback to lexicographical sort
     
     if not parts:
         print(f"❌ No parts found matching {prefix}*")
@@ -45,7 +50,14 @@ def restore_cache():
             members = zip_ref.infolist()
             total_files = len(members)
             
+            # Safe extraction logic
+            target_path = os.path.abspath(extract_dir)
             for i, member in enumerate(members):
+                # Check for Zip Slip
+                member_path = os.path.join(target_path, member.filename)
+                if not os.path.abspath(member_path).startswith(target_path):
+                    raise Exception(f"Attempted Path Traversal in Zip File: {member.filename}")
+                
                 zip_ref.extract(member, extract_dir)
                 if i % 1000 == 0:
                     percent = (i / total_files) * 100

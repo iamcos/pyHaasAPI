@@ -96,3 +96,5 @@ unified_cache.zip*
 backtest_data.parquet
 archive/bigger_projects_unfinished/
 archive/haasscripts_dump/
+haas-staging.zip
+haas-staging/

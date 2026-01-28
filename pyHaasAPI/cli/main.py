@@ -242,23 +242,32 @@ Examples:
     order_parser = subparsers.add_parser('order', help='Order operations')
     order_parser.add_argument(
         'action',
-        choices=['list', 'place', 'cancel', 'status', 'history'],
+        choices=['list', 'place', 'cancel'],
         help='Order action to perform'
     )
-    order_parser.add_argument('--order-id', help='Order ID')
     order_parser.add_argument('--bot-id', help='Bot ID')
     order_parser.add_argument('--side', choices=['buy', 'sell'], help='Order side')
     order_parser.add_argument('--amount', type=float, help='Order amount')
+    order_parser.add_argument('--order-id', help='Order ID')
     order_parser.add_argument('--price', type=float, help='Order price')
 
+    # Menu subcommand
+    menu_parser = subparsers.add_parser('menu', help='Interactive terminal menu')
+
     # Download subcommand
-    download_parser = subparsers.add_parser('download', help='Download all backtests from all servers')
+    download_parser = subparsers.add_parser('download', help='Download operations')
     download_parser.add_argument(
         'action',
-        choices=['everything', 'server', 'lab', 'backtests-for-labs', 'help'],
+        choices=['everything', 'server', 'lab', 'backtests-for-labs', 'scripts', 'help'],
         help='Download action to perform'
     )
     download_parser.add_argument('--server-name', help='Server name (for server action)')
+    download_parser.add_argument('--servers', help='Comma-separated list of server names (for scripts action)')
+    download_parser.add_argument('--direct', action='store_true', help='Use direct connection instead of ServerManager')
+    download_parser.add_argument('--host', help='Direct connection host/IP')
+    download_parser.add_argument('--port', type=int, default=8090, help='Direct connection port (default: 8090)')
+    download_parser.add_argument('--email', help='Direct connection email')
+    download_parser.add_argument('--password', help='Direct connection password')
     download_parser.add_argument('--lab-id', help='Lab ID (for lab action)')
 
     # Utils subcommand (direct runners for helper tools)
@@ -316,6 +325,12 @@ Examples:
 async def main_async(args: argparse.Namespace) -> int:
     """Main async function"""
     try:
+        # Initialize logging system
+        from pyHaasAPI.core.logging import initialize_logging
+        from pyHaasAPI.config.logging_config import LoggingConfig
+        log_config = LoggingConfig(level=args.log_level)
+        initialize_logging(log_config)
+        
         # Create configuration (host/port removed - using mandated tunnel via environment)
         config = CLIConfig(
             timeout=args.timeout,
@@ -451,8 +466,48 @@ async def main_async(args: argparse.Namespace) -> int:
             cli_instance = BacktestWorkflowCLI(config)
         elif args.command == 'order':
             cli_instance = OrderCLI(config)
+        elif args.command == 'menu':
+            # Use the new Textual TUI
+            from .tui.app import HaasTUI
+            tui = HaasTUI()
+            # Use run_async because we are already in an event loop
+            await tui.run_async()
+            return 0
         elif args.command == 'download':
             cli_instance = DownloadCLI()
+            if args.action == 'scripts':
+                # Parse additional arguments for scripts command
+                server_names = None
+                if getattr(args, 'servers', None):
+                    server_names = [s.strip() for s in args.servers.split(',')]
+                
+                direct_config = None
+                if getattr(args, 'direct', False):
+                    direct_config = {
+                        'host': getattr(args, 'host', None),
+                        'port': getattr(args, 'port', 8090),
+                        'email': getattr(args, 'email', None),
+                        'password': getattr(args, 'password', None)
+                    }
+                
+                # We need to manually invoke download_scripts here because args are passed differently
+                # But BaseCLI.run expects just argv. 
+                # Ideally, DownloadCLI.run should handle parsing, but arguments are defined here.
+                # Let's bypass BaseCLI.run for this specific advanced command OR 
+                # we update DownloadCLI.run to handle these args if passed.
+                # Since BaseCLI.run dispatches based on command, let's pass the context.
+                
+                # ACTUALLY, cli_instance.run(sys.argv) re-parses args if we aren't careful.
+                # But the main loop calls cli_instance.run(remaining_args).
+                # To support these flags in DownloadCLI.run, we'd need to add them to DownloadCLI's parser too if it has one.
+                # The current DownloadCLI.run just looks at args[0].
+                # Let's override the behavior here for 'scripts' action if we can, 
+                # OR better: pass these values to the DownloadCLI instance before running?
+                # No, standard pattern is cli_instance.run(args).
+                
+                # Let's execute strictly here for 'scripts' to avoid re-parsing issues downstream 
+                # since we've already parsed everything nicely here.
+                return await cli_instance.download_scripts(server_names, direct_config)
         elif args.command == 'orchestrator':
             # Handle orchestrator command using SimpleOrchestratorCLI
             from .simple_orchestrator_cli import SimpleOrchestratorCLI

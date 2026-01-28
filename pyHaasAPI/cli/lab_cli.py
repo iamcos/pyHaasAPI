@@ -136,7 +136,7 @@ Examples:
             # Display results
             if args.output_format == 'json':
                 import json
-                output = json.dumps([lab.dict() for lab in labs], indent=2)
+                output = json.dumps([lab.to_dict() for lab in labs], indent=2)
                 if args.output_file:
                     with open(args.output_file, 'w') as f:
                         f.write(output)
@@ -149,7 +149,7 @@ Examples:
                         writer = csv.DictWriter(f, fieldnames=['id', 'name', 'script_id', 'status', 'created_at'])
                         writer.writeheader()
                         for lab in labs:
-                            writer.writerow(lab.dict())
+                            writer.writerow(lab.to_dict())
                 else:
                     print("id,name,script_id,status,created_at")
                     for lab in labs:

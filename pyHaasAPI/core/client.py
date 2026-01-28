@@ -15,7 +15,7 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout, ClientConnectorError, ClientResponse
 from aiohttp.connector import TCPConnector
 from aiohttp.helpers import BasicAuth
-from pydantic import ValidationError
+from aiohttp.helpers import BasicAuth
 
 from ..config.api_config import APIConfig
 from ..exceptions import (
@@ -93,7 +93,7 @@ class RetryHandler:
                 )
                 
                 await asyncio.sleep(delay)
-            except (APIClientError, ValidationError) as e:
+            except (APIClientError, ValueError) as e:
                 # Don't retry client errors
                 raise e
         
@@ -350,6 +350,34 @@ class AsyncHaasClient:
         """Make DELETE request"""
         return await self._make_request("DELETE", endpoint, params=params, headers=headers, timeout=timeout)
     
+    async def request_form(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """Make request with form data and return JSON response"""
+        # Ensure Content-Type is set for form data
+        request_headers = dict(headers) if headers else {}
+        request_headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
+        
+        response = await self._make_request(method, endpoint, params, data, request_headers, timeout)
+
+        try:
+            result = await response.json(content_type=None)
+            return result if isinstance(result, dict) else {}
+        except Exception:
+            body_preview = (await response.text())[:300]
+            # Some Haas endpoints return "true" or "false" as plain text for success
+            if body_preview.lower().strip() == "true":
+                return {"Success": True}
+            if body_preview.lower().strip() == "false":
+                return {"Success": False}
+            return {"Success": False, "Error": f"Failed to parse JSON: {body_preview}"}
+
     async def request_json(
         self,
         method: str,
@@ -359,18 +387,29 @@ class AsyncHaasClient:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None
     ) -> Dict[str, Any]:
-        """Make request and return JSON response"""
+        """Make HTTP request and return JSON response"""
         response = await self._make_request(method, endpoint, params, data, headers, timeout)
-
+        
         try:
-            # Parse JSON regardless of Content-Type; fail with clear context
-            return await response.json(content_type=None)
+            # Parse JSON with automatic content-type discovery
+            result = await response.json(content_type=None)
+            return result if isinstance(result, dict) else {}
         except Exception as e:
-            body_preview = (await response.text())[:300]
-            raise APIResponseError(
-                f"Failed to parse JSON (ct={response.headers.get('Content-Type')}, status={response.status}). "
-                f"Body preview: {body_preview}"
-            )
+            # Fallback for non-JSON responses
+            text = await response.text()
+            self.logger.error(f"Failed to parse JSON response: {e}. Body: {text[:200]}")
+            return {"Success": False, "Error": f"Invalid JSON response: {text[:100]}"}
+
+    async def post_form(
+        self,
+        endpoint: str,
+        data: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """Make POST request with form data and return JSON response"""
+        return await self.request_form("POST", endpoint, params=params, data=data, headers=headers, timeout=timeout)
     
     async def get_json(
         self,

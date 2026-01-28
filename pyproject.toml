@@ -33,6 +33,7 @@ pandas = "^2.0.0"
 numpy = "^1.24.0"
 matplotlib = "^3.7.0"
 seaborn = "^0.12.0"
+textual = "^1.5.0"
 
 # Optional dependencies for specific projects
 mcp = {version = "^1.0.0", optional = true}
@@ -46,6 +47,7 @@ pytest-mock = "^3.14.0"
 black = "^23.0.0"
 isort = "^5.12.0"
 mypy = "^1.7.0"
+textual-dev = "^1.8.0"
 
 # Project-specific extras
 [tool.poetry.extras]

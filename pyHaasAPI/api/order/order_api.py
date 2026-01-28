@@ -224,7 +224,7 @@ class OrderAPI:
             
             for order_data in orders:
                 if order_data.get('OrderId') == order_id:
-                    return OrderStatus.model_validate(order_data)
+                    return OrderStatus.from_dict(order_data)
             
             raise OrderNotFoundError(f"Order {order_id} not found")
             
@@ -260,7 +260,7 @@ class OrderAPI:
             # Filter orders based on request criteria
             filtered_orders = []
             for order_data in all_orders:
-                order = Order.model_validate(order_data)
+                order = Order.from_dict(order_data)
                 
                 # Apply filters
                 if request.account_id and order.account_id != request.account_id:

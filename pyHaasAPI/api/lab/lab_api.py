@@ -317,7 +317,7 @@ class LabAPI:
                 labs_data = safe_get_dict_field(response, "Data", [])
             
             # Convert to LabRecord objects
-            labs = [LabRecord(**lab_data) for lab_data in labs_data]
+            labs = [LabRecord.from_dict(lab_data) for lab_data in labs_data]
             
             self.logger.info(f"Successfully fetched {len(labs)} labs")
             return labs
@@ -480,7 +480,7 @@ class LabAPI:
                     "backtestCount": safe_get_field(lab_data, "CB", 0)
                 }
             
-            lab_details = LabDetails(**mapped_data)
+            lab_details = LabDetails.from_dict(mapped_data)
             
             self.logger.info(f"Retrieved lab details: {lab_details.name}")
             return lab_details
@@ -541,6 +541,15 @@ class LabAPI:
                     "leverage": getattr(getattr(lab_id_or_details, 'settings', None), 'leverage', None),
                     "positionmode": getattr(getattr(lab_id_or_details, 'settings', None), 'position_mode', None),
                     "marginmode": getattr(getattr(lab_id_or_details, 'settings', None), 'margin_mode', None),
+                    "scriptparameters": [
+                        {
+                            "K": p.key,
+                            "O": [p.value],
+                            "T": p.param_type,
+                            "I": p.is_included,
+                            "IS": p.is_selected
+                        } for p in getattr(lab_id_or_details, 'parameters', [])
+                    ]
                 }
             else:
                 lab_id = str(lab_id_or_details)
@@ -635,7 +644,7 @@ class LabAPI:
             if not updated_data:
                 raise LabError(message="No updated lab data returned from API")
             
-            updated_lab = LabDetails(**updated_data)
+            updated_lab = LabDetails.from_dict(updated_data)
             
             self.logger.info(f"Lab details updated successfully: {updated_lab.name}")
             return updated_lab
@@ -765,7 +774,7 @@ class LabAPI:
             
             # Map the API response to the expected model structure
             mapped_data = self._map_lab_response_to_model(cloned_data)
-            cloned_lab = LabDetails(**mapped_data)
+            cloned_lab = LabDetails.from_dict(mapped_data)
             
             self.logger.info(f"Lab cloned successfully: {cloned_lab.lab_id}")
             return cloned_lab
@@ -894,7 +903,7 @@ class LabAPI:
             if not updated_data:
                 raise LabError(message="No updated lab data returned from API")
             
-            updated_lab = LabDetails(**updated_data)
+            updated_lab = LabDetails.from_dict(updated_data)
             
             self.logger.info(f"Lab script changed successfully: {updated_lab.name}")
             return updated_lab

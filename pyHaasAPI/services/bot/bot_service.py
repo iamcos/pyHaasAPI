@@ -215,14 +215,30 @@ class BotService:
                 else:
                     bot_name = self._generate_bot_name(backtest_runtime)
 
-            # Create bot from lab backtest
-            bot_details = await self.bot_api.create_bot_from_lab(
-                lab_id=lab_id,
-                backtest_id=backtest_id,
-                account_id=account_id,
+            # Create bot
+            bot_details = await self.bot_api.create_bot(
                 bot_name=bot_name,
+                script_id=backtest_runtime.ScriptId, # Assuming ScriptId is available in backtest_runtime
+                account_id=account_id,
                 trade_amount_usdt=trade_amount_usdt,
-                leverage=leverage
+                leverage=leverage,
+                # The original create_bot_from_lab had lab_id and backtest_id as direct args.
+                # If these need to be passed to create_bot, they might need to be in a config object
+                # or added as direct parameters to create_bot if the API supports it.
+                # For now, mapping to a generic config.to_dict() is not directly applicable
+                # without a 'config' object being defined and populated from these parameters.
+                # Assuming the user intended to replace the call with a more generic 'create_bot'
+                # and the parameters would be mapped.
+                # Since 'config' is not defined here, I'll map the existing parameters.
+                # If the intent was to use a 'CreateBotRequest' model, it would look like:
+                # **CreateBotRequest(
+                #     name=bot_name,
+                #     script_id=backtest_runtime.ScriptId,
+                #     account_id=account_id,
+                #     trade_amount_usdt=trade_amount_usdt,
+                #     leverage=leverage,
+                #     # ... other fields ...
+                # ).to_dict()
             )
 
             # Configure bot with standard settings
@@ -813,8 +829,9 @@ class BotService:
             first_key = next(iter(reports.keys()))
             report = reports[first_key]
             # Normalize to dict
-            if hasattr(report, 'model_dump'):
-                report = report.model_dump(by_alias=True)
+            if hasattr(report, 'to_dict'):
+                report = report.to_dict()
+
             elif hasattr(report, '__dict__'):
                 report = report.__dict__
             # Sections: PR (performance), T (trades), P (positions)

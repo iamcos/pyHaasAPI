@@ -150,7 +150,7 @@ Examples:
             # Display results
             if args.output_format == 'json':
                 import json
-                output = json.dumps([bot.dict() for bot in bots], indent=2)
+                output = json.dumps([bot.to_dict() for bot in bots], indent=2)
                 if args.output_file:
                     with open(args.output_file, 'w') as f:
                         f.write(output)
@@ -163,7 +163,7 @@ Examples:
                         writer = csv.DictWriter(f, fieldnames=['id', 'name', 'status', 'account_id', 'market_tag', 'created_at'])
                         writer.writeheader()
                         for bot in bots:
-                            writer.writerow(bot.dict())
+                            writer.writerow(bot.to_dict())
                 else:
                     print("id,name,status,account_id,market_tag,created_at")
                     for bot in bots:

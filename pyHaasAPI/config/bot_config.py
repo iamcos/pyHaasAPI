@@ -1,155 +1,127 @@
 """
 Bot configuration settings
 """
+import os
+from dataclasses import dataclass, field
+from typing import Dict, Any
+from .env_utils import get_env
 
-from typing import Optional, List, Dict, Any
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings
-
-
-class BotConfig(BaseSettings):
+@dataclass
+class BotConfig:
     """Bot configuration settings"""
     
     # Default bot settings
-    default_leverage: float = Field(default=20.0, env="BOT_DEFAULT_LEVERAGE")
-    default_position_mode: int = Field(default=1, env="BOT_DEFAULT_POSITION_MODE")  # HEDGE
-    default_margin_mode: int = Field(default=0, env="BOT_DEFAULT_MARGIN_MODE")  # CROSS
-    default_trade_amount: float = Field(default=2000.0, env="BOT_DEFAULT_TRADE_AMOUNT")
+    default_leverage: float = field(default_factory=lambda: get_env("BOT_DEFAULT_LEVERAGE", 20.0, float))
+    default_position_mode: int = field(default_factory=lambda: get_env("BOT_DEFAULT_POSITION_MODE", 1, int))  # HEDGE
+    default_margin_mode: int = field(default_factory=lambda: get_env("BOT_DEFAULT_MARGIN_MODE", 0, int))  # CROSS
+    default_trade_amount: float = field(default_factory=lambda: get_env("BOT_DEFAULT_TRADE_AMOUNT", 2000.0, float))
     
     # Bot naming
-    name_template: str = Field(
-        default="{lab_name} - {script_name} - {roi} pop/{population_idx} gen/{generation_idx} WR{win_rate}%",
-        env="BOT_NAME_TEMPLATE"
-    )
+    name_template: str = field(default_factory=lambda: get_env(
+        "BOT_NAME_TEMPLATE",
+        "{lab_name} - {script_name} - {roi} pop/{population_idx} gen/{generation_idx} WR{win_rate}%"
+    ))
     
     # Bot limits
-    max_bots_per_account: int = Field(default=1, env="BOT_MAX_PER_ACCOUNT")
-    max_total_bots: int = Field(default=100, env="BOT_MAX_TOTAL")
+    max_bots_per_account: int = field(default_factory=lambda: get_env("BOT_MAX_PER_ACCOUNT", 1, int))
+    max_total_bots: int = field(default_factory=lambda: get_env("BOT_MAX_TOTAL", 100, int))
     
     # Bot creation
-    auto_activate: bool = Field(default=False, env="BOT_AUTO_ACTIVATE")
-    verify_after_creation: bool = Field(default=True, env="BOT_VERIFY_AFTER_CREATION")
-    creation_timeout: float = Field(default=30.0, env="BOT_CREATION_TIMEOUT")
+    auto_activate: bool = field(default_factory=lambda: get_env("BOT_AUTO_ACTIVATE", False, bool))
+    verify_after_creation: bool = field(default_factory=lambda: get_env("BOT_VERIFY_AFTER_CREATION", True, bool))
+    creation_timeout: float = field(default_factory=lambda: get_env("BOT_CREATION_TIMEOUT", 30.0, float))
     
     # Bot management
-    enable_monitoring: bool = Field(default=True, env="BOT_ENABLE_MONITORING")
-    monitoring_interval: int = Field(default=60, env="BOT_MONITORING_INTERVAL")  # seconds
-    health_check_interval: int = Field(default=300, env="BOT_HEALTH_CHECK_INTERVAL")  # seconds
+    enable_monitoring: bool = field(default_factory=lambda: get_env("BOT_ENABLE_MONITORING", True, bool))
+    monitoring_interval: int = field(default_factory=lambda: get_env("BOT_MONITORING_INTERVAL", 60, int))  # seconds
+    health_check_interval: int = field(default_factory=lambda: get_env("BOT_HEALTH_CHECK_INTERVAL", 300, int))  # seconds
     
     # Risk management
-    max_risk_per_bot: float = Field(default=0.02, env="BOT_MAX_RISK_PER_BOT")  # 2%
-    max_total_risk: float = Field(default=0.1, env="BOT_MAX_TOTAL_RISK")  # 10%
-    stop_loss_threshold: float = Field(default=0.05, env="BOT_STOP_LOSS_THRESHOLD")  # 5%
+    max_risk_per_bot: float = field(default_factory=lambda: get_env("BOT_MAX_RISK_PER_BOT", 0.02, float))  # 2%
+    max_total_risk: float = field(default_factory=lambda: get_env("BOT_MAX_TOTAL_RISK", 0.1, float))  # 10%
+    stop_loss_threshold: float = field(default_factory=lambda: get_env("BOT_STOP_LOSS_THRESHOLD", 0.05, float))  # 5%
     
     # Performance thresholds
-    min_roi_for_activation: float = Field(default=0.0, env="BOT_MIN_ROI_FOR_ACTIVATION")
-    min_win_rate_for_activation: float = Field(default=0.0, env="BOT_MIN_WIN_RATE_FOR_ACTIVATION")
-    max_drawdown_for_deactivation: float = Field(default=0.2, env="BOT_MAX_DRAWDOWN_FOR_DEACTIVATION")  # 20%
+    min_roi_for_activation: float = field(default_factory=lambda: get_env("BOT_MIN_ROI_FOR_ACTIVATION", 0.0, float))
+    min_win_rate_for_activation: float = field(default_factory=lambda: get_env("BOT_MIN_WIN_RATE_FOR_ACTIVATION", 0.0, float))
+    max_drawdown_for_deactivation: float = field(default_factory=lambda: get_env("BOT_MAX_DRAWDOWN_FOR_DEACTIVATION", 0.2, float))  # 20%
     
     # Account management
-    distribute_to_individual_accounts: bool = Field(default=True, env="BOT_DISTRIBUTE_ACCOUNTS")
-    account_naming_template: str = Field(
-        default="[Sim] {sequence}-{balance}k",
-        env="BOT_ACCOUNT_NAMING_TEMPLATE"
-    )
+    distribute_to_individual_accounts: bool = field(default_factory=lambda: get_env("BOT_DISTRIBUTE_ACCOUNTS", True, bool))
+    account_naming_template: str = field(default_factory=lambda: get_env(
+        "BOT_ACCOUNT_NAMING_TEMPLATE",
+        "[Sim] {sequence}-{balance}k"
+    ))
     
     # Bot cleanup
-    auto_cleanup_failed: bool = Field(default=True, env="BOT_AUTO_CLEANUP_FAILED")
-    cleanup_interval: int = Field(default=3600, env="BOT_CLEANUP_INTERVAL")  # 1 hour
-    failed_bot_retention_hours: int = Field(default=24, env="BOT_FAILED_RETENTION_HOURS")
+    auto_cleanup_failed: bool = field(default_factory=lambda: get_env("BOT_AUTO_CLEANUP_FAILED", True, bool))
+    cleanup_interval: int = field(default_factory=lambda: get_env("BOT_CLEANUP_INTERVAL", 3600, int))  # 1 hour
+    failed_bot_retention_hours: int = field(default_factory=lambda: get_env("BOT_FAILED_RETENTION_HOURS", 24, int))
     
     # Validation
-    validate_bot_config: bool = Field(default=True, env="BOT_VALIDATE_CONFIG")
-    validate_account_balance: bool = Field(default=True, env="BOT_VALIDATE_ACCOUNT_BALANCE")
-    min_account_balance: float = Field(default=1000.0, env="BOT_MIN_ACCOUNT_BALANCE")
+    validate_bot_config: bool = field(default_factory=lambda: get_env("BOT_VALIDATE_CONFIG", True, bool))
+    validate_account_balance: bool = field(default_factory=lambda: get_env("BOT_VALIDATE_ACCOUNT_BALANCE", True, bool))
+    min_account_balance: float = field(default_factory=lambda: get_env("BOT_MIN_ACCOUNT_BALANCE", 1000.0, float))
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"    
-    @field_validator("default_leverage")
-    @classmethod
-    def validate_leverage(cls, v):
-        """Validate leverage value"""
-        if v <= 0:
+    def __post_init__(self):
+        """Validate configuration"""
+        self.validate_leverage()
+        self.validate_position_mode()
+        self.validate_margin_mode()
+        self.validate_trade_amount()
+        self.validate_bot_limits()
+        self.validate_timeouts()
+        self.validate_risk_thresholds()
+        self.validate_min_roi()
+        self.validate_min_win_rate()
+        self.validate_min_account_balance()
+
+    def validate_leverage(self):
+        if self.default_leverage <= 0:
             raise ValueError("Leverage must be positive")
-        return v
-    
-    @field_validator("default_position_mode")
-    @classmethod
-    def validate_position_mode(cls, v):
-        """Validate position mode"""
+
+    def validate_position_mode(self):
         valid_modes = [0, 1]  # ONE_WAY, HEDGE
-        if v not in valid_modes:
+        if self.default_position_mode not in valid_modes:
             raise ValueError(f"Position mode must be one of: {valid_modes}")
-        return v
-    
-    @field_validator("default_margin_mode")
-    @classmethod
-    def validate_margin_mode(cls, v):
-        """Validate margin mode"""
+
+    def validate_margin_mode(self):
         valid_modes = [0, 1]  # CROSS, ISOLATED
-        if v not in valid_modes:
+        if self.default_margin_mode not in valid_modes:
             raise ValueError(f"Margin mode must be one of: {valid_modes}")
-        return v
-    
-    @field_validator("default_trade_amount")
-    @classmethod
-    def validate_trade_amount(cls, v):
-        """Validate trade amount"""
-        if v <= 0:
+
+    def validate_trade_amount(self):
+        if self.default_trade_amount <= 0:
             raise ValueError("Trade amount must be positive")
-        return v
-    
-    @field_validator("max_bots_per_account", "max_total_bots")
-    @classmethod
-    def validate_bot_limits(cls, v):
-        """Validate bot limits"""
-        if v <= 0:
+
+    def validate_bot_limits(self):
+        if self.max_bots_per_account <= 0:
             raise ValueError("Bot limits must be positive")
-        return v
-    
-    @field_validator("creation_timeout", "monitoring_interval", "health_check_interval", "cleanup_interval")
-    @classmethod
-    def validate_timeouts(cls, v):
-        """Validate timeout values"""
-        if v <= 0:
-            raise ValueError("Timeout values must be positive")
-        return v
-    
-    @field_validator("max_risk_per_bot", "max_total_risk", "stop_loss_threshold", "max_drawdown_for_deactivation")
-    @classmethod
-    def validate_risk_thresholds(cls, v):
-        """Validate risk thresholds"""
-        if not 0.0 <= v <= 1.0:
-            raise ValueError("Risk thresholds must be between 0.0 and 1.0")
-        return v
-    
-    @field_validator("min_roi_for_activation")
-    @classmethod
-    def validate_min_roi(cls, v):
-        """Validate minimum ROI"""
-        if v < 0:
+        if self.max_total_bots <= 0:
+            raise ValueError("Bot limits must be positive")
+
+    def validate_timeouts(self):
+        for val in [self.creation_timeout, self.monitoring_interval, self.health_check_interval, self.cleanup_interval]:
+            if val <= 0:
+                raise ValueError("Timeout values must be positive")
+
+    def validate_risk_thresholds(self):
+        for val in [self.max_risk_per_bot, self.max_total_risk, self.stop_loss_threshold, self.max_drawdown_for_deactivation]:
+            if not 0.0 <= val <= 1.0:
+                raise ValueError("Risk thresholds must be between 0.0 and 1.0")
+
+    def validate_min_roi(self):
+        if self.min_roi_for_activation < 0:
             raise ValueError("Minimum ROI must be non-negative")
-        return v
-    
-    @field_validator("min_win_rate_for_activation")
-    @classmethod
-    def validate_min_win_rate(cls, v):
-        """Validate minimum win rate"""
-        if not 0.0 <= v <= 1.0:
+
+    def validate_min_win_rate(self):
+        if not 0.0 <= self.min_win_rate_for_activation <= 1.0:
             raise ValueError("Minimum win rate must be between 0.0 and 1.0")
-        return v
-    
-    @field_validator("min_account_balance")
-    @classmethod
-    def validate_min_account_balance(cls, v):
-        """Validate minimum account balance"""
-        if v <= 0:
+
+    def validate_min_account_balance(self):
+        if self.min_account_balance <= 0:
             raise ValueError("Minimum account balance must be positive")
-        return v
-    
+
     @property
     def position_mode_name(self) -> str:
         """Get position mode name"""
@@ -171,6 +143,10 @@ class BotConfig(BaseSettings):
     def get_account_name(self, sequence: str, balance: float) -> str:
         """Generate account name using template"""
         try:
+            # Note: template expects {balance} in k, user code might pass raw balance
+            # The previous code did int(balance/1000) inside format? No, in caller.
+            # Wait, previous code did: return self.account_naming_template.format(sequence=sequence, balance=int(balance/1000))
+            # I should replicate that logic inside this method.
             return self.account_naming_template.format(sequence=sequence, balance=int(balance/1000))
         except KeyError:
             # Fallback to simple naming

@@ -111,11 +111,7 @@ class TestEnvironment:
         except ImportError:
             pytest.skip("pytest not available")
         
-        try:
-            import pydantic
-            assert hasattr(pydantic, 'BaseModel')
-        except ImportError:
-            pytest.skip("pydantic not available")
+
         
         try:
             import aiohttp

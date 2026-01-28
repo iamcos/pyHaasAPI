@@ -74,11 +74,81 @@ class AuthenticationManager:
         # Authentication state
         self._authenticated = False
         self._last_auth_time: Optional[datetime] = None
+        
+        # Persistence
+        self._session_file = "sessions.json"
+        self._load_session_from_disk()
+
+    @property
+    def user_id(self) -> str:
+        """Get current user ID"""
+        return self._session.user_id if self._session else ""
+        
+    @property
+    def interface_key(self) -> str:
+        """Get current interface key"""
+        return self._session.interface_key if self._session else ""
+
+    @property
+    def session(self) -> Optional[AuthSession]:
+        """Get current session"""
+        return self._session
+
+    def _load_session_from_disk(self) -> None:
+        """Load session from disk if available"""
+        import os
+        import json
+        if os.path.exists(self._session_file):
+            try:
+                with open(self._session_file, 'r') as f:
+                    data = json.load(f)
+                
+                # We need to find the session for OUR host/port if multiple-server support is needed
+                # But for now, let's keep it simple and keyed by host:port
+                # Multi-server support: Use server_name if available, otherwise host:port
+                key = self.config.server_name or f"{self.config.host}:{self.config.port}"
+                if key in data:
+                    session_data = data[key]
+                    self._session = AuthSession(
+                        user_id=session_data["user_id"],
+                        interface_key=session_data["interface_key"],
+                        created_at=datetime.fromisoformat(session_data["created_at"]),
+                        expires_at=datetime.fromisoformat(session_data["expires_at"]) if session_data["expires_at"] else None,
+                        is_active=session_data["is_active"]
+                    )
+                    if not self._session.is_expired:
+                        self._authenticated = True
+                        self._last_auth_time = self._session.created_at # Restored _last_auth_time
+                        self.logger.info(f"Loaded active session for {key}")
+            except Exception as e:
+                self.logger.warning(f"Failed to load session from disk: {e}")
+
+    def _save_session_to_disk(self) -> None:
+        """Save current session to disk"""
+        import os
+        import json
+        if not self._session:
+            return
+            
+        try:
+            data = {}
+            if os.path.exists(self._session_file):
+                with open(self._session_file, 'r') as f:
+                    data = json.load(f)
+            
+            key = f"{self.config.host}:{self.config.port}" # Corrected to use self.config.port
+            data[key] = self._session.to_dict()
+            
+            with open(self._session_file, 'w') as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            self.logger.warning(f"Failed to save session to disk: {e}")
     
     async def authenticate(
         self, 
         email: Optional[str] = None, 
-        password: Optional[str] = None
+        password: Optional[str] = None,
+        server_name: Optional[str] = None
     ) -> AuthSession:
         """
         Authenticate with email and password
@@ -108,9 +178,19 @@ class AuthenticationManager:
                 # Step 1: Initial authentication request
                 auth_response, interface_key = await self._initial_auth(auth_email, auth_password)
                 
-                # Step 2: Always do the second step (like v1 does)
-                # v1 always does LOGIN_WITH_ONE_TIME_CODE even if no OTC is required
-                auth_response = await self._complete_auth_with_otc(auth_email, auth_password, "123456", interface_key)
+                # Check if we are already authenticated or need OTC
+                # Haas API v2 often returns user data in the first step
+                user_id = (auth_response or {}).get("D")
+                if isinstance(user_id, dict):
+                    user_id = user_id.get("UserId")
+                else:
+                    user_id = None
+                
+                if not user_id:
+                    # Step 2: Always do the second step (like v1 does)
+                    # v1 always does LOGIN_WITH_ONE_TIME_CODE even if no OTC is required
+                    self.logger.info("Proceeding to second-step authentication (OTC/Interface Key confirmation)")
+                    auth_response = await self._complete_auth_with_otc(auth_email, auth_password, "123456", interface_key)
                 
                 # Step 3: Create session
                 session = self._create_session(auth_response, interface_key)
@@ -121,6 +201,7 @@ class AuthenticationManager:
                 self._last_auth_time = datetime.now()
                 
                 self.logger.info(f"Authentication successful for user: {session.user_id}")
+                self._save_session_to_disk()
                 return session
                 
             except Exception as e:
@@ -208,11 +289,14 @@ class AuthenticationManager:
             recovery_suggestion="Use the complete_authentication method with OTC parameter"
         )
     
-    def _create_session(self, auth_data: Dict[str, Any], interface_key: str = "") -> AuthSession:
+    def _create_session(self, auth_data: Optional[Dict[str, Any]], interface_key: str = "") -> AuthSession:
         """Create authentication session from response data"""
         # Handle the nested structure from the API response
         # The user data is in Data.D.UserId
-        data = auth_data.get("D", {})
+        data = (auth_data or {}).get("D")
+        if not isinstance(data, dict):
+            data = {}
+            
         user_id = data.get("UserId", "")
         
         if not user_id:
@@ -381,21 +465,6 @@ class AuthenticationManager:
             self._session is not None and 
             not self._session.is_expired
         )
-    
-    @property
-    def session(self) -> Optional[AuthSession]:
-        """Get current session"""
-        return self._session
-    
-    @property
-    def user_id(self) -> Optional[str]:
-        """Get current user ID"""
-        return self._session.user_id if self._session else None
-    
-    @property
-    def interface_key(self) -> Optional[str]:
-        """Get current interface key"""
-        return self._session.interface_key if self._session else None
 
 
 # Convenience function for complete authentication with OTC

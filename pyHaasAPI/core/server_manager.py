@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from contextlib import asynccontextmanager
 import json
 import psutil
 
@@ -45,6 +46,8 @@ class ServerConfig:
     retry_delay: float = 5.0
     health_check_interval: float = 60.0
     enabled: bool = True
+    api_email: Optional[str] = None
+    api_password: Optional[str] = None
 
 
 @dataclass
@@ -80,6 +83,7 @@ class ServerManager:
         self.active_server: Optional[str] = None
         self.monitoring_task: Optional[asyncio.Task] = None
         self.shutdown_event = asyncio.Event()
+        self._lock = asyncio.Lock()
         
         # Load server configurations
         self._load_server_configs()
@@ -96,8 +100,24 @@ class ServerManager:
                 )
     
     def _load_server_configs(self) -> None:
-        """Load server configurations from settings or defaults"""
-        # Default server configurations
+        """Load server configurations from file or use defaults"""
+        file_path = "servers.json"
+        
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                
+                for name, config_data in data.items():
+                    config = ServerConfig(**config_data)
+                    self.servers[name] = ServerConnectionStatus(config=config)
+                
+                self.logger.info(f"Loaded {len(self.servers)} server configurations from {file_path}")
+                return
+            except Exception as e:
+                self.logger.error(f"Failed to load server configurations from {file_path}: {e}")
+        
+        # Fallback to default server configurations
         default_servers = {
             "srv01": ServerConfig(
                 name="srv01",
@@ -129,7 +149,45 @@ class ServerManager:
         for name, config in default_servers.items():
             self.servers[name] = ServerConnectionStatus(config=config)
         
-        self.logger.info(f"Loaded {len(self.servers)} server configurations")
+        # Save defaults to file
+        self.save_servers()
+        self.logger.info(f"Initialized {len(self.servers)} default server configurations")
+
+    def save_servers(self) -> None:
+        """Save server configurations to servers.json"""
+        import dataclasses
+        file_path = "servers.json"
+        try:
+            data = {name: dataclasses.asdict(status.config) for name, status in self.servers.items()}
+            with open(file_path, 'w') as f:
+                json.dump(data, f, indent=2)
+            self.logger.info(f"Saved {len(self.servers)} server configurations to {file_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to save server configurations: {e}")
+
+    def add_server(self, config: ServerConfig) -> None:
+        """Add a new server configuration"""
+        if config.name in self.servers:
+            raise ConfigurationError(f"Server with name {config.name} already exists")
+        
+        self.servers[config.name] = ServerConnectionStatus(config=config)
+        self.save_servers()
+        self.logger.info(f"Added new server configuration: {config.name}")
+
+    def edit_server(self, name: str, config: ServerConfig) -> None:
+        """Edit an existing server configuration"""
+        if name not in self.servers:
+            raise ConfigurationError(f"Server with name {name} does not exist")
+        
+        # If name is being changed, remove old and add new
+        if name != config.name:
+            if config.name in self.servers:
+                raise ConfigurationError(f"Server with name {config.name} already exists")
+            del self.servers[name]
+        
+        self.servers[config.name] = ServerConnectionStatus(config=config)
+        self.save_servers()
+        self.logger.info(f"Updated server configuration: {config.name}")
     
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown"""
@@ -170,6 +228,15 @@ class ServerManager:
             self.logger.info(f"Connecting to server {server_name}")
             server_status.status = ServerStatus.CONNECTING
             
+            # Guard: Check if ports 8090/8092 are already in use locally
+            import psutil
+            try:
+                busy = [f"{c.laddr.port}(PID:{c.pid})" for c in psutil.net_connections() 
+                        if c.laddr.port in [8090, 8092] and c.status == 'LISTEN']
+                if busy:
+                    self.logger.warning(f"Port collision detected: {', '.join(busy)}. Tunnel might not bind.")
+            except: pass
+
             # Build SSH command
             ssh_cmd = self._build_ssh_command(server_status.config)
             
@@ -181,12 +248,20 @@ class ServerManager:
                 preexec_fn=os.setsid
             )
             
-            # Wait for connection to establish
-            await asyncio.sleep(2)
+            # Wait for connection to establish with active polling
+            start_time = time.time()
+            connected = False
+            while time.time() - start_time < server_status.config.timeout:
+                if await self.preflight_check(timeout=1.0):
+                    connected = True
+                    break
+                await asyncio.sleep(0.5)
+                
+                # Check if process died
+                if process.poll() is not None:
+                    break
             
-            # Preflight check: verify localhost:8090 (and 8092) are reachable
-            preflight_ok = await self.preflight_check()
-            if not preflight_ok:
+            if not connected:
                 try:
                     # Clean up process if preflight fails
                     if process and process.poll() is None:
@@ -195,8 +270,8 @@ class ServerManager:
                     pass
                 server_status.status = ServerStatus.FAILED
                 raise ConnectionError(
-                    "Tunnel preflight failed. Start the mandated SSH tunnel: "
-                    "ssh -N -L 8090:127.0.0.1:8090 -L 8092:127.0.0.1:8092 prod@srv0*"
+                    f"Tunnel preflight failed after {server_status.config.timeout}s. "
+                    "Ensure SSH authentication works without password (key-based) and ports are free."
                 )
             
             # Check if process is still running
@@ -249,8 +324,8 @@ class ServerManager:
         
         # Add connection options
         cmd.extend([
-            "-o", "StrictHostKeyChecking=no",
-            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "StrictHostKeyChecking=accept-new",  # Safer than 'no', auto-accepts new keys but warns on change
+            "-o", "BatchMode=yes",  # Fail instead of hanging on interaction
             "-o", "ServerAliveInterval=30",
             "-o", "ServerAliveCountMax=3",
             "-o", f"ConnectTimeout={config.timeout}",
@@ -314,13 +389,25 @@ class ServerManager:
     
     async def switch_server(self, server_name: str) -> bool:
         """
-        Switch to a different server
-        
-        Args:
-            server_name: Name of the server to switch to
+        Switch to a different server with global locking
+        """
+        async with self._lock:
+            # Aggressive cleanup of stale tunnels on these ports
+            import psutil
+            for conn in psutil.net_connections():
+                if conn.laddr.port in [8090, 8092] and conn.status == 'LISTEN':
+                    try:
+                        p = psutil.Process(conn.pid)
+                        if "ssh" in p.name().lower():
+                            self.logger.info(f"Killing stale SSH tunnel (PID: {conn.pid}) on port {conn.laddr.port}")
+                            p.terminate()
+                    except: pass
             
-        Returns:
-            True if switch successful, False otherwise
+            return await self._switch_server_internal(server_name)
+
+    async def _switch_server_internal(self, server_name: str) -> bool:
+        """
+        Internal switch implementation without lock
         """
         if server_name not in self.servers:
             raise ServerError(f"Unknown server: {server_name}")
@@ -331,10 +418,21 @@ class ServerManager:
         # Connect to the requested server
         if await self.connect_server(server_name):
             self.active_server = server_name
-            self.logger.info(f"Switched to server {server_name}")
+            # self.logger.info(f"Switched to server {server_name}")
             return True
         
         return False
+
+    @asynccontextmanager
+    async def server_session(self, server_name: str):
+        """
+        Context manager that holds the server lock during the entire session
+        """
+        async with self._lock:
+            if await self._switch_server_internal(server_name):
+                yield server_name
+            else:
+                raise ServerError(f"Could not establish session for {server_name}")
     
     async def get_server_status(self, server_name: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -554,3 +652,104 @@ class ServerManager:
         if check_auxiliary:
             ok_aux = await _probe(8092)
         return ok_primary and ok_aux
+
+    async def execute_remote_command(self, server_name: str, command: str) -> Tuple[bool, str, str]:
+        """
+        Execute a command on a remote server via SSH
+        
+        Args:
+            server_name: Name of the server
+            command: Command to execute
+            
+        Returns:
+            Tuple of (success, stdout, stderr)
+        """
+        if server_name not in self.servers:
+            return False, "", f"Unknown server: {server_name}"
+            
+        config = self.servers[server_name].config
+        
+        # Build SSH command for execution
+        cmd = [
+            "ssh",
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-o", "BatchMode=yes",
+            "-o", f"ConnectTimeout={config.timeout}",
+        ]
+        
+        if config.ssh_key_path and os.path.exists(config.ssh_key_path):
+            cmd.extend(["-i", config.ssh_key_path])
+            
+        cmd.append(f"{config.username}@{config.hostname}")
+        cmd.append(command)
+        
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            try:
+                # Add overall timeout to the SSH operation
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout + 2)
+                
+                return (
+                    process.returncode == 0,
+                    stdout.decode().strip(),
+                    stderr.decode().strip()
+                )
+            except asyncio.TimeoutError:
+                try:
+                    process.kill()
+                    await process.wait()
+                except Exception:
+                    pass
+                return False, "", f"SSH command timed out after {config.timeout + 2}s"
+                
+        except Exception as e:
+            msg = f"Failed to execute remote command: {e}"
+            self.logger.error(msg)
+            return False, "", msg
+
+    async def get_server_resources(self, server_name: str) -> Dict[str, Any]:
+        """
+        Get resource usage stats from remote server
+        """
+        # Improved script to be faster and more robust
+        script = """
+        echo "CPU_LOAD: $(cat /proc/loadavg | awk '{print $1}')"
+        echo "RAM_USED: $(free -m | awk 'NR==2{if($2>0) printf "%.1f", $3/$2*100; else print "0"}')"
+        echo "DISK_USED: $(df -h / | awk 'NR==2{print $5}' | tr -d '%')"
+        if pgrep -f "Haas" > /dev/null; then echo "HAAS_STATUS: Running"; else echo "HAAS_STATUS: Stopped"; fi
+        """
+        
+        success, stdout, stderr = await self.execute_remote_command(server_name, script)
+        
+        stats = {
+            "cpu_load": "N/A",
+            "ram_usage": "N/A",
+            "disk_usage": "N/A",
+            "haas_status": "Unknown",
+            "success": success,
+            "error": stderr if not success else None
+        }
+        
+        if success:
+            try:
+                for line in stdout.splitlines():
+                    line = line.strip()
+                    if not line: continue
+                    if line.startswith("CPU_LOAD:"):
+                        stats["cpu_load"] = f"{line.split(':', 1)[1].strip()}"
+                    elif line.startswith("RAM_USED:"):
+                        stats["ram_usage"] = f"{line.split(':', 1)[1].strip()}%"
+                    elif line.startswith("DISK_USED:"):
+                        stats["disk_usage"] = f"{line.split(':', 1)[1].strip()}%"
+                    elif line.startswith("HAAS_STATUS:"):
+                        stats["haas_status"] = f"{line.split(':', 1)[1].strip()}"
+            except Exception as e:
+                self.logger.error(f"Error parsing resource stats from {server_name}: {e}")
+        
+        return stats
+

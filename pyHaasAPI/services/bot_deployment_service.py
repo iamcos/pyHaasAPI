@@ -485,6 +485,8 @@ class BotDeploymentService:
         # Convert backtest result to dict for JSON serialization
         if hasattr(backtest_result, '__dict__'):
             data = backtest_result.__dict__
+        elif hasattr(backtest_result, 'to_dict'):
+            data = backtest_result.to_dict()
         elif hasattr(backtest_result, 'model_dump'):
             data = backtest_result.model_dump()
         else:

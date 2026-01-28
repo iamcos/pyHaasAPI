@@ -367,9 +367,9 @@ class ServerContentManager:
             payload = {
                 "server": snapshot.server,
                 "timestamp": snapshot.timestamp,
-                "labs": [self._safe_model_dump(l) for l in snapshot.labs],
-                "bots": [self._safe_model_dump(b) for b in snapshot.bots],
-                "lab_id_to_bots": {k: [self._safe_model_dump(b) for b in v] for k, v in snapshot.lab_id_to_bots.items()},
+                "labs": [self._safe_to_dict(l) for l in snapshot.labs],
+                "bots": [self._safe_to_dict(b) for b in snapshot.bots],
+                "lab_id_to_bots": {k: [self._safe_to_dict(b) for b in v] for k, v in snapshot.lab_id_to_bots.items()},
                 "coins": sorted(list(snapshot.coins)),
                 "labs_without_bots": sorted(list(snapshot.labs_without_bots)),
                 "coins_without_labs": sorted(list(snapshot.coins_without_labs)),
@@ -382,7 +382,7 @@ class ServerContentManager:
     def _persist_backtests(self, lab_id: str, backtests: List[Any]) -> None:
         try:
             out = self.cache_dir / "backtests" / f"{lab_id}.json"
-            payload = [self._safe_model_dump(b) for b in backtests]
+            payload = [self._safe_to_dict(b) for b in backtests]
             with open(out, "w") as f:
                 json.dump(payload, f, indent=2, default=str)
         except Exception as e:
@@ -417,9 +417,11 @@ class ServerContentManager:
             self.logger.warning(f"Failed to list bots: {e}")
             return []
 
-    def _safe_model_dump(self, obj: Any) -> Dict[str, Any]:
+    def _safe_to_dict(self, obj: Any) -> Dict[str, Any]:
         # Pydantic models have model_dump; objects may be dict-like already
-        if hasattr(obj, "model_dump"):
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
+        if hasattr(obj, "model_dump"): # Fallback for Pydantic v2 models
             return obj.model_dump()
         if isinstance(obj, dict):
             return obj

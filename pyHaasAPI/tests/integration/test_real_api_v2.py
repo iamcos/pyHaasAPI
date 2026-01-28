@@ -280,11 +280,7 @@ class TestRealAPIV2:
         except ImportError:
             pytest.fail("aiohttp not available")
         
-        try:
-            import pydantic
-            print(f"pydantic: {pydantic.__version__}")
-        except ImportError:
-            pytest.fail("pydantic not available")
+
         
         try:
             import pytest

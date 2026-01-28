@@ -33,6 +33,14 @@ def safe_get_field(obj: Any, field_name: str, default: Any = None, required: boo
     Raises:
         ValueError: If required field is missing
     """
+    if isinstance(obj, dict):
+        if field_name in obj:
+            return obj[field_name]
+        if required:
+            logger.error(f"Required field '{field_name}' missing from dictionary")
+            raise ValueError(f"Required field '{field_name}' not found")
+        return default
+    
     if hasattr(obj, field_name):
         value = getattr(obj, field_name)
         if value is None and required:
@@ -44,7 +52,6 @@ def safe_get_field(obj: Any, field_name: str, default: Any = None, required: boo
             logger.error(f"Required field '{field_name}' missing from {type(obj).__name__}")
             raise ValueError(f"Required field '{field_name}' not found")
         else:
-            logger.warning(f"Optional field '{field_name}' missing from {type(obj).__name__}")
             return default
 
 

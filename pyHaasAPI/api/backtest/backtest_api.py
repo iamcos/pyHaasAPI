@@ -201,10 +201,38 @@ class BacktestAPI:
             raw_response = await self.get_backtest_runtime(lab_id, backtest_id)
             
             # The API response is direct data, not wrapped in {"Success": ..., "Data": ...}
-            data_content = raw_response
+            data = raw_response
             
+            # Extract common fields
+            reports = data.get('Reports', {})
+            # Get first report key to extract summary metrics
+            report_key = list(reports.keys())[0] if reports else ""
+            report = reports.get(report_key, {}) if report_key else {}
+            pr = report.get('PR', {})
+            p = report.get('P', {})
+
             # Parse the data into our structured BacktestRuntimeData model
-            return BacktestRuntimeData.model_validate(data_content)
+            return BacktestRuntimeData(
+                backtest_id=backtest_id,
+                lab_id=lab_id,
+                script_name=data.get('ScriptName', ''),
+                market_tag=data.get('PriceMarket', ''),
+                roi_percentage=p.get('ROE', 0.0),
+                win_rate=p.get('WR', 0.0),
+                total_trades=int(p.get('C', 0)),
+                max_drawdown=p.get('MDD', 0.0),
+                realized_profits_usdt=pr.get('RP', 0.0),
+                pc_value=data.get('PCV', 0.0), # Assuming PCV is pc_value
+                avg_profit_per_trade=p.get('AW', 0.0), # AW as average win/profit
+                profit_factor=p.get('PF', 0.0),
+                sharpe_ratio=p.get('SR', 0.0),
+                starting_balance=pr.get('SB', 10000.0),
+                final_balance=pr.get('FPC', {}).get('USDT', 10000.0) if pr.get('FPC') else 10000.0,
+                peak_balance=pr.get('SB', 10000.0) + pr.get('RP', 0.0), # Simplified peak
+                trades=[], # Trades would need deeper extraction from reports.P if available
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
             
         except Exception as e:
             self.logger.error(f"Failed to get full backtest runtime data: {e}")
@@ -245,7 +273,7 @@ class BacktestAPI:
                 data=post_data
             )
             
-            return BacktestChart.model_validate(response)
+            return BacktestChart.from_dict(response)
             
         except Exception as e:
             self.logger.error(f"Failed to get backtest chart: {e}")

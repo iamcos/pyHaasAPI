@@ -82,7 +82,7 @@ class ScriptAPI:
                 try:
                     # Safe field access for script ID
                     script_id = ""
-                    for key in ['ScriptId', 'ID', 'Id', 'script_id']:
+                    for key in ['ScriptId', 'ID', 'Id', 'script_id', 'SID']:
                         if hasattr(item, key):
                             script_id = str(getattr(item, key, ""))
                             break
@@ -92,7 +92,7 @@ class ScriptAPI:
                     
                     # Safe field access for name
                     name = ""
-                    for key in ['Name', 'N', 'name']:
+                    for key in ['Name', 'N', 'name', 'SN']:
                         if hasattr(item, key):
                             name = str(getattr(item, key, ""))
                             break
@@ -102,7 +102,7 @@ class ScriptAPI:
                     
                     # Safe field access for description
                     description = ""
-                    for key in ['Description', 'D', 'description']:
+                    for key in ['Description', 'D', 'description', 'SD']:
                         if hasattr(item, key):
                             description = str(getattr(item, key, ""))
                             break
@@ -112,7 +112,7 @@ class ScriptAPI:
                     
                     # Safe field access for source code
                     source_code = ""
-                    for key in ['Source', 'SourceCode', 'source_code']:
+                    for key in ['Source', 'SourceCode', 'source_code', 'SS']:
                         if hasattr(item, key):
                             source_code = str(getattr(item, key, ""))
                             break
@@ -224,7 +224,7 @@ class ScriptAPI:
                 }
             )
             
-            script_record = ScriptRecord.model_validate(response)
+            script_record = ScriptRecord.from_dict(response)
             self.logger.debug(f"Retrieved script record: {script_id}")
             return script_record
             
@@ -259,7 +259,7 @@ class ScriptAPI:
                 }
             )
             
-            script_item = ScriptItem.model_validate(response)
+            script_item = ScriptItem.from_dict(response)
             self.logger.debug(f"Retrieved script item: {script_id}")
             return script_item
             
@@ -346,7 +346,7 @@ class ScriptAPI:
                 }
             )
             
-            script_item = ScriptItem.model_validate(response)
+            script_item = ScriptItem.from_dict(response)
             self.logger.info(f"Successfully created script: {script_item.script_id}")
             return script_item
             
@@ -404,7 +404,7 @@ class ScriptAPI:
             
             # Handle different response types
             if isinstance(response, dict) and "script_id" in response:
-                script_item = ScriptItem.model_validate(response)
+                script_item = ScriptItem.from_dict(response)
             else:
                 # If response is not a full script item, fetch the updated script
                 script_item = await self.get_script_item(script_id)

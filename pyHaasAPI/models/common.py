@@ -2,277 +2,277 @@
 Common data models for pyHaasAPI v2
 
 Provides base models and common data structures used across all API modules.
+Removes Pydantic dependency in favor of standard dataclasses.
 """
 
-from typing import Any, Dict, List, Optional, TypeVar, Generic, Union
-from pydantic import BaseModel, Field, field_validator
+from typing import Any, Dict, List, Optional, TypeVar, Generic, Union, Type
+from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime
 
 T = TypeVar("T")
 
 
+class BaseModel:
+    """
+    Base model for all data classes providing dictionary serialization/deserialization
+    with robust case-insensitive field mapping.
+    """
+    
+    @classmethod
+    def from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
+        """
+        Create instance from dictionary with safe field mapping
+        
+        Handles:
+        - Case-insensitive key lookup
+        - Common variations (PascalCase, camelCase, snake_case, short codes)
+        - Nested dictionary conversion
+        - List of objects conversion
+        """
+        if not data:
+            return cls()
+            
+        # Get all fields for this dataclass
+        if not is_dataclass(cls):
+            raise TypeError(f"{cls.__name__} must be a dataclass")
+            
+        cls_fields = fields(cls)
+        init_kwargs = {}
+        
+        # Helper to find value in data dictionary
+        def find_value(field_name: str, field_type: Any) -> Any:
+            # Try exact match first
+            if field_name in data:
+                return data[field_name]
+                
+            # Try variations
+            variations = [
+                field_name.lower(),
+                field_name.upper(),
+                field_name.title(),
+                field_name.replace("_", ""),
+                field_name.replace("_", "").lower(),
+                # Common API short codes
+                "".join([part[0].upper() for part in field_name.split("_")]), # e.g. script_id -> SI
+                field_name.split("_")[-1].upper(), # e.g. lab_id -> ID
+                "".join([part[0].upper() for part in field_name.split("_")]) + "D", # e.g. lab_id -> LID
+            ]
+            
+            # Additional manual mappings can be added here or in specific models
+            
+            for key in data.keys():
+                if key.lower() in variations or key in variations:
+                    return data[key]
+                    
+            return None
+
+        # Helper to process value based on type
+        def process_value(value: Any, field_type: Any) -> Any:
+            if value is None:
+                return None
+                
+            # Handle recursive BaseModel/dataclass
+            if hasattr(field_type, "from_dict") and isinstance(value, dict):
+                return field_type.from_dict(value)
+                
+            # Handle List[BaseModel]
+            # This is a basic check, might need more robust typing inspection for complex generics
+            origin = getattr(field_type, "__origin__", None)
+            args = getattr(field_type, "__args__", [])
+            
+            if origin is list and args:
+                item_type = args[0]
+                if hasattr(item_type, "from_dict") and isinstance(value, list):
+                    return [item_type.from_dict(item) for item in value if isinstance(item, dict)]
+            
+            return value
+
+        for f in cls_fields:
+            raw_value = find_value(f.name, f.type)
+            
+            if raw_value is not None:
+                init_kwargs[f.name] = process_value(raw_value, f.type)
+        
+        return cls(**init_kwargs)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        result = {}
+        for f in fields(self):
+            value = getattr(self, f.name)
+            if hasattr(value, "to_dict"):
+                result[f.name] = value.to_dict()
+            elif isinstance(value, list):
+                result[f.name] = [
+                    item.to_dict() if hasattr(item, "to_dict") else item 
+                    for item in value
+                ]
+            else:
+                result[f.name] = value
+        return result
+
+
+@dataclass
 class ApiResponse(BaseModel, Generic[T]):
     """Base API response wrapper"""
-    success: bool = Field(alias="Success", default=True, description="Whether the request was successful")
-    error: str = Field(alias="Error", default="", description="Error message if any")
-    data: Optional[T] = Field(alias="Data", default=None, description="Response data")
+    success: bool = True
+    error: str = ""
+    data: Optional[T] = None
     
-    # @field_validator("success")
-    # def validate_success(cls, v, info):
-    #     """Validate success field"""
-    #     return bool(v)
-    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ApiResponse':
+        # Custom handling for standard API response structure
+        instance = cls()
+        
+        # Handle Success flag (boolean or int or string)
+        success_val = data.get("Success", data.get("success", True))
+        if isinstance(success_val, str):
+            instance.success = success_val.lower() == "true"
+        else:
+            instance.success = bool(success_val)
+            
+        instance.error = str(data.get("Error", data.get("error", "")))
+        
+        # Data is generic, left as is or processed by caller
+        instance.data = data.get("Data", data.get("data", None))
+        
+        return instance
+
     @property
     def is_success(self) -> bool:
-        """Check if response is successful"""
         return self.success and not self.error
-    
+
     @property
     def is_error(self) -> bool:
-        """Check if response contains an error"""
         return not self.success or bool(self.error)
 
 
+@dataclass
 class PaginatedResponse(BaseModel, Generic[T]):
     """Paginated API response"""
-    items: List[T] = Field(description="List of items in current page")
-    total_count: int = Field(alias="totalCount", description="Total number of items")
-    page: int = Field(default=1, description="Current page number")
-    page_size: int = Field(alias="pageSize", default=100, description="Number of items per page")
-    total_pages: int = Field(alias="totalPages", description="Total number of pages")
-    has_next: bool = Field(alias="hasNext", default=False, description="Whether there is a next page")
-    has_previous: bool = Field(alias="hasPrevious", default=False, description="Whether there is a previous page")
-    
-    # Temporarily disable all validators to fix hanging issue
-    # @field_validator("total_count", "page", "page_size", "total_pages")
-    # def validate_positive_integers(cls, v, info):
-    #     """Validate positive integer values"""
-    #     if v < 0:
-    #         raise ValueError("Value must be non-negative")
-    #     return v
-    
-    # @field_validator("total_pages")
-    # def validate_total_pages(cls, v, values):
-    #     """Validate total pages calculation"""
-    #     if "total_count" in values and "page_size" in values:
-    #         expected_pages = (values["total_count"] + values["page_size"] - 1) // values["page_size"]
-    #         if v != expected_pages:
-    #             raise ValueError("Total pages calculation is incorrect")
-    #     return v
-    
-    # @field_validator("has_next", "has_previous")
-    # def validate_page_navigation(cls, v, values):
-    #     """Validate page navigation flags"""
-    #     # Skip validation for now to avoid circular dependencies
-    #     return v
+    items: List[T] = field(default_factory=list)
+    total_count: int = 0
+    page: int = 1
+    page_size: int = 100
+    total_pages: int = 0
+    has_next: bool = False
+    has_previous: bool = False
 
 
+@dataclass
 class ErrorResponse(BaseModel):
     """Error response model"""
-    error_code: str = Field(alias="errorCode", description="Error code")
-    error_message: str = Field(alias="errorMessage", description="Error message")
-    error_details: Optional[Dict[str, Any]] = Field(alias="errorDetails", default=None, description="Additional error details")
-    timestamp: datetime = Field(default_factory=datetime.now, description="Error timestamp")
-    request_id: Optional[str] = Field(alias="requestId", default=None, description="Request ID for tracking")
-    
-    # @field_validator("error_code")
-    # def validate_error_code(cls, v, info):
-    #     """Validate error code format"""
-    #     if not v or not isinstance(v, str):
-    #         raise ValueError("Error code must be a non-empty string")
-    #     return v.upper()
-    
-    # @field_validator("error_message")
-    # def validate_error_message(cls, v, info):
-    #     """Validate error message"""
-    #     if not v or not isinstance(v, str):
-    #         raise ValueError("Error message must be a non-empty string")
-    #     return v
+    error_code: str = ""
+    error_message: str = ""
+    error_details: Optional[Dict[str, Any]] = None
+    timestamp: datetime = field(default_factory=datetime.now)
+    request_id: Optional[str] = None
 
 
+@dataclass
 class TimestampedModel(BaseModel):
     """Base model with timestamp fields"""
-    created_at: datetime = Field(alias="createdAt", default_factory=datetime.now, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(alias="updatedAt", default=None, description="Last update timestamp")
-    
-    @field_validator("updated_at")
-    def validate_updated_at(cls, v, values):
-        """Validate updated_at is after created_at"""
-        if v and "created_at" in values and v < values["created_at"]:
-            raise ValueError("updated_at must be after created_at")
-        return v
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = None
 
 
+@dataclass
 class IdentifiableModel(BaseModel):
     """Base model with ID field"""
-    id: str = Field(description="Unique identifier")
-    
-    @field_validator("id")
-    def validate_id(cls, v, info):
-        """Validate ID format"""
-        if not v or not isinstance(v, str):
-            raise ValueError("ID must be a non-empty string")
-        return v
+    id: str = ""
 
 
+@dataclass
 class NamedModel(BaseModel):
     """Base model with name field"""
-    name: str = Field(description="Name")
-    
-    @field_validator("name")
-    def validate_name(cls, v, info):
-        """Validate name format"""
-        if not v or not isinstance(v, str):
-            raise ValueError("Name must be a non-empty string")
-        return v.strip()
+    name: str = ""
 
 
+@dataclass
 class StatusModel(BaseModel):
     """Base model with status field"""
-    status: str = Field(description="Status")
-    
-    @field_validator("status")
-    def validate_status(cls, v, info):
-        """Validate status format"""
-        if not v or not isinstance(v, str):
-            raise ValueError("Status must be a non-empty string")
-        return v.upper()
+    status: str = ""
 
 
+@dataclass
 class ConfigurableModel(BaseModel):
     """Base model with configuration fields"""
-    config: Dict[str, Any] = Field(default_factory=dict, description="Configuration parameters")
-    
-    @field_validator("config")
-    def validate_config(cls, v, info):
-        """Validate configuration"""
-        if not isinstance(v, dict):
-            raise ValueError("Config must be a dictionary")
-        return v
+    config: Dict[str, Any] = field(default_factory=dict)
     
     def get_config_value(self, key: str, default: Any = None) -> Any:
-        """Get configuration value"""
         return self.config.get(key, default)
     
     def set_config_value(self, key: str, value: Any) -> None:
-        """Set configuration value"""
         self.config[key] = value
     
     def remove_config_value(self, key: str) -> Any:
-        """Remove configuration value"""
         return self.config.pop(key, None)
 
 
+@dataclass
 class MetadataModel(BaseModel):
     """Base model with metadata fields"""
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Metadata")
-    tags: List[str] = Field(default_factory=list, description="Tags")
-    
-    @field_validator("metadata")
-    def validate_metadata(cls, v, info):
-        """Validate metadata"""
-        if not isinstance(v, dict):
-            raise ValueError("Metadata must be a dictionary")
-        return v
-    
-    @field_validator("tags")
-    def validate_tags(cls, v, info):
-        """Validate tags"""
-        if not isinstance(v, list):
-            raise ValueError("Tags must be a list")
-        return [str(tag).strip() for tag in v if tag]
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    tags: List[str] = field(default_factory=list)
     
     def add_tag(self, tag: str) -> None:
-        """Add a tag"""
         if tag and tag not in self.tags:
             self.tags.append(tag.strip())
     
     def remove_tag(self, tag: str) -> bool:
-        """Remove a tag"""
         if tag in self.tags:
             self.tags.remove(tag)
             return True
         return False
     
     def has_tag(self, tag: str) -> bool:
-        """Check if model has a tag"""
         return tag in self.tags
 
 
+@dataclass
 class BaseEntityModel(TimestampedModel, IdentifiableModel, NamedModel, StatusModel, ConfigurableModel, MetadataModel):
     """Base model combining all common features"""
     pass
 
 
+@dataclass
 class PaginationParams(BaseModel):
     """Pagination parameters for API requests"""
-    page: int = Field(default=1, ge=1, description="Page number (1-based)")
-    page_size: int = Field(default=100, ge=1, le=1000, description="Number of items per page")
-    sort_by: Optional[str] = Field(default=None, description="Field to sort by")
-    sort_order: str = Field(default="asc", description="Sort order (asc or desc)")
-    
-    @field_validator("sort_order")
-    def validate_sort_order(cls, v, info):
-        """Validate sort order"""
-        if v.lower() not in ["asc", "desc"]:
-            raise ValueError("Sort order must be 'asc' or 'desc'")
-        return v.lower()
+    page: int = 1
+    page_size: int = 100
+    sort_by: Optional[str] = None
+    sort_order: str = "asc"
     
     @property
     def offset(self) -> int:
-        """Calculate offset for pagination"""
         return (self.page - 1) * self.page_size
     
     @property
     def limit(self) -> int:
-        """Get limit for pagination"""
         return self.page_size
 
 
+@dataclass
 class FilterParams(BaseModel):
     """Filter parameters for API requests"""
-    filters: Dict[str, Any] = Field(default_factory=dict, description="Filter criteria")
-    
-    @field_validator("filters")
-    def validate_filters(cls, v, info):
-        """Validate filters"""
-        if not isinstance(v, dict):
-            raise ValueError("Filters must be a dictionary")
-        return v
+    filters: Dict[str, Any] = field(default_factory=dict)
     
     def add_filter(self, key: str, value: Any) -> None:
-        """Add a filter"""
         self.filters[key] = value
     
     def remove_filter(self, key: str) -> Any:
-        """Remove a filter"""
         return self.filters.pop(key, None)
     
     def get_filter(self, key: str, default: Any = None) -> Any:
-        """Get a filter value"""
         return self.filters.get(key, default)
     
     def has_filter(self, key: str) -> bool:
-        """Check if filter exists"""
         return key in self.filters
 
 
+@dataclass
 class SearchParams(BaseModel):
     """Search parameters for API requests"""
-    query: Optional[str] = Field(default=None, description="Search query")
-    search_fields: List[str] = Field(default_factory=list, description="Fields to search in")
-    case_sensitive: bool = Field(default=False, description="Whether search is case sensitive")
-    
-    @field_validator("query")
-    def validate_query(cls, v, info):
-        """Validate search query"""
-        if v is not None and not isinstance(v, str):
-            raise ValueError("Query must be a string")
-        return v.strip() if v else None
-    
-    @field_validator("search_fields")
-    def validate_search_fields(cls, v, info):
-        """Validate search fields"""
-        if not isinstance(v, list):
-            raise ValueError("Search fields must be a list")
-        return [str(field).strip() for field in v if field]
+    query: Optional[str] = None
+    search_fields: List[str] = field(default_factory=list)
+    case_sensitive: bool = False

@@ -34,17 +34,21 @@ def setup_logging(config: Optional[LoggingConfig] = None) -> None:
     # Remove default handler
     logger.remove()
     
+    # Define handlers
+    handlers = []
+    
     # Console logging
     if config.console_enabled:
-        logger.add(
-            sys.stdout,
-            level=config.level,
-            format=config.get_log_format(),
-            filter=lambda record: config.should_log_module(record["name"]),
-            colorize=True,
-            backtrace=True,
-            diagnose=True
-        )
+        handlers.append({
+            "sink": sys.stdout,
+            "level": config.level,
+            "format": config.get_log_format(),
+            "filter": lambda record: config.should_log_module(record["name"]),
+            "colorize": True,
+            "backtrace": True,
+            "diagnose": True,
+            "enqueue": False
+        })
     
     # File logging
     if config.file_enabled:
@@ -52,29 +56,21 @@ def setup_logging(config: Optional[LoggingConfig] = None) -> None:
         log_path = Path(config.file_path)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         
-        logger.add(
-            config.file_path,
-            level=config.level,
-            format=config.get_log_format(),
-            filter=lambda record: config.should_log_module(record["name"]),
-            rotation=config.file_rotation,
-            retention=config.file_retention,
-            compression=config.file_compression,
-            backtrace=True,
-            diagnose=True
-        )
+        handlers.append({
+            "sink": config.file_path,
+            "level": config.level,
+            "format": config.get_log_format(),
+            "filter": lambda record: config.should_log_module(record["name"]),
+            "rotation": config.file_rotation,
+            "retention": config.file_retention,
+            "compression": config.file_compression,
+            "backtrace": True,
+            "diagnose": True,
+            "enqueue": False
+        })
     
-    # Configure loguru settings
-    logger.configure(
-        handlers=[
-            {
-                "sink": sys.stdout if config.console_enabled else None,
-                "level": config.level,
-                "format": config.get_log_format(),
-                "colorize": config.console_enabled,
-            }
-        ]
-    )
+    # Configure loguru with all handlers at once
+    logger.configure(handlers=handlers)
 
 
 def get_logger(name: str) -> Logger:

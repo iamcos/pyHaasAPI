@@ -6,7 +6,6 @@ using the new async architecture and type-safe components.
 """
 
 from .base import BaseCLI, CLIConfig
-from .main import main, create_parser
 from .lab_cli import LabCLI
 from .bot_cli import BotCLI
 from .analysis_cli import AnalysisCLI

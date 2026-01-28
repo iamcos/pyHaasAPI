@@ -61,7 +61,7 @@ class MarketAPI:
             if isinstance(markets_payload, list):
                 for market_data in markets_payload:
                     try:
-                        markets.append(CloudMarket.model_validate(market_data))
+                        markets.append(CloudMarket.from_dict(market_data))
                     except Exception:
                         # Fallback minimal mapping
                         price_source = (safe_get_dict_field(market_data, "price_source") or safe_get_dict_field(market_data, "PriceSource") or "")
@@ -113,7 +113,7 @@ class MarketAPI:
             )
             
             payload = safe_get_dict_field(response, "Data", response) if isinstance(response, dict) else response
-            markets = [CloudMarket.model_validate(market_data) for market_data in (payload or [])]
+            markets = [CloudMarket.from_dict(market_data) for market_data in (payload or [])]
             self.logger.debug(f"Retrieved {len(markets)} markets for {price_source}")
             return markets
             

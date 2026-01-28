@@ -92,7 +92,7 @@ class BotAPI:
             if not bot_data:
                 raise BotCreationError("No bot data returned from API")
             
-            bot_details = BotDetails.model_validate(bot_data)
+            bot_details = BotDetails.from_dict(bot_data)
             self.logger.info(f"Successfully created bot from lab: {bot_details.bot_id}")
             return bot_details
             
@@ -164,7 +164,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Bot creation failed")
                 raise BotCreationError(f"Failed to create bot: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data)
+            bot_details = BotDetails.from_dict(data)
             self.logger.info(f"Successfully created bot: {bot_details.bot_id}")
             return bot_details
             
@@ -224,7 +224,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Bot creation from lab failed")
                 raise BotCreationError(f"Failed to create bot from lab: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data)
+            bot_details = BotDetails.from_dict(data)
             self.logger.info(f"Successfully created bot from lab: {bot_details.bot_id}")
             return bot_details
             
@@ -330,25 +330,25 @@ class BotAPI:
                 try:
                     # Map API response fields to BotDetails model fields
                     mapped_bot = {
-                        "botId": bot_data.get("UI", ""),  # UI -> botId
-                        "botName": bot_data.get("BN", ""),  # BN -> botName  
-                        "scriptId": bot_data.get("SI", ""),  # SI -> scriptId
-                        "scriptName": bot_data.get("SN", ""),  # SN -> scriptName
-                        "scriptVersion": bot_data.get("SV", 1),  # SV -> scriptVersion
-                        "accountId": bot_data.get("AI", ""),  # AI -> accountId
-                        "marketTag": bot_data.get("PM", ""),  # PM -> marketTag
-                        "status": "ACTIVE" if bot_data.get("IA", False) else "INACTIVE",  # IA -> isActive -> status
-                        "isActive": bot_data.get("IA", False),  # IA -> isActive
-                        "createdAt": bot_data.get("UC", None),  # UC -> createdAt (Unix timestamp)
-                        "updatedAt": bot_data.get("UC", None),  # UC -> updatedAt
+                        "bot_id": bot_data.get("UI") or bot_data.get("BID") or bot_data.get("botId", ""),
+                        "bot_name": bot_data.get("BN") or bot_data.get("botName", ""),  
+                        "script_id": bot_data.get("SI") or bot_data.get("scriptId", ""),
+                        "script_name": bot_data.get("SN") or bot_data.get("scriptName", ""),
+                        "script_version": bot_data.get("SV", 1),
+                        "account_id": bot_data.get("AI") or bot_data.get("accountId", ""),
+                        "market_tag": bot_data.get("PM") or bot_data.get("marketTag", ""),
+                        "status": "ACTIVE" if bot_data.get("IA", False) else "INACTIVE",
+                        "is_active": bot_data.get("IA", False),
+                        "created_at": bot_data.get("UC", 0),
+                        "updated_at": bot_data.get("UC", 0),
                         "configuration": {
-                            "leverage": max(bot_data.get("F", 0), 1.0),  # F -> leverage (ensure positive)
-                            "trade_amount": bot_data.get("TAE", 1000.0),  # TAE -> trade_amount
-                            "position_mode": bot_data.get("PM", 1),  # PM -> position_mode (this might be wrong)
-                            "margin_mode": bot_data.get("MM", 0),  # MM -> margin_mode
+                            "leverage": max(bot_data.get("F", 0) or bot_data.get("leverage", 0), 1.0),
+                            "trade_amount": bot_data.get("TAE") or bot_data.get("tradeAmount", 2000.0),
+                            "position_mode": bot_data.get("PM", 1),
+                            "margin_mode": bot_data.get("MM", 0),
                         }
                     }
-                    mapped_bots.append(BotDetails(**mapped_bot))
+                    mapped_bots.append(BotDetails.from_dict(mapped_bot))
                 except Exception as e:
                     self.logger.warning(f"Failed to map bot data: {e}")
                     continue
@@ -390,7 +390,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to get bot")
                 raise BotNotFoundError(f"Bot not found or error: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data)
+            bot_details = BotDetails.from_dict(data)
             self.logger.debug(f"Retrieved bot details: {bot_id}")
             return bot_details
             
@@ -453,7 +453,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to activate bot")
                 raise BotError(message=f"Failed to activate bot: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
+            bot_details = BotDetails.from_dict(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully activated bot: {bot_id}")
             return bot_details
@@ -499,7 +499,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to deactivate bot")
                 raise BotError(message=f"Failed to deactivate bot: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
+            bot_details = BotDetails.from_dict(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully deactivated bot: {bot_id}")
             return bot_details
@@ -543,7 +543,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to pause bot")
                 raise BotError(message=f"Failed to pause bot: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
+            bot_details = BotDetails.from_dict(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully paused bot: {bot_id}")
             return bot_details
@@ -587,7 +587,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to resume bot")
                 raise BotError(message=f"Failed to resume bot: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.model_validate(data) if data else await self.get_bot_details(bot_id)
+            bot_details = BotDetails.from_dict(data) if data else await self.get_bot_details(bot_id)
             
             self.logger.info(f"Successfully resumed bot: {bot_id}")
             return bot_details
@@ -626,7 +626,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to deactivate all bots")
                 raise BotError(message=f"Failed to deactivate all bots: {error_msg}")
             data = safe_get_field(response, "Data", [])
-            bots = [BotDetails.model_validate(bot_data) for bot_data in data]
+            bots = [BotDetails.from_dict(bot_data) for bot_data in data]
             self.logger.info(f"Successfully deactivated {len(bots)} bots")
             return bots
             
@@ -655,6 +655,17 @@ class BotAPI:
             session = self.auth_manager.session
             if not session:
                 raise BotConfigurationError("Not authenticated")
+            import json
+            settings_json = json.dumps({
+                "tradeAmount": bot.configuration.trade_amount,
+                "positionMode": bot.configuration.position_mode,
+                "marginMode": bot.configuration.margin_mode,
+                "leverage": bot.configuration.leverage,
+                "interval": bot.configuration.interval,
+                "chartStyle": bot.configuration.chart_style,
+                "orderTemplate": bot.configuration.order_template,
+            })
+            
             response = await self.client.post_json(
                 endpoint="/BotAPI.php",
                 data={
@@ -663,7 +674,7 @@ class BotAPI:
                     "interfacekey": session.interface_key,
                     "botid": bot.bot_id,
                     "scriptid": bot.script_id,
-                    "settings": bot.settings.model_dump_json(by_alias=True),
+                    "settings": settings_json,
                 }
             )
             
@@ -671,7 +682,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to edit bot settings")
                 raise BotConfigurationError(f"Failed to edit bot parameters: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            updated_bot = BotDetails.model_validate(data)
+            updated_bot = BotDetails.from_dict(data)
             self.logger.info(f"Successfully updated bot parameters: {bot.bot_id}")
             return updated_bot
             
