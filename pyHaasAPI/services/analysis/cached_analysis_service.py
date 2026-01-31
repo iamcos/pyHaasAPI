@@ -11,12 +11,13 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ...core.logging import get_logger
 from ...models.backtest import BacktestResult, BacktestRuntimeData
 from ...analysis.metrics import RunMetrics, compute_metrics, calculate_risk_score, calculate_stability_score
-from ...analysis.extraction import BacktestDataExtractor, BacktestSummary, TradeData
+from ...analysis.extraction import BacktestDataExtractor, BacktestSummary
+from ...models.trade import Trade
 
 logger = get_logger("cached_analysis_service")
 
@@ -28,27 +29,58 @@ class CachedBacktestPerformance:
     lab_id: str
     generation_idx: int
     population_idx: int
-    roi_percentage: float  # Actually ROE (Return on Equity) calculated from trades
-    win_rate: float
-    total_trades: int
-    max_drawdown: float
-    realized_profits_usdt: float
-    starting_balance: float
-    final_balance: float
-    peak_balance: float
     script_name: str
     market_tag: str
     file_path: str
-    # Additional financial metrics
-    profit_factor: float = 0.0  # Gross profit / Gross loss
-    sharpe_ratio: float = 0.0  # Risk-adjusted return
-    average_profit_per_trade: float = 0.0  # Average profit per trade
-    average_loss_per_trade: float = 0.0  # Average loss per trade
-    largest_win: float = 0.0  # Largest winning trade
-    largest_loss: float = 0.0  # Largest losing trade
-    consecutive_wins: int = 0  # Maximum consecutive wins
-    consecutive_losses: int = 0  # Maximum consecutive losses
-    recovery_factor: float = 0.0  # Net profit / Max drawdown
+    trades: List[Trade] = field(default_factory=list)
+    starting_balance: float = 10000.0
+    sharpe_ratio: float = 0.0
+
+    @property
+    def total_trades(self) -> int:
+        return len(self.trades)
+
+    @property
+    def roi_percentage(self) -> float:
+        if self.starting_balance <= 0 or not self.trades:
+            return 0.0
+        net_profit = sum(t.net_profit for t in self.trades)
+        return (net_profit / self.starting_balance) * 100.0
+
+    @property
+    def win_rate(self) -> float:
+        if not self.trades:
+            return 0.0
+        wins = sum(1 for t in self.trades if t.is_win)
+        return (wins / len(self.trades)) * 100.0
+
+    @property
+    def profit_factor(self) -> float:
+        gross_profit = sum(t.profit_loss for t in self.trades if t.profit_loss > 0)
+        gross_loss = abs(sum(t.profit_loss for t in self.trades if t.profit_loss < 0))
+        return gross_profit / gross_loss if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+
+    @property
+    def max_drawdown(self) -> float:
+        if not self.trades:
+            return 0.0
+        balance = self.starting_balance
+        peak = self.starting_balance
+        mdd = 0.0
+        for t in self.trades:
+            balance += t.net_profit
+            peak = max(peak, balance)
+            drawdown = (peak - balance) / peak if peak > 0 else 0.0
+            mdd = max(mdd, drawdown)
+        return mdd * 100.0
+
+    @property
+    def realized_profits_usdt(self) -> float:
+        return sum(t.net_profit for t in self.trades)
+
+    @property
+    def average_profit_per_trade(self) -> float:
+        return self.realized_profits_usdt / len(self.trades) if self.trades else 0.0
 
 
 @dataclass

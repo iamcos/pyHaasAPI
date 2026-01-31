@@ -9,6 +9,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from .common import BaseModel
+from .backtest import BacktestResult
 
 
 @dataclass
@@ -81,7 +82,17 @@ class LabDetails(BaseModel):
     status: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    backtest_count: int = 0
+    backtests: List['BacktestResult'] = field(default_factory=list)
+    
+    @property
+    def backtest_count(self) -> int:
+        """Get total number of backtests"""
+        return len(self.backtests)
+    
+    @property
+    def completed_count(self) -> int:
+        """Get number of completed backtests"""
+        return sum(1 for bt in self.backtests if bt.status == 1) # Assuming 1 is completed
 
 
 @dataclass

@@ -9,6 +9,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from .common import BaseEntityModel, BaseModel
+from .trade import Trade
 
 
 @dataclass
@@ -46,6 +47,44 @@ class BotRecord(BaseModel):
     is_active: bool = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    # Internal state for calculations
+    _trades: List[Trade] = field(default_factory=list, repr=False)
+    starting_balance: float = 10000.0
+    
+    @property
+    def total_trades(self) -> int:
+        """Get total number of trades from history"""
+        return len(self._trades)
+    
+    @property
+    def roi(self) -> float:
+        """Calculate ROI percentage from trade history"""
+        balance = self.starting_balance
+        if not self._trades or balance <= 0:
+            return 0.0
+        return (self.net_profit / balance) * 100.0
+
+    @property
+    def net_profit(self) -> float:
+        return sum(t.net_profit for t in self._trades)
+
+    @property
+    def win_rate(self) -> float:
+        if not self._trades:
+            return 0.0
+        wins = sum(1 for t in self._trades if t.is_win)
+        return (wins / len(self._trades)) * 100.0
+
+    @property
+    def profit_factor(self) -> float:
+        gross_profit = sum(t.profit_loss for t in self._trades if t.profit_loss > 0)
+        gross_loss = abs(sum(t.profit_loss for t in self._trades if t.profit_loss < 0))
+        return gross_profit / gross_loss if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+
+    @property
+    def avg_profit(self) -> float:
+        return self.net_profit / len(self._trades) if self._trades else 0.0
 
 
 @dataclass
@@ -63,6 +102,44 @@ class BotDetails(BaseModel):
     is_active: bool = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    # Detailed analytics
+    trades: List[Trade] = field(default_factory=list)
+    starting_balance: float = 10000.0
+    
+    @property
+    def total_trades(self) -> int:
+        """Get total number of trades from history"""
+        return len(self.trades)
+    
+    @property
+    def roi(self) -> float:
+        """Calculate ROI percentage from trade history"""
+        balance = self.configuration.trade_amount if self.configuration.trade_amount > 0 else self.starting_balance
+        if not self.trades or balance <= 0:
+            return 0.0
+        return (self.net_profit / balance) * 100.0
+
+    @property
+    def net_profit(self) -> float:
+        return sum(t.net_profit for t in self.trades)
+    
+    @property
+    def win_rate(self) -> float:
+        if not self.trades:
+            return 0.0
+        wins = sum(1 for t in self.trades if t.is_win)
+        return (wins / len(self.trades)) * 100.0
+    
+    @property
+    def profit_factor(self) -> float:
+        gross_profit = sum(t.profit_loss for t in self.trades if t.profit_loss > 0)
+        gross_loss = abs(sum(t.profit_loss for t in self.trades if t.profit_loss < 0))
+        return gross_profit / gross_loss if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+
+    @property
+    def avg_profit(self) -> float:
+        return self.net_profit / len(self.trades) if self.trades else 0.0
 
 
 @dataclass
@@ -123,9 +200,56 @@ class BotRuntimeData(BaseModel):
     bot_name: str = ""
     status: str = ""
     is_active: bool = False
-    performance: Dict[str, Any] = field(default_factory=dict)
+    starting_balance: float = 10000.0
+    trades: List[Trade] = field(default_factory=list)
     orders: List[BotOrder] = field(default_factory=list)
     positions: List[BotPosition] = field(default_factory=list)
+    last_update: Optional[datetime] = None
+
+    @property
+    def total_trades(self) -> int:
+        return len(self.trades)
+
+    @property
+    def net_profit(self) -> float:
+        return sum(t.net_profit for t in self.trades)
+
+    @property
+    def roi(self) -> float:
+        if self.starting_balance <= 0 or not self.trades:
+            return 0.0
+        return (self.net_profit / self.starting_balance) * 100.0
+
+    @property
+    def win_rate(self) -> float:
+        if not self.trades:
+            return 0.0
+        wins = sum(1 for t in self.trades if t.is_win)
+        return (wins / len(self.trades)) * 100.0
+
+    @property
+    def profit_factor(self) -> float:
+        gross_profit = sum(t.profit_loss for t in self.trades if t.profit_loss > 0)
+        gross_loss = abs(sum(t.profit_loss for t in self.trades if t.profit_loss < 0))
+        return gross_profit / gross_loss if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+
+    @property
+    def avg_profit(self) -> float:
+        return self.net_profit / len(self.trades) if self.trades else 0.0
+
+    @property
+    def max_drawdown(self) -> float:
+        if not self.trades:
+            return 0.0
+        balance = self.starting_balance
+        peak = self.starting_balance
+        mdd = 0.0
+        for t in self.trades:
+            balance += t.net_profit
+            peak = max(peak, balance)
+            drawdown = (peak - balance) / peak if peak > 0 else 0.0
+            mdd = max(mdd, drawdown)
+        return mdd * 100.0
     last_update: Optional[datetime] = None
     
     @property

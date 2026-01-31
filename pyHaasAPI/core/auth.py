@@ -124,7 +124,7 @@ class AuthenticationManager:
                 self.logger.warning(f"Failed to load session from disk: {e}")
 
     def _save_session_to_disk(self) -> None:
-        """Save current session to disk"""
+        """Save current session to disk with secure permissions (0o600)"""
         import os
         import json
         if not self._session:
@@ -133,14 +133,24 @@ class AuthenticationManager:
         try:
             data = {}
             if os.path.exists(self._session_file):
-                with open(self._session_file, 'r') as f:
-                    data = json.load(f)
+                try:
+                    with open(self._session_file, 'r') as f:
+                        data = json.load(f)
+                except Exception:
+                    pass # corrupt file or permission issue
             
-            key = f"{self.config.host}:{self.config.port}" # Corrected to use self.config.port
+            key = f"{self.config.host}:{self.config.port}"
             data[key] = self._session.to_dict()
             
-            with open(self._session_file, 'w') as f:
+            # Atomic write pattern with secure permissions might be complex cross-platform,
+            # but for Linux/Unix target:
+            fd = os.open(self._session_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'w') as f:
                 json.dump(data, f, indent=4)
+            
+            # Explicitly chmod to be sure (handling cases where file existed)
+            os.chmod(self._session_file, 0o600)
+                
         except Exception as e:
             self.logger.warning(f"Failed to save session to disk: {e}")
     
@@ -213,8 +223,9 @@ class AuthenticationManager:
     
     async def _initial_auth(self, email: str, password: str) -> Tuple[Dict[str, Any], str]:
         """Perform initial authentication request"""
-        import random
-        interface_key = "".join(f"{random.randint(0, 100)}" for _ in range(10))
+        import secrets
+        # specific length or format isn't strictly enforced by Haas, but hex is safe
+        interface_key = secrets.token_hex(16)
         try:
             # Use the same HTTP request pattern as v1
             response = await self.client.request_json(
@@ -250,8 +261,8 @@ class AuthenticationManager:
         """Complete authentication with one-time code"""
         # Use the interface key from step 1, or generate a new one if not provided
         if not interface_key:
-            import random
-            interface_key = "".join(f"{random.randint(0, 100)}" for _ in range(10))
+            import secrets
+            interface_key = secrets.token_hex(16)
         try:
             # Use the same HTTP request pattern as v1
             response = await self.client.request_json(

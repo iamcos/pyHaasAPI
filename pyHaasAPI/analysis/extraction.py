@@ -17,20 +17,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class TradeData:
-    """Individual trade data"""
-    trade_id: str
-    entry_time: int
-    exit_time: int
-    entry_price: float
-    exit_price: float
-    quantity: float
-    profit_loss: float
-    fees: float
-    duration_seconds: int
-    side: str  # 'long' or 'short'
-    market: str
+from ..models.trade import Trade
+
+# For backward compatibility within this module
+TradeData = Trade
+
 
 
 @dataclass
@@ -148,7 +139,8 @@ class BacktestDataExtractor:
                         fees=float(trade.get('fees', 0.0)),
                         duration_seconds=int(trade.get('duration_seconds', 0)),
                         side=str(trade.get('side', 'long')),
-                        market=str(trade.get('market', ''))
+                        pair=str(trade.get('market', '')),  # Map market to pair
+                        timestamp=int(trade.get('entry_time', 0)) # Set timestamp default to entry
                     )
                     trades.append(trade_obj)
                 except (ValueError, TypeError) as e:

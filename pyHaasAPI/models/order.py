@@ -47,14 +47,35 @@ class OrderDetails(BaseModel):
     order_id: str = ""
     bot_id: str = ""
     account_id: str = ""
+    position_id: str = "" 
     market: str = ""
     side: str = ""
     amount: float = 0.0
     price: float = 0.0
+    trigger_price: float = 0.0 
     status: OrderStatus = OrderStatus.PENDING
-    filled_amount: float = 0.0
+    
+    # Amounts
+    filled_amount: float = 0.0 # "The filled amount"
+    executed_amount: float = 0.0 # "The executed amount" (from Lua)
     remaining_amount: float = 0.0
+    
+    # Fees
     fees: float = 0.0
+    fee_costs: float = 0.0 # From Lua
+    fee_currency: str = "" # From Lua
+    
+    # Status Flags
+    is_open: bool = False
+    is_filled: bool = False
+    is_cancelled: bool = False
+    is_enter_order: bool = False
+    is_exit_order: bool = False
+    is_buy_order: bool = False
+    is_sell_order: bool = False
+    
+    # Timing
+    open_time: float = 0.0 # In minutes (from Lua)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -109,14 +130,22 @@ class Order(BaseModel):
     order_id: str = ""
     bot_id: str = ""
     account_id: str = ""
+    position_id: str = "" # Added from Lua def
     market: str = ""
     side: str = ""
     amount: float = 0.0
     price: float = 0.0
+    trigger_price: float = 0.0 # Added from Lua def
     status: OrderStatus = OrderStatus.PENDING
     filled_amount: float = 0.0
     remaining_amount: float = 0.0
     fees: float = 0.0
+    fee_currency: str = "" # Added from Lua def
+    
+    # Flags from Lua def
+    is_enter_order: bool = False
+    is_exit_order: bool = False
+    
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 

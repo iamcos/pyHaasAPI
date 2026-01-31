@@ -98,7 +98,7 @@ class ServerDetailScreen(Vertical):
     def on_mount(self) -> None:
         # Initialize tables
         bt = self.query_one("#detail-bot-table", DataTable)
-        bt.add_columns("Name", "Status", "Account", "Market", "ROE%")
+        bt.add_columns("Name", "Status", "Market", "ROI%", "Trades")
         
         lt = self.query_one("#detail-lab-table", DataTable)
         lt.add_columns("Lab Name", "Status", "Completed", "Scheduled")
@@ -128,6 +128,19 @@ class ServerDetailScreen(Vertical):
             
         elif button_id == "restart-haas-btn":
             self.app.notify("Restarting Haas Service...", severity="warning")
+            self.run_worker(self._restart_service(), exclusive=True, group="server_actions")
+
+    async def _restart_service(self) -> None:
+        """Execute restart and handle UI feedback"""
+        try:
+            success, msg = await self.server_manager.restart_service(self.server_name)
+            if success:
+                 self.app.notify(f"Restart Initiated: {msg}", severity="information")
+                 # Optional: Trigger a reconnect loop or delay
+            else:
+                 self.app.notify(f"Restart Failed: {msg}", severity="error")
+        except Exception as e:
+            self.app.notify(f"Error during restart: {str(e)}", severity="error")
 
     @work(exclusive=True, name="connection_task")
     async def toggle_connection(self) -> None:
@@ -169,6 +182,19 @@ class ServerDetailScreen(Vertical):
             btn.disabled = False
         
         self.refresh_stats(manual=True)
+
+    def _get_bot_row_data(self, b) -> list:
+        """Generate row data list for a bot"""
+        status = "[green]ACTIVE[/]" if b.is_active else f"[yellow]{b.status}[/]"
+        roi_style = "green" if b.roi > 0 else ("red" if b.roi < 0 else "white")
+        roi_display = f"[{roi_style}]{b.roi:.2f}%[/]" if b.roi != 0 else "[dim]0.00%[/]"
+        return [
+            b.bot_name[:15] or "Unnamed", 
+            status, 
+            b.market_tag[:10] or "N/A",
+            roi_display,
+            str(b.total_trades)
+        ]
 
     @work(exclusive=True)
     async def refresh_stats(self, manual: bool = False) -> None:
@@ -244,17 +270,19 @@ class ServerDetailScreen(Vertical):
         # 2. Fetch Bots & Labs if connected
         await self.fetch_api_details(srv)
 
-    async def fetch_api_details(self, srv_status) -> None:
-        bot_table = self.query_one("#detail-bot-table", DataTable)
-        lab_table = self.query_one("#detail-lab-table", DataTable)
-        
-        if not srv_status or srv_status.status != ServerStatus.CONNECTED:
-            bot_table.clear()
-            lab_table.clear()
-            bot_table.add_row("[dim]Connect to view bots[/]", "", "", "", "")
-            lab_table.add_row("[dim]Connect to view labs[/]", "", "", "")
-            return
+    async def on_unmount(self) -> None:
+        """Clean up resources on unmount"""
+        if hasattr(self, "_active_client") and self._active_client:
+            await self._active_client.close()
+            self._active_client = None
 
+    async def _get_or_create_client(self, srv_status) -> Optional[AsyncHaasClient]:
+        """Get or create a persistent client for the active server"""
+        # If we have a client but the tunnel is down/changed, we might want to refresh?
+        # For now, a simple check: if we have one, return it. logic elsewhere handles errors.
+        if hasattr(self, "_active_client") and self._active_client:
+            return self._active_client
+            
         try:
             from pyHaasAPI.config.api_config import APIConfig
             
@@ -268,72 +296,97 @@ class ServerDetailScreen(Vertical):
             if srv_status.config.api_password:
                 config.password = srv_status.config.api_password
             
+            # Create and connect persistent client
             client = AsyncHaasClient(config)
+            await client.connect()
+            self._active_client = client
+            return client
+        except Exception as e:
+            logger.error(f"Failed to create client for {self.server_name}: {e}")
+            return None
+
+    async def fetch_api_details(self, srv_status) -> None:
+        bot_table = self.query_one("#detail-bot-table", DataTable)
+        lab_table = self.query_one("#detail-lab-table", DataTable)
+        
+        if not srv_status or srv_status.status != ServerStatus.CONNECTED:
+            # Clear client if we are disconnected
+            if hasattr(self, "_active_client") and self._active_client:
+                await self._active_client.close()
+                self._active_client = None
+                
+            # Only clear and add if not already in "Disconnected" view
+            if bot_table.row_count != 1 or "Connect to view" not in str(bot_table.get_cell_at((0, 0))):
+                bot_table.clear()
+                lab_table.clear()
+                bot_table.add_row("[dim]Connect to view bots[/]", "", "", "", "")
+                lab_table.add_row("[dim]Connect to view labs[/]", "", "", "")
+            return
+
+        try:
+            client = await self._get_or_create_client(srv_status)
+            if not client:
+                return
+
+            # Get auth manager reusing this persistent client
             auth = self.tui_app.get_auth_manager(self.server_name, client)
             
-            async with client:
-                await auth.ensure_authenticated()
+            # We do NOT use 'async with client:' here as we want to keep it open
+            await auth.ensure_authenticated()
+            
+            # Update Bots
+            bot_api = BotAPI(client, auth)
+            bots = await bot_api.get_all_bots()
+            
+            col_keys = list(bot_table.columns.keys())
+            for i, b in enumerate(bots[:20]): # Up to 20 bots
+                row_key = f"bot_{i}"
+                row_data = self._get_bot_row_data(b)
                 
-                # Update Bots
-                bot_api = BotAPI(client, auth)
-                bots = await bot_api.get_all_bots()
+                if row_key in bot_table.rows:
+                    # Update existing row
+                    for col_idx, value in enumerate(row_data):
+                        if col_idx < len(col_keys):
+                            bot_table.update_cell(row_key, col_keys[col_idx], value)
+                else:
+                    # Add new row
+                    bot_table.add_row(*row_data, key=row_key)
+            
+            # Update Labs
+            lab_api = LabAPI(client, auth)
+            labs = await lab_api.get_labs()
+            lab_col_keys = list(lab_table.columns.keys())
+            for i, l in enumerate(labs[:20]): # Up to 20 labs
+                row_key = f"lab_{i}"
                 
-                col_keys = list(bot_table.columns.keys())
-                for i, b in enumerate(bots[:20]): # Up to 20 bots
-                    row_key = f"bot_{i}"
-                    status = "[green]ACTIVE[/]" if b.is_active else f"[yellow]{b.status}[/]"
-                    row_data = [
-                        b.bot_name[:15] or "Unnamed", 
-                        status, 
-                        b.account_id[:8] or "N/A",
-                        b.market_tag[:10] or "N/A",
-                        "N/A"
-                    ]
-                    
-                    if row_key in bot_table.rows:
-                        # Update existing row
-                        for col_idx, value in enumerate(row_data):
-                            if col_idx < len(col_keys):
-                                bot_table.update_cell(row_key, col_keys[col_idx], value)
-                    else:
-                        # Add new row
-                        bot_table.add_row(*row_data, key=row_key)
+                # Status mapping with colors
+                status_map = {
+                    0: "[dim]IDLE[/]",
+                    1: "[cyan]ACTIVE[/]",
+                    2: "[bold green]RUNNING[/]",
+                    3: "[green]COMPLETED[/]",
+                    4: "[green]COMPLETED[/]",
+                    5: "[bold red]FAILED[/]",
+                    6: "[yellow]CANCELLED[/]"
+                }
+                status_display = status_map.get(l.status, f"[dim]{l.status}[/]")
                 
-                # Update Labs
-                lab_api = LabAPI(client, auth)
-                labs = await lab_api.get_labs()
-                lab_col_keys = list(lab_table.columns.keys())
-                for i, l in enumerate(labs[:20]): # Up to 20 labs
-                    row_key = f"lab_{i}"
-                    
-                    # Status mapping with colors
-                    status_map = {
-                        0: "[dim]IDLE[/]",
-                        1: "[cyan]ACTIVE[/]",
-                        2: "[bold green]RUNNING[/]",
-                        3: "[green]COMPLETED[/]",
-                        4: "[green]COMPLETED[/]",
-                        5: "[bold red]FAILED[/]",
-                        6: "[yellow]CANCELLED[/]"
-                    }
-                    status_display = status_map.get(l.status, f"[dim]{l.status}[/]")
-                    
-                    # If not running, typically zero active planned tests
-                    scheduled = str(l.scheduled_backtests) if l.status == 2 else "[dim]0[/]"
-                    
-                    row_data = [
-                        l.name[:25] or "Unnamed Lab", 
-                        status_display, 
-                        str(l.completed_backtests), 
-                        scheduled
-                    ]
-                    
-                    if row_key in lab_table.rows:
-                        for col_idx, value in enumerate(row_data):
-                            if col_idx < len(lab_col_keys):
-                                lab_table.update_cell(row_key, lab_col_keys[col_idx], value)
-                    else:
-                        lab_table.add_row(*row_data, key=row_key)
+                # If not running, typically zero active planned tests
+                scheduled = str(l.scheduled_backtests) if l.status == 2 else "[dim]0[/]"
+                
+                row_data = [
+                    l.name[:25] or "Unnamed Lab", 
+                    status_display, 
+                    str(l.completed_backtests), 
+                    scheduled
+                ]
+                
+                if row_key in lab_table.rows:
+                    for col_idx, value in enumerate(row_data):
+                        if col_idx < len(lab_col_keys):
+                            lab_table.update_cell(row_key, lab_col_keys[col_idx], value)
+                else:
+                    lab_table.add_row(*row_data, key=row_key)
 
         except Exception as e:
             err_msg = str(e)
@@ -342,10 +395,25 @@ class ServerDetailScreen(Vertical):
             used_email = srv_status.config.api_email or cfg.email
             
             if "credentials" in err_msg.lower() or "auth" in err_msg.lower():
-                bot_table.add_row("[bold red]Auth Failed[/]", f"[red]Email: {used_email}[/]", "")
+                # Avoid flooding table with errors, perhaps clear first if lots of rows
+                if bot_table.row_count > 1:
+                     bot_table.clear()
+                
+                # Only add if empty (to avoid flicker/duplication)
+                if bot_table.row_count == 0:
+                    bot_table.add_row("[bold red]Auth Failed[/]", f"[red]Email: {used_email}[/]", "")
+                
                 self.app.notify(f"Auth failed for {used_email} on {self.server_name}", severity="error")
+                
+                # Invalidating client might be good idea if auth fails hard
+                if hasattr(self, "_active_client") and self._active_client:
+                    await self._active_client.close()
+                    self._active_client = None
             else:
                 # Show more of the error message to help diagnostics
-                bot_table.add_row(f"[red]Error: {err_msg[:60]}[/]", "", "")
-                if len(err_msg) > 60:
-                     bot_table.add_row(f"[red]{err_msg[60:120]}[/]", "", "")
+                if bot_table.row_count > 1:
+                     bot_table.clear()
+                if bot_table.row_count == 0:
+                    bot_table.add_row(f"[red]Error: {err_msg[:60]}[/]", "", "")
+                    if len(err_msg) > 60:
+                         bot_table.add_row(f"[red]{err_msg[60:120]}[/]", "", "")

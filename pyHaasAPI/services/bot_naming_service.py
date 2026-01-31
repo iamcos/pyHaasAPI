@@ -6,9 +6,11 @@ Supports multiple naming strategies based on server requirements.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
+from dataclasses import dataclass, field
+
+from ..models.trade import Trade
 
 from ..core.logging import get_logger
 
@@ -21,16 +23,51 @@ class BotNamingContext:
     lab_name: str
     script_name: str
     market_tag: str
-    roi_percentage: float
-    win_rate: float
-    max_drawdown: float
-    total_trades: int
-    profit_factor: float = 0.0
-    sharpe_ratio: float = 0.0
+    trades: List[Trade] = field(default_factory=list)
+    starting_balance: float = 10000.0
     generation_idx: int = 0
     population_idx: int = 0
     backtest_id: str = ""
     account_id: str = ""
+    sharpe_ratio: float = 0.0
+
+    @property
+    def total_trades(self) -> int:
+        return len(self.trades)
+
+    @property
+    def roi_percentage(self) -> float:
+        if self.starting_balance <= 0 or not self.trades:
+            return 0.0
+        net_profit = sum(t.net_profit for t in self.trades)
+        return (net_profit / self.starting_balance) * 100.0
+
+    @property
+    def win_rate(self) -> float:
+        if not self.trades:
+            return 0.0
+        wins = sum(1 for t in self.trades if t.is_win)
+        return (wins / len(self.trades)) * 100.0
+
+    @property
+    def profit_factor(self) -> float:
+        gross_profit = sum(t.profit_loss for t in self.trades if t.profit_loss > 0)
+        gross_loss = abs(sum(t.profit_loss for t in self.trades if t.profit_loss < 0))
+        return gross_profit / gross_loss if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+
+    @property
+    def max_drawdown(self) -> float:
+        if not self.trades:
+            return 0.0
+        balance = self.starting_balance
+        peak = self.starting_balance
+        mdd = 0.0
+        for t in self.trades:
+            balance += t.net_profit
+            peak = max(peak, balance)
+            drawdown = (peak - balance) / peak if peak > 0 else 0.0
+            mdd = max(mdd, drawdown)
+        return mdd * 100.0
 
 
 class BotNamingService:

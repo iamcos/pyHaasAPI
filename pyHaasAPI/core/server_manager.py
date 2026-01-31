@@ -706,8 +706,18 @@ class ServerManager:
                 except Exception:
                     pass
                 return False, "", f"SSH command timed out after {config.timeout + 2}s"
+            except asyncio.CancelledError:
+                # Ensure cleaning up if task is cancelled
+                try:
+                    process.kill()
+                    await process.wait()
+                except Exception:
+                    pass
+                raise
                 
         except Exception as e:
+            if isinstance(e, asyncio.CancelledError):
+                raise
             msg = f"Failed to execute remote command: {e}"
             self.logger.error(msg)
             return False, "", msg
@@ -753,3 +763,58 @@ class ServerManager:
         
         return stats
 
+    async def restart_service(self, server_name: str) -> Tuple[bool, str]:
+        """
+        Attempt to restart Haas service using heuristics (Systemd -> Docker)
+        
+        Args:
+            server_name: Name of the server
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        self.logger.info(f"Attempting smart restart for {server_name}")
+        
+        # Compound script to detect and restart in one go
+        # This minimizes SSH round-trips and handles the "check-then-act" logic remotely
+        script = """
+        if systemctl list-units --full -all | grep -Fq "haas.service"; then
+             echo "Found systemd service: haas.service"
+             # Try restart, might need sudo passwordless for this user
+             if sudo -n systemctl restart haas.service 2>/dev/null; then
+                 echo "SUCCESS: Restarted via Systemd"
+                 exit 0
+             else
+                 echo "FAILED: Found systemd but 'sudo systemctl restart' failed (permission?)"
+                 exit 1
+             fi
+        elif docker ps | grep -q "haas"; then
+             echo "Found Docker container"
+             # Try to restart container matching 'haas'
+             container_id=$(docker ps -q -f name=haas | head -n 1)
+             if [ -n "$container_id" ]; then
+                 docker restart "$container_id"
+                 echo "SUCCESS: Restarted via Docker ($container_id)"
+                 exit 0
+             else
+                 # Fallback grep if name filter failed
+                 docker restart $(docker ps | grep "haas" | awk '{print $1}' | head -n 1)
+                 echo "SUCCESS: Restarted via Docker (grep match)"
+                 exit 0
+             fi
+        else
+             echo "FAILED: No known managed service (Systemd/Docker) found"
+             exit 1
+        fi
+        """
+        
+        success, stdout, stderr = await self.execute_remote_command(server_name, script)
+        
+        # Parse output for cleaner messages
+        msg = stdout.strip() if stdout else stderr.strip()
+        if "SUCCESS:" in msg:
+             # Extract the success message specifically
+             msg = [line for line in msg.splitlines() if "SUCCESS:" in line][0].replace("SUCCESS: ", "")
+             return True, msg
+        
+        return False, f"Restart failed: {msg}"

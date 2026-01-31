@@ -18,6 +18,7 @@ from ...core.field_utils import (
     safe_get_success_flag, safe_get_status, log_field_mapping_issues
 )
 from ...models.bot import BotDetails, BotRecord, BotConfiguration
+from ...models.trade import Trade
 
 
 class BotAPI:
@@ -33,6 +34,39 @@ class BotAPI:
         self.auth_manager = auth_manager
         self.logger = get_logger("bot_api")
     
+    def _map_bot_response(self, data: Dict[str, Any]) -> BotDetails:
+        """
+        Map API response dictionary to BotDetails object
+        
+        Args:
+            data: Raw API response dictionary
+            
+        Returns:
+            BotDetails object
+        """
+        mapped_data = {
+            "bot_id": data.get("UI") or data.get("BID") or data.get("botId", ""),
+            "bot_name": data.get("BN") or data.get("botName", ""),  
+            "script_id": data.get("SI") or data.get("scriptId", ""),
+            "script_name": data.get("SN") or data.get("scriptName", ""),
+            "script_version": data.get("SV", 1),
+            "account_id": data.get("AI") or data.get("accountId", ""),
+            "market_tag": data.get("PM") or data.get("marketTag", ""),
+            "roi": data.get("S", {}).get("ROI", [0.0])[0] if isinstance(data.get("S"), dict) else 0.0,
+            "total_trades": data.get("S", {}).get("T", 0) if isinstance(data.get("S"), dict) else 0,
+            "status": "ACTIVE" if data.get("IA", False) else "INACTIVE",
+            "is_active": data.get("IA", False),
+            "created_at": data.get("UC", 0),
+            "updated_at": data.get("UC", 0),
+            "configuration": {
+                "leverage": max(data.get("F", 0) or data.get("leverage", 0), 1.0),
+                "trade_amount": data.get("TAE") or data.get("tradeAmount", 2000.0),
+                "position_mode": data.get("PM", 1),
+                "margin_mode": data.get("MM", 0),
+            }
+        }
+        return BotDetails.from_dict(mapped_data)
+
     async def create_bot_from_lab(
         self,
         lab_id: str,
@@ -329,26 +363,7 @@ class BotAPI:
             for bot_data in bots_data:
                 try:
                     # Map API response fields to BotDetails model fields
-                    mapped_bot = {
-                        "bot_id": bot_data.get("UI") or bot_data.get("BID") or bot_data.get("botId", ""),
-                        "bot_name": bot_data.get("BN") or bot_data.get("botName", ""),  
-                        "script_id": bot_data.get("SI") or bot_data.get("scriptId", ""),
-                        "script_name": bot_data.get("SN") or bot_data.get("scriptName", ""),
-                        "script_version": bot_data.get("SV", 1),
-                        "account_id": bot_data.get("AI") or bot_data.get("accountId", ""),
-                        "market_tag": bot_data.get("PM") or bot_data.get("marketTag", ""),
-                        "status": "ACTIVE" if bot_data.get("IA", False) else "INACTIVE",
-                        "is_active": bot_data.get("IA", False),
-                        "created_at": bot_data.get("UC", 0),
-                        "updated_at": bot_data.get("UC", 0),
-                        "configuration": {
-                            "leverage": max(bot_data.get("F", 0) or bot_data.get("leverage", 0), 1.0),
-                            "trade_amount": bot_data.get("TAE") or bot_data.get("tradeAmount", 2000.0),
-                            "position_mode": bot_data.get("PM", 1),
-                            "margin_mode": bot_data.get("MM", 0),
-                        }
-                    }
-                    mapped_bots.append(BotDetails.from_dict(mapped_bot))
+                    mapped_bots.append(self._map_bot_response(bot_data))
                 except Exception as e:
                     self.logger.warning(f"Failed to map bot data: {e}")
                     continue
@@ -390,7 +405,7 @@ class BotAPI:
                 error_msg = safe_get_field(response, "Error", "Failed to get bot")
                 raise BotNotFoundError(f"Bot not found or error: {error_msg}")
             data = safe_get_field(response, "Data", {})
-            bot_details = BotDetails.from_dict(data)
+            bot_details = self._map_bot_response(data)
             self.logger.debug(f"Retrieved bot details: {bot_id}")
             return bot_details
             
@@ -761,6 +776,67 @@ class BotAPI:
         except Exception as e:
             self.logger.error(f"Failed to retrieve positions for bot {bot_id}: {e}")
             raise BotError(message=f"Failed to retrieve bot positions: {e}") from e
+    async def get_bot_trades(self, bot_id: str) -> List[Trade]:
+        """
+        Get all completed trades for a specific bot
+        
+        Args:
+            bot_id: ID of the bot to get trades for
+            
+        Returns:
+            List of Trade objects
+            
+        Raises:
+            BotNotFoundError: If bot is not found
+            BotError: If retrieval fails
+        """
+        try:
+            self.logger.debug(f"Retrieving trades for bot: {bot_id}")
+            
+            response = await self.client.get_json(
+                endpoint="/BotAPI.php",
+                params={
+                    "channel": "GET_BOT_TRADES",
+                    "botid": bot_id,
+                }
+            )
+            
+            if not safe_get_success_flag(response):
+                error_msg = safe_get_field(response, "Error", "Failed to get bot trades")
+                raise BotError(message=f"Failed to get bot trades: {error_msg}")
+            
+            trades_data = safe_get_field(response, "Data", [])
+            
+            # Map raw data to Trade objects
+            from ...models.trade import Trade
+            trades = []
+            for t in trades_data:
+                try:
+                    trade = Trade(
+                        trade_id=str(t.get("TradeId", "")),
+                        bot_id=bot_id,
+                        timestamp=int(t.get("UnixTimestamp", 0)), # Fallback/Primary time
+                        entry_time=int(t.get("UnixEntry", 0)),
+                        exit_time=int(t.get("UnixExit", 0)),
+                        entry_price=float(t.get("PriceEntry", 0.0)),
+                        exit_price=float(t.get("PriceExit", 0.0)),
+                        quantity=float(t.get("Amount", 0.0)),
+                        profit_loss=float(t.get("Profits", 0.0)),
+                        fees=float(t.get("Fee", 0.0)),
+                        pair=t.get("Pair", {}).get("Label", ""),
+                        side="SHORT" if not t.get("Type") else "LONG" # 0=Short, 1=Long usually, key depends on API
+                    )
+                    trades.append(trade)
+                except Exception as ex:
+                    self.logger.warning(f"Failed to map trade record: {ex}")
+                    
+            self.logger.debug(f"Retrieved {len(trades)} trades for bot: {bot_id}")
+            return trades
+            
+        except Exception as e:
+            self.logger.error(f"Failed to retrieve trades for bot {bot_id}: {e}")
+            raise BotError(message=f"Failed to retrieve bot trades: {e}") from e
+
 
     async def change_bot_notes(self, bot_id: str, notes: str) -> Dict[str, Any]:
         """
@@ -938,3 +1014,33 @@ class BotAPI:
             List of paused BotDetails objects
         """
         return await self.get_bots_by_status("paused")
+
+    async def get_bot_trades(self, bot_id: str) -> List[Dict[str, Any]]:
+        """
+        Extract trades for a specific bot.
+        Since there is no direct GET_BOT_TRADES channel, we use 
+        GET_BOT_ORDERS and filter for completed/filled orders.
+        
+        Args:
+            bot_id: ID of the bot
+            
+        Returns:
+            List of trade (completed order) dictionaries
+        """
+        try:
+            self.logger.info(f"Extracting trades for bot: {bot_id}")
+            orders = await self.get_bot_orders(bot_id)
+            
+            # Filter for completed trades (Filled or Partially Filled with history)
+            trades = []
+            for o in orders:
+                # status 1 usually means Filled in v1
+                status = o.get("OS") or o.get("Status")
+                if status == 1 or status == "FILLED":
+                    trades.append(o)
+            
+            self.logger.info(f"Extracted {len(trades)} trades for bot: {bot_id}")
+            return trades
+        except Exception as e:
+            self.logger.error(f"Failed to extract trades for bot {bot_id}: {e}")
+            return []

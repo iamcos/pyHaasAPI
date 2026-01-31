@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal, Container
 from textual.widgets import Label, Button, DataTable, Input, Static
@@ -94,12 +95,43 @@ class ServerScreen(Static):
             self.fetch_server_stats(name)
             await asyncio.sleep(0.1)
 
+    async def on_unmount(self) -> None:
+        """Clean up resources"""
+        if hasattr(self, "_clients"):
+            for client in self._clients.values():
+                await client.close()
+            self._clients.clear()
+
+    async def _get_client_for_server(self, server_name: str, srv_status) -> Optional[AsyncHaasClient]:
+        """Get cached client or create new one"""
+        if not hasattr(self, "_clients"):
+            self._clients = {}
+            
+        # Check existing
+        client = self._clients.get(server_name)
+        if client and not client.closed:
+            return client
+            
+        # Create new
+        try:
+            client = AsyncHaasClient(self.tui_app.settings.api_config)
+            client.config.port = srv_status.config.local_ports[0]
+            await client.connect()
+            self._clients[server_name] = client
+            return client
+        except Exception:
+            return None
+
     @work(group="server_stats")
     async def fetch_server_stats(self, server_name: str) -> None:
         table = self.query_one(DataTable)
         
         # 1. Fetch Resources via SSH (Non-tunneling)
-        resources = await self.server_manager.get_server_resources(server_name)
+        # Handle SSH cancellation gracefully
+        try:
+             resources = await self.server_manager.get_server_resources(server_name)
+        except asyncio.CancelledError:
+             return # Widget unmounting
         
         # 2. Fetch Bot Count
         bot_count = "[dim]n/a[/]"
@@ -109,17 +141,26 @@ class ServerScreen(Static):
         if srv_status and srv_status.status == ServerStatus.CONNECTED:
             try:
                 # Active tunnel check
-                client = AsyncHaasClient(self.tui_app.settings.api_config)
-                client.config.port = srv_status.config.local_ports[0]
-                auth_manager = self.tui_app.get_auth_manager(server_name, client)
-                
-                async with client:
+                client = await self._get_client_for_server(server_name, srv_status)
+                if client:
+                    auth_manager = self.tui_app.get_auth_manager(server_name, client)
+                    # Use the cached client without 'async with' context to keep it open
+                    # But ensure we are authenticated
+                    if not auth_manager.is_authenticated:
+                         await auth_manager.ensure_authenticated()
+                    
                     from pyHaasAPI.api.bot.bot_api import BotAPI
                     bot_api = BotAPI(client, auth_manager)
                     bots = await bot_api.get_all_bots()
                     active_bots = sum(1 for b in bots if b.status == "ACTIVE")
                     bot_count = f"[bold green]{active_bots}[/]/[white]{len(bots)}[/]"
-            except Exception:
+                else:
+                    bot_count = "[red]Conn Err[/]"
+            except Exception as e:
+                # Invalidating client if error occurs
+                if hasattr(self, "_clients") and server_name in self._clients:
+                    await self._clients[server_name].close()
+                    del self._clients[server_name]
                 bot_count = "[red]API Err[/]"
         else:
              if haas_status == "Running":
