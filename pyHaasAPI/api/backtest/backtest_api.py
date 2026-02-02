@@ -21,6 +21,7 @@ from ...models.backtest import (
     ArchiveBacktestRequest, BacktestExecutionResult, BacktestValidationResult
 )
 from ...models.common import PaginatedResponse
+from ...core.field_utils import safe_get_field, safe_get_dict_field, safe_get_success_flag
 
 logger = get_logger("backtest_api")
 
@@ -90,22 +91,30 @@ class BacktestAPI:
                     try:
                         # Parse raw API response to BacktestResult
                         # API fields: RID, UID, LID, BID, NG, NP, ST, SE, P, RT, C, L, S
+                        s_data = item.get('S', {})
+                        total_trades = s_data.get('T', 0)
+                        winning_trades = s_data.get('P', 0)
+                        roi_list = s_data.get('ROI', [])
+                        roi = roi_list[0] if isinstance(roi_list, list) and roi_list else 0.0
+
                         backtest_result = BacktestResult(
-                            backtest_id=item.get('BID', ''),  # Backtest ID
-                            lab_id=item.get('LID', ''),  # Lab ID
-                            status=item.get('ST', 0),  # Status
-                            generation_idx=item.get('NG', 0),  # Generation
-                            population_idx=item.get('NP', 0),  # Population
-                            total_trades=item.get('S', {}).get('T', 0) if item.get('S') else 0,
-                            winning_trades=item.get('S', {}).get('P', 0) if item.get('S') else 0,
-                            losing_trades=(item.get('S', {}).get('T', 0) - item.get('S', {}).get('P', 0)) if item.get('S') else 0,
-                            total_profit=item.get('S', {}).get('RP', {}).get('USDT', 0.0) if item.get('S') and item.get('S').get('RP') else 0.0,
-                            total_fees=item.get('S', {}).get('FC', {}).get('USDT', 0.0) if item.get('S') and item.get('S').get('FC') else 0.0,
-                            roi=item.get('S', {}).get('ROI', [0.0])[0] if item.get('S') and item.get('S').get('ROI') else 0.0,
-                            parameters=item.get('P', {}),
-                            settings=item.get('SE', {}),
-                            created_at=datetime.now(),  # Not provided in API
-                            updated_at=datetime.now()   # Not provided in API
+                            backtest_id=str(item.get('BID', '')),
+                            log_id=str(item.get('RID', '')),
+                            lab_id=str(safe_get_field(item, ['LID', 'LabId', 'BotId'], '')),
+                            status=int(safe_get_field(item, ['ST', 'Status'], 0)),
+                            generation_idx=int(safe_get_field(item, ['NG', 'Generation'], 0)),
+                            population_idx=int(safe_get_field(item, ['NP', 'Population'], 0)),
+                            total_trades=total_trades,
+                            winning_trades=winning_trades,
+                            losing_trades=total_trades - winning_trades,
+                            roi=roi,
+                            win_rate=(winning_trades / total_trades * 100) if total_trades > 0 else 0.0,
+                            net_profit=s_data.get('RP', {}).get('USDT', 0.0) if s_data.get('RP') else 0.0,
+                            max_drawdown=s_data.get('MDD', 0.0),
+                            parameters=safe_get_field(item, ['Parameters', 'P'], {}),
+                            settings=safe_get_field(item, ['Settings', 'SE'], {}),
+                            created_at=datetime.now(),
+                            updated_at=datetime.now()
                         )
                         items.append(backtest_result)
                     except Exception as e:
@@ -115,12 +124,12 @@ class BacktestAPI:
             has_more = bool((raw.get('HasMore') if isinstance(raw, dict) else False))
             next_id = raw.get('NextPageId') if isinstance(raw, dict) else None
             
-            # Create PaginatedResponse with required fields using aliases
+            # Create PaginatedResponse with correct field names
             return PaginatedResponse[BacktestResult](
                 items=items,
-                totalCount=len(items),  # Use alias for total_count
-                totalPages=1 if not has_more else 2,  # Use alias for total_pages
-                hasNext=has_more,  # Use alias for has_next
+                total_count=len(items),
+                total_pages=1 if not has_more else 2,
+                has_next=has_more,
                 next_page_id=next_id
             )
             
@@ -152,6 +161,7 @@ class BacktestAPI:
             # Use POST with auth parameters in body
             post_data = {
                 'labid': lab_id,
+                'botid': lab_id,
                 'backtestid': backtest_id,
                 'interfacekey': self.auth_manager.interface_key,
                 'userid': self.auth_manager.user_id

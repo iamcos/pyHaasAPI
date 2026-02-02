@@ -119,6 +119,35 @@ class CachedAnalysisService:
         if not self.backtests_dir.exists():
             self.logger.warning(f"Backtests directory not found: {self.backtests_dir}")
             self.backtests_dir.mkdir(parents=True, exist_ok=True)
+            
+        self._lab_counts: Dict[str, int] = {}
+        self._last_refresh_time: float = 0
+        self._refresh_cooldown: float = 5.0 # Seconds
+
+    def refresh_lab_counts(self, force: bool = False) -> None:
+        """Refresh the internal lab counts by scanning the backtests directory."""
+        current_time = asyncio.get_event_loop().time()
+        if not force and (current_time - self._last_refresh_time) < self._refresh_cooldown:
+            return
+
+        try:
+            self.logger.debug("Refreshing cached lab counts...")
+            counts = {}
+            for file_path in self.backtests_dir.glob("*.json"):
+                parts = file_path.name.split('_')
+                if parts:
+                    lab_id = parts[0]
+                    counts[lab_id] = counts.get(lab_id, 0) + 1
+            
+            self._lab_counts = counts
+            self._last_refresh_time = current_time
+            self.logger.info(f"Refreshed counts for {len(counts)} unique labs.")
+        except Exception as e:
+            self.logger.error(f"Failed to refresh lab counts: {e}")
+
+    def get_local_count(self, lab_id: str) -> int:
+        """Get the number of locally cached backtests for a specific lab."""
+        return self._lab_counts.get(lab_id, 0)
 
     def get_cached_backtest_files_for_lab(self, lab_id: str) -> List[Path]:
         """Get all cached backtest files for a specific lab"""
@@ -145,6 +174,10 @@ class CachedAnalysisService:
     def extract_performance_from_cached_data(self, data: Dict[str, Any], file_path: Path) -> Optional[CachedBacktestPerformance]:
         """Extract performance metrics from cached backtest data"""
         try:
+            # Handle nested Data field
+            if 'Data' in data and isinstance(data['Data'], dict):
+                data = data['Data']
+
             # Extract basic info from top-level fields
             backtest_id = data.get('LogId', '')
             lab_id = data.get('BotId', '')
@@ -335,9 +368,9 @@ class CachedAnalysisService:
         script_name: str = "",
         market_tag: str = "",
         top_count: int = 10,
-        min_win_rate: float = 0.55,  # Standardized: 55%+ win rate
-        min_trades: int = 5,
-        max_drawdown: float = 0.0,   # Standardized: Zero drawdown only
+        min_win_rate: float = 0.1,  # Lowered from 0.55
+        min_trades: int = 0,         # Lowered from 5
+        max_drawdown: float = 100.0,   # Allowed all drawdown for now
         sort_by: str = "roi"
     ) -> CachedLabAnalysisResult:
         """
@@ -386,11 +419,10 @@ class CachedAnalysisService:
                 if data:
                     performance = self.extract_performance_from_cached_data(data, file_path)
                     if performance:
-                        # Apply filters
+                        # Apply filters (now much more permissive)
                         if (performance.win_rate >= min_win_rate and 
                             performance.total_trades >= min_trades and
-                            performance.max_drawdown <= max_drawdown and  # Configurable drawdown limit
-                            performance.realized_profits_usdt >= 0):  # Never negative
+                            performance.max_drawdown <= max_drawdown):
                             performances.append(performance)
             
             if not performances:

@@ -3,6 +3,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Header, Footer, Static, Button, ListItem, ListView, Label, Placeholder
 from textual.screen import Screen
 from textual.binding import Binding
+from pathlib import Path
 
 from pyHaasAPI.core.server_manager import ServerManager
 from pyHaasAPI.config.settings import Settings
@@ -287,12 +288,31 @@ class HaasTUI(App):
     
     .section-header {
         text-style: bold;
-        color: #fab387;
+        color: #f9e2af;
         margin-top: 1;
         margin-bottom: 1;
     }
     
+    #sync-status-container {
+        height: 3;
+        align: left middle;
+        margin-bottom: 1;
+    }
+    
     #sync-status {
+        width: 1fr;
+        color: #cdd6f4;
+    }
+    
+    .mini-btn {
+        min-width: 15;
+        height: 1;
+        border: none;
+        background: #313244;
+        margin-left: 1;
+    }
+
+    #sync-progress {
         margin-bottom: 1;
     }
 
@@ -336,12 +356,27 @@ class HaasTUI(App):
     }
 
     .card-header {
-        text-align: center;
-        background: #313244;
+        text-align: left;
         color: #f9e2af;
         text-style: bold;
         padding: 0 1;
+        width: 1fr;
+    }
+
+    .card-header-container {
+        height: 3;
+        background: #313244;
+        align: left middle;
         margin-bottom: 1;
+        padding: 0 1;
+    }
+
+    .header-btn {
+        min-width: 14;
+        height: 1;
+        margin-left: 1;
+        border: none;
+        background: #45475a;
     }
 
     ResourceWidget {
@@ -443,6 +478,45 @@ class HaasTUI(App):
     #detail-bot-table, #detail-lab-table {
         height: 1fr;
     }
+
+    /* Lab Visualization Styles */
+    #analysis-metrics-container {
+        height: 1fr;
+        border: solid #45475a;
+        margin: 1;
+        padding: 1;
+    }
+
+    #viz-container {
+        height: 1fr;
+        overflow-y: scroll;
+    }
+
+    .viz-card {
+        background: #1e1e2e;
+        border: solid #45475a;
+        margin: 1;
+        padding: 1;
+        min-height: 15;
+    }
+
+    #viz-grid {
+        layout: grid;
+        grid-size: 2;
+        grid-gutter: 2;
+        height: auto;
+    }
+
+    .ascii-chart {
+        padding: 1;
+        color: #89b4fa;
+    }
+    
+    .section-header {
+        text-style: bold;
+        color: #f9e2af;
+        margin-bottom: 1;
+    }
     """
 
     BINDINGS = [
@@ -464,7 +538,14 @@ class HaasTUI(App):
         from pyHaasAPI.core.analysis_manager import AnalysisManager
         from pyHaasAPI.core.project_orchestrator import ProjectOrchestrator
         self.project_manager = ProjectManager()
-        self.analysis_manager = AnalysisManager()
+        self.analysis_manager = AnalysisManager(self)
+        
+        from pyHaasAPI.services.analysis.cached_analysis_service import CachedAnalysisService
+        self.cached_analysis = CachedAnalysisService(Path("unified_cache"))
+        
+        from pyHaasAPI.services.lab.lab_sync_service import LabSyncService
+        self.lab_sync_service = LabSyncService(self)
+        
         self.project_orchestrator = ProjectOrchestrator(self)
 
         # Cache auth managers to reuse sessions
@@ -500,6 +581,14 @@ class HaasTUI(App):
             Container(DashboardScreen(), id="main-content"),
         )
         yield Footer()
+
+    async def on_mount(self) -> None:
+        """Start background services."""
+        await self.lab_sync_service.start()
+
+    async def on_unmount(self) -> None:
+        """Stop background services."""
+        await self.lab_sync_service.stop()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Global button handler for debugging and main menu."""

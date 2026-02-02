@@ -62,26 +62,50 @@ class BacktestDataExtractor:
             BacktestSummary object or None if extraction fails
         """
         try:
+            # Handle nested Data field which is common in Haas API responses
+            raw_data = backtest_data
+            if 'Data' in backtest_data and isinstance(backtest_data['Data'], dict):
+                backtest_data = backtest_data['Data']
+
             # Extract basic information
-            backtest_id = backtest_data.get('backtest_id', '')
-            lab_id = backtest_data.get('lab_id', '')
+            backtest_id = raw_data.get('backtest_id', backtest_data.get('LogId', ''))
+            lab_id = raw_data.get('lab_id', backtest_data.get('BotId', ''))
+            
+            # Check for Haas standard Reports structure
+            if 'Reports' in backtest_data and backtest_data['Reports']:
+                summary = self._extract_from_haas_reports(backtest_data)
+                if summary:
+                    if not summary.backtest_id: summary.backtest_id = backtest_id
+                    if not summary.lab_id: summary.lab_id = lab_id
+                return summary
             
             # Extract trade data
             trades = self._extract_trades(backtest_data)
-            if not trades:
-                self.logger.warning(f"No trades found for backtest {backtest_id}")
-                return None
+            # if not trades:
+            #    self.logger.warning(f"No trades found for backtest {backtest_id}")
+            #    return None
             
-            # Calculate summary metrics
             total_trades = len(trades)
             winning_trades = sum(1 for t in trades if t.profit_loss > 0)
             losing_trades = total_trades - winning_trades
+            
+            if not trades:
+                total_trades = backtest_data.get('total_trades', 0)
+                winning_trades = backtest_data.get('winning_trades', 0)
+                losing_trades = backtest_data.get('losing_trades', 0)
+            
             win_rate = (winning_trades / total_trades) if total_trades > 0 else 0.0
             
             # Calculate P&L metrics
             total_profit = sum(t.profit_loss for t in trades if t.profit_loss > 0)
             total_loss = abs(sum(t.profit_loss for t in trades if t.profit_loss < 0))
             net_profit = sum(t.profit_loss - t.fees for t in trades)
+            
+            # If no trades but we have some data, use top-level fields
+            if not trades:
+                net_profit = backtest_data.get('realized_profits_usdt', 0.0)
+                total_profit = max(0, net_profit)
+                total_loss = max(0, -net_profit)
             
             # Calculate balance metrics
             starting_balance = backtest_data.get('starting_balance', 10000.0)
@@ -112,6 +136,85 @@ class BacktestDataExtractor:
             
         except Exception as e:
             self.logger.error(f"Error extracting backtest summary: {e}")
+            return None
+
+    def _extract_from_haas_reports(self, data: Dict[str, Any]) -> Optional[BacktestSummary]:
+        """Extract summary from Haas standard Reports structure."""
+        try:
+            reports = data.get('Reports', {})
+            if not reports: return None
+            
+            report_key = list(reports.keys())[0]
+            report = reports[report_key]
+            
+            pr = report.get('PR', {})
+            starting_balance = pr.get('SB', 10000.0)
+            realized_profits = pr.get('RP', 0.0)
+            net_profit = realized_profits 
+            
+            # Extract trades from Positions P
+            p_data = report.get('P', {})
+            total_trades = int(p_data.get('C', 0))
+            winning_trades = int(p_data.get('W', 0))
+            losing_trades = int(p_data.get('L', 0))
+            
+            # Extract trades from Positions
+            trades = []
+            
+            # Helper to parse Haas position to TradeData
+            def parse_pos(p: Dict[str, Any]) -> Optional[TradeData]:
+                try:
+                    # Direction: 0 = Long, 1 = Short (usually)
+                    side = "long" if p.get('d') == 0 else "short"
+                    return TradeData(
+                        trade_id=p.get('pg', ''),
+                        entry_time=int(p.get('ot', 0)),
+                        exit_time=int(p.get('ct', 0)),
+                        entry_price=float(p.get('ap', 0.0)),
+                        exit_price=0.0, # Not always direct
+                        quantity=float(p.get('av', p.get('q', 0.0))),
+                        profit_loss=float(p.get('rp', 0.0)),
+                        fees=float(p.get('fe', 0.0)),
+                        duration_seconds=int(p.get('ct', 0) - p.get('ot', 0)) if p.get('ct') else 0,
+                        side=side,
+                        pair=p.get('ma', ''),
+                        timestamp=int(p.get('ct', p.get('ot', 0)))
+                    )
+                except Exception: return None
+
+            # Check for FinishedPositions at the root (since data might be drilled down)
+            fps = data.get('FinishedPositions', [])
+            for fp in fps:
+                t = parse_pos(fp)
+                if t: trades.append(t)
+            
+            # Check for UnmanagedPositions (sometimes active trades for recent analysis)
+            ups = data.get('UnmanagedPositions', [])
+            for up in ups:
+                if up.get('ct'): # Only if closed
+                    t = parse_pos(up)
+                    if t: trades.append(t)
+
+            # If no trades list, we still want a summary with metrics
+            return BacktestSummary(
+                backtest_id=data.get('BotId', data.get('LogId', '')),
+                lab_id="", # Let caller set from context/filename
+                total_trades=total_trades,
+                winning_trades=winning_trades,
+                losing_trades=losing_trades,
+                win_rate=(winning_trades/total_trades) if total_trades > 0 else 0,
+                total_profit=max(0, net_profit), 
+                total_loss=max(0, -net_profit),
+                net_profit=net_profit,
+                max_drawdown=0.0, 
+                max_drawdown_pct=pr.get('MDD', 0.0),
+                starting_balance=starting_balance,
+                final_balance=starting_balance + net_profit,
+                peak_balance=starting_balance + max(0, net_profit),
+                trades=trades
+            )
+        except Exception as e:
+            self.logger.error(f"Error in _extract_from_haas_reports: {e}")
             return None
     
     def _extract_trades(self, backtest_data: Dict[str, Any]) -> List[TradeData]:

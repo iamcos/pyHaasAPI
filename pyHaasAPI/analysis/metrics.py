@@ -39,6 +39,9 @@ class RunMetrics:
     volatility: float
     exposure_seconds: int
     avg_trade_duration_seconds: float
+    starting_balance: float = 0.0
+    roi_pct: float = 0.0
+    equity_curve: List[float] = None
 
 
 def _mean(values: List[float]) -> float:
@@ -178,6 +181,9 @@ def compute_metrics(summary: BacktestSummary) -> RunMetrics:
         volatility=vol,
         exposure_seconds=exposure,
         avg_trade_duration_seconds=avg_dur,
+        starting_balance=summary.starting_balance,
+        roi_pct=(net_profit / summary.starting_balance * 100) if summary.starting_balance > 0 else 0.0,
+        equity_curve=[p for _, p in curve]
     )
 
 
