@@ -293,12 +293,12 @@ class ScriptAPI:
             if case_sensitive:
                 matching_scripts = [
                     script for script in all_scripts 
-                    if name_pattern in script.script_name
+                    if name_pattern in script.name
                 ]
             else:
                 matching_scripts = [
                     script for script in all_scripts 
-                    if name_pattern.lower() in script.script_name.lower()
+                    if name_pattern.lower() in script.name.lower()
                 ]
             
             self.logger.debug(f"Found {len(matching_scripts)} scripts matching pattern: {name_pattern}")
@@ -335,18 +335,21 @@ class ScriptAPI:
             
             response = await self.client.post_json(
                 endpoint="/HaasScriptAPI.php",
-                data={
+                params={
                     "channel": "ADD_SCRIPT",
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
+                },
+                data={
                     "name": script_name,
                     "script": script_content,
                     "description": description,
                     "type": script_type,
-                    "userid": self.auth_manager.user_id,
-                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
-            script_item = ScriptItem.from_dict(response)
+            data = response.get('Data', response)
+            script_item = ScriptItem.from_dict(data)
             self.logger.info(f"Successfully created script: {script_item.script_id}")
             return script_item
             
@@ -382,24 +385,28 @@ class ScriptAPI:
         try:
             self.logger.info(f"Editing script: {script_id}")
             
-            params = {
+            query_params = {
                 "channel": "EDIT_SCRIPT",
+                "userid": self.auth_manager.user_id,
+                "interfacekey": self.auth_manager.interface_key,
+            }
+            
+            body_data = {
                 "scriptid": script_id,
                 "description": description,
             }
             
             if script_name is not None:
-                params["name"] = script_name
+                body_data["name"] = script_name
             if script_content is not None:
-                params["script"] = script_content
+                body_data["script"] = script_content
             if settings is not None:
-                params["settings"] = json.dumps(settings)
+                body_data["settings"] = json.dumps(settings)
             
-            params["userid"] = self.auth_manager.user_id
-            params["interfacekey"] = self.auth_manager.interface_key
             response = await self.client.post_json(
                 endpoint="/HaasScriptAPI.php",
-                data=params
+                params=query_params,
+                data=body_data
             )
             
             # Handle different response types
@@ -442,13 +449,15 @@ class ScriptAPI:
             
             response = await self.client.post_json(
                 endpoint="/HaasScriptAPI.php",
-                data={
+                params={
                     "channel": "EDIT_SCRIPT_SOURCECODE",
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
+                },
+                data={
                     "scriptid": script_id,
                     "sourcecode": sourcecode,
                     "settings": json.dumps(settings),
-                    "userid": self.auth_manager.user_id,
-                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
@@ -478,11 +487,13 @@ class ScriptAPI:
             
             response = await self.client.post_json(
                 endpoint="/HaasScriptAPI.php",
-                data={
+                params={
                     "channel": "DELETE_SCRIPT",
-                    "scriptid": script_id,
                     "userid": self.auth_manager.user_id,
                     "interfacekey": self.auth_manager.interface_key,
+                },
+                data={
+                    "scriptid": script_id,
                 }
             )
             
@@ -517,11 +528,13 @@ class ScriptAPI:
             
             response = await self.client.post_json(
                 endpoint="/HaasScriptAPI.php",
-                data={
+                params={
                     "channel": "PUBLISH_SCRIPT",
-                    "scriptid": script_id,
                     "userid": self.auth_manager.user_id,
                     "interfacekey": self.auth_manager.interface_key,
+                },
+                data={
+                    "scriptid": script_id,
                 }
             )
             
@@ -592,13 +605,15 @@ class ScriptAPI:
             
             response = await self.client.post_json(
                 endpoint="/BacktestAPI.php",
-                data={
+                params={
                     "channel": "EXECUTE_DEBUGTEST",
+                    "userid": self.auth_manager.user_id,
+                    "interfacekey": self.auth_manager.interface_key,
+                },
+                data={
                     "scriptid": script_id,
                     "scripttype": script_type,
                     "settings": json.dumps(settings),
-                    "userid": self.auth_manager.user_id,
-                    "interfacekey": self.auth_manager.interface_key,
                 }
             )
             
@@ -762,7 +777,7 @@ class ScriptAPI:
             
             statistics = {
                 "script_id": script_id,
-                "script_name": script_item.script_name,
+                "script_name": script_item.name,
                 "created_at": getattr(script_item, 'created_at', None),
                 "last_modified": getattr(script_item, 'last_modified', None),
                 "usage_count": getattr(script_item, 'usage_count', 0),
