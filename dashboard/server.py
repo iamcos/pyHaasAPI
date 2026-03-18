@@ -152,7 +152,7 @@ async def intelligence_sweeper():
             }
 
             # News entries for the globe and feed
-            utcnow = datetime.datetime.utcnow().isoformat()
+            utcnow = datetime.datetime.now(datetime.timezone.utc).isoformat()
             jarvis_store["news"] = [
                 {
                     "source": "BLOOMBERG",
@@ -250,7 +250,7 @@ async def intelligence_sweeper():
                 },
             ]
 
-            jarvis_store["last_update"] = datetime.datetime.utcnow().isoformat()
+            jarvis_store["last_update"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
             logger.info("Jarvis Intelligence Sweep Complete.")
         except Exception as e:
             logger.error(f"Intelligence Sweeper Error: {e}")
@@ -795,7 +795,7 @@ async def handle_get_jarvis_data(request):
             "meta": {
                 "timestamp": (
                     jarvis_store.get("last_update")
-                    or datetime.datetime.utcnow().isoformat() + "Z"
+                    or datetime.datetime.now(datetime.timezone.utc).isoformat() + "Z"
                 ),
                 "totalDurationMs": 450,
                 "sourcesQueried": 15,

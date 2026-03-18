@@ -34,3 +34,31 @@ A premium dashboard for unified HaasOnline & Freqtrade operations. [Read the Gui
 ### Data Recovery
 *   `restore_cache.py`: Reassembles and unzips the split `unified_cache.zip.part_*` files.
 *   `upload_parts.py`: Uploads large archives to Telegram using the MCP tool.
+
+## 🛠️ Technology Stack & Acknowledgments
+
+### Dashboard Frontend
+- **Glassmorphism UI**: Custom Vanilla CSS framework.
+- **Charts**: [ApexCharts](https://apexcharts.com/) for equity curves and bot performance plots.
+- **Icons**: [Lucide](https://lucide.dev/) for crisp, minimalist iconography.
+- **Intelligence Terminal (Crucix)**: Integrated data visualizations using:
+    - [D3.js](https://d3js.org/) for data-driven OSINT feeds.
+    - [Three.js](https://threejs.org/) for the global operational globe.
+    - [Globe.gl](https://globe.gl/) for the interactive 3D tactical map.
+    - [GSAP](https://greensock.com/gsap/) for smooth micro-animations.
+
+### Backend Orchestrator
+- **aiohttp**: Fast, asynchronous Python web server.
+- **pyHaasAPI Core**: Custom library for unified HaasOnline/Freqtrade communication.
+
+## 📄 License & Terms
+
+**Copyright (c) 2024–2026 Cosmos (iamcos)**
+
+This Software is released under a **Research-Only License**.
+
+1. **Research & Personal Use**: You are free to use, modify, and study this codebase for academic or personal experimentation.
+2. **Commercial/Live Trading**: Use of this software for managing **real money** or in a **commercial setting** is strictly prohibited without prior written consent and a separate licensing agreement. 
+3. **Contact**: If you intend to use this for financial gain or live trading, you **MUST** contact the author via [GitHub](https://github.com/iamcos) to discuss terms and procedure.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. USE AT YOUR OWN RISK.
