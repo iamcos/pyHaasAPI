@@ -24,6 +24,7 @@ class LabScreen(Vertical):
         yield Label("Ready", id="lab-status-label")
         yield Horizontal(
             Button("Refresh", variant="primary", id="refresh-labs-btn"),
+            Button("Sync All", variant="default", id="sync-all-labs-btn"),
             classes="button-bar"
         )
 
@@ -38,6 +39,7 @@ class LabScreen(Vertical):
         list_view.clear()
         status_label.update("📡 [yellow]Fetching lab projects...[/]")
         self.app.notify("Syncing labs from all servers...", title="Lab Refresh", severity="information")
+        self.tui_app.cached_analysis.refresh_lab_counts()
         
         total_labs = 0
         for server_name in self.server_manager.servers.keys():
@@ -52,7 +54,14 @@ class LabScreen(Vertical):
                         lab_api = LabAPI(client, auth)
                         labs = await lab_api.get_labs()
                         for lab in labs:
-                            item = ListItem(Label(f"[cyan][{server_name}][/] [white]{lab.name}[/] [dim]({lab.UID})[/]"))
+                            local_count = self.tui_app.cached_analysis.get_local_count(lab.lab_id)
+                            sync_pct = (local_count / lab.completed_backtests * 100) if lab.completed_backtests > 0 else 0
+                            
+                            status_style = "green" if sync_pct >= 100 and local_count > 0 else "yellow"
+                            sync_info = f"[{status_style}]{local_count}/{lab.completed_backtests}[/]"
+                            
+                            label_text = f"[cyan][{server_name}][/] [white]{lab.name}[/] {sync_info}"
+                            item = ListItem(Label(label_text))
                             # Store metadata for selection
                             item.lab_data = {
                                 "server_name": server_name,
@@ -82,6 +91,16 @@ class LabScreen(Vertical):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "refresh-labs-btn":
             await self.refresh_projects()
+        elif event.button.id == "sync-all-labs-btn":
+            self.app.notify("Starting global lab sync...")
+            self.run_worker(self._manual_global_sync())
+
+    async def _manual_global_sync(self):
+        """Perform manual sync and refresh UI after."""
+        # Pass full_sweep=True to ignore the auto-sync toggle for manual trigger
+        await self.tui_app.lab_sync_service.sync_all_servers(full_sweep=True)
+        await self.refresh_projects()
+        self.app.notify("Global lab sync completed.")
 
 class MarketSelectModal(Screen):
     """A modal screen for fuzzy searching and selecting markets."""

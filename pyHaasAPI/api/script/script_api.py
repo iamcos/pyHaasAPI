@@ -224,7 +224,8 @@ class ScriptAPI:
                 }
             )
             
-            script_record = ScriptRecord.from_dict(response)
+            data = response.get('Data', response)
+            script_record = ScriptRecord.from_dict(data)
             self.logger.debug(f"Retrieved script record: {script_id}")
             return script_record
             
@@ -259,7 +260,8 @@ class ScriptAPI:
                 }
             )
             
-            script_item = ScriptItem.from_dict(response)
+            data = response.get('Data', response)
+            script_item = ScriptItem.from_dict(data)
             self.logger.debug(f"Retrieved script item: {script_id}")
             return script_item
             

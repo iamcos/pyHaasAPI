@@ -107,7 +107,7 @@ class AccountAPI:
                 log_field_mapping_issues(accounts_data[0], "account data sample")
             
             # Convert to AccountRecord objects using proper field aliases
-            accounts = [AccountRecord(**account_data) for account_data in accounts_data]
+            accounts = [AccountRecord.from_dict(account_data) for account_data in accounts_data]
             response = accounts
             
             self.logger.debug(f"Retrieved {len(response)} accounts")

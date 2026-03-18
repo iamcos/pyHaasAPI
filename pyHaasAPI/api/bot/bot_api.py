@@ -58,6 +58,11 @@ class BotAPI:
             "is_active": data.get("IA", False),
             "created_at": data.get("UC", 0),
             "updated_at": data.get("UC", 0),
+            # Map statistical summary fields
+            "summary_roi": data.get("S", {}).get("ROI", [0.0])[0] if isinstance(data.get("S"), dict) and data.get("S", {}).get("ROI") else 0.0,
+            "summary_net_profit": data.get("S", {}).get("NP", 0.0) if isinstance(data.get("S"), dict) else 0.0,
+            "summary_win_rate": data.get("S", {}).get("W", 0.0) if isinstance(data.get("S"), dict) else 0.0,
+            "summary_max_drawdown": abs(data.get("S", {}).get("MDD", 0.0)) if isinstance(data.get("S"), dict) else 0.0,
             "configuration": {
                 "leverage": max(data.get("F", 0) or data.get("leverage", 0), 1.0),
                 "trade_amount": data.get("TAE") or data.get("tradeAmount", 2000.0),

@@ -259,7 +259,7 @@ class LabAPI:
             # Log field mapping for debugging
             log_field_mapping_issues(lab_data, "lab creation response")
             
-            lab_details = LabDetails(**lab_data)
+            lab_details = LabDetails.from_dict(lab_data)
             
             self.logger.info(f"Lab created successfully: {lab_details.lab_id}")
             return lab_details
@@ -973,14 +973,22 @@ class LabAPI:
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             }
             
-            response = await self.client.post_form(
-                "/LabsAPI.php",
-                params={"channel": "START_LAB_EXECUTION"},
-                data=form_data,
-                headers=headers
-            )
+            response = None
+            for endpoint in ("/LabsAPI.php", "/LabAPI.php"):
+                try:
+                    resp = await self.client.post_form(
+                        endpoint,
+                        params={"channel": "START_LAB_EXECUTION"},
+                        data=form_data,
+                        headers=headers
+                    )
+                    if safe_get_success_flag(resp):
+                        response = resp
+                        break
+                except Exception:
+                    continue
             
-            if not safe_get_success_flag(response):
+            if not response or not safe_get_success_flag(response):
                 error_msg = safe_get_field(response, "Error", "Failed to start lab execution")
                 raise LabExecutionError(request.lab_id, error_msg)
             
@@ -1125,24 +1133,41 @@ class LabAPI:
             if not session:
                 raise LabError("Not authenticated")
             
-            response = await self.client.post_json(
-                "/LabsAPI.php",
-                data={
-                    "channel": "UPDATE_LAB_CONFIG",
-                    "userid": session.user_id,
-                    "interfacekey": session.interface_key,
-                    "labid": lab_id,
-                    "maxParallel": config.max_parallel,
-                    "maxGenerations": config.max_generations,
-                    "maxEpochs": config.max_epochs,
-                    "maxRuntime": config.max_runtime,
-                    "autoRestart": config.auto_restart,
-                }
-            )
+            payload = {
+                "userid": session.user_id,
+                "interfacekey": session.interface_key,
+                "labid": lab_id,
+                "maxParallel": config.max_parallel,
+                "maxGenerations": config.max_generations,
+                "maxEpochs": config.max_epochs,
+                "maxRuntime": config.max_runtime,
+                "autoRestart": config.auto_restart,
+            }
             
-            if not safe_get_success_flag(response):
+            response = None
+            for endpoint in ("/LabsAPI.php", "/LabAPI.php"):
+                for channel in ("UPDATE_LAB_CONFIG", "SET_LAB_CONFIG"):
+                    try:
+                        resp = await self.client.post_json(
+                            endpoint,
+                            params={
+                                "channel": channel,
+                                "userid": session.user_id,
+                                "interfacekey": session.interface_key,
+                            },
+                            data=payload
+                        )
+                        if safe_get_success_flag(resp):
+                            response = resp
+                            break
+                    except Exception:
+                        continue
+                if response:
+                    break
+
+            if not response or not safe_get_success_flag(response):
                 error_msg = safe_get_field(response, "Error", "Failed to update lab config")
-                raise LabConfigurationError("max_parallel", config.max_parallel, error_msg)
+                raise LabConfigurationError("config", str(config), error_msg)
             
             # Get updated lab details
             updated_lab = await self.get_lab_details(lab_id)

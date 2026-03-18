@@ -11,6 +11,7 @@ from .script import ScriptAPI
 from .market import MarketAPI
 from .backtest import BacktestAPI
 from .order import OrderAPI
+from .log import LogAPI
 
 __all__ = [
     "LabAPI",

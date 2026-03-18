@@ -44,6 +44,7 @@ class APIConfig:
     
     # Logging configuration
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    enable_remote_logging: bool = field(default_factory=lambda: get_env("ENABLE_REMOTE_LOGGING", False, bool))
     
     def __post_init__(self):
         """Validate configuration"""

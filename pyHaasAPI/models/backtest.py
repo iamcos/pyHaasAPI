@@ -229,8 +229,40 @@ class ExecuteBacktestRequest(BaseModel):
     script_id: str = ""
     market: str = ""
     parameters: Dict[str, Any] = field(default_factory=dict)
+    
+    # Direct backtest support
+    backtest_id: str = ""
+    settings: Dict[str, Any] = field(default_factory=dict)
+    
     start_date: datetime = field(default_factory=datetime.now)
     end_date: datetime = field(default_factory=datetime.now)
+    
+    # Computed properties for API compatibility
+    _start_unix: Optional[int] = None
+    _end_unix: Optional[int] = None
+
+    @property
+    def start_unix(self) -> int:
+        if self._start_unix is not None:
+            return self._start_unix
+        return int(self.start_date.timestamp())
+
+    @start_unix.setter
+    def start_unix(self, value: int):
+        self._start_unix = value
+        self.start_date = datetime.fromtimestamp(value)
+
+    @property
+    def end_unix(self) -> int:
+        if self._end_unix is not None:
+            return self._end_unix
+        return int(self.end_date.timestamp())
+    
+    @end_unix.setter
+    def end_unix(self, value: int):
+        self._end_unix = value
+        self.end_date = datetime.fromtimestamp(value)
+
     initial_balance: float = 10000.0
     leverage: float = 1.0
     fees: float = 0.001

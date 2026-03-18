@@ -1,0 +1,1 @@
+RULE: The Haas PHP endpoints are strictly a reference for the API. When building, do NOT write scripts to raw-call PHP endpoints or mimic them. Focus on the Python ecosystem and parse the haas-staging LUA definitions for formats.

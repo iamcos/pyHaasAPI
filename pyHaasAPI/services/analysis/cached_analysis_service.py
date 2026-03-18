@@ -137,6 +137,9 @@ class CachedAnalysisService:
                 parts = file_path.name.split('_')
                 if parts:
                     lab_id = parts[0]
+                    # If it's a direct backtest, group them under "DIRECT" or similar
+                    if lab_id == "direct":
+                        lab_id = "DIRECT_BACKTESTS"
                     counts[lab_id] = counts.get(lab_id, 0) + 1
             
             self._lab_counts = counts

@@ -517,6 +517,34 @@ class HaasTUI(App):
         color: #f9e2af;
         margin-bottom: 1;
     }
+    #log-view-container {
+        layout: vertical;
+        padding: 1;
+        height: 1fr;
+    }
+    
+    #sessions-list-card {
+        height: 15;
+        margin-bottom: 1;
+    }
+    
+    #log-viewer-card {
+        height: 1fr;
+    }
+    
+    #log-display {
+        background: #11111b;
+        color: #cdd6f4;
+        border: solid #313244;
+        height: 1fr;
+        font-family: monospace;
+    }
+    
+    .log-actions {
+        height: 3;
+        align: right middle;
+        padding-top: 1;
+    }
     """
 
     BINDINGS = [

@@ -100,10 +100,10 @@ class BacktestAPI:
                         backtest_result = BacktestResult(
                             backtest_id=str(item.get('BID', '')),
                             log_id=str(item.get('RID', '')),
-                            lab_id=str(safe_get_field(item, ['LID', 'LabId', 'BotId'], '')),
-                            status=int(safe_get_field(item, ['ST', 'Status'], 0)),
-                            generation_idx=int(safe_get_field(item, ['NG', 'Generation'], 0)),
-                            population_idx=int(safe_get_field(item, ['NP', 'Population'], 0)),
+                            lab_id=str(item.get('LID') or item.get('LabId') or item.get('BotId') or ''),
+                            status=int(item.get('ST') or item.get('Status') or 0),
+                            generation_idx=int(item.get('NG') or item.get('Generation') or 0),
+                            population_idx=int(item.get('NP') or item.get('Population') or 0),
                             total_trades=total_trades,
                             winning_trades=winning_trades,
                             losing_trades=total_trades - winning_trades,
@@ -111,8 +111,8 @@ class BacktestAPI:
                             win_rate=(winning_trades / total_trades * 100) if total_trades > 0 else 0.0,
                             net_profit=s_data.get('RP', {}).get('USDT', 0.0) if s_data.get('RP') else 0.0,
                             max_drawdown=s_data.get('MDD', 0.0),
-                            parameters=safe_get_field(item, ['Parameters', 'P'], {}),
-                            settings=safe_get_field(item, ['Settings', 'SE'], {}),
+                            parameters=item.get('P') or item.get('Parameters') or {},
+                            settings=item.get('SE') or item.get('Settings') or {},
                             created_at=datetime.now(),
                             updated_at=datetime.now()
                         )

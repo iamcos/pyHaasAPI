@@ -10,17 +10,29 @@ from .common import BaseModel
 
 
 @dataclass
+class CompilationResult(BaseModel):
+    """Compilation result information"""
+    is_valid: bool = False
+    compile_logs: List[str] = field(default_factory=list)
+    command_details: Dict[str, Any] = field(default_factory=dict)
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+
+@dataclass
 class ScriptRecord(BaseModel):
-    """Script record"""
+    """Script record with compilation status"""
     script_id: str = ""
     name: str = ""
     description: str = ""
     version: str = ""
     author: str = ""
-    created_at: datetime = field(default_factory=datetime.now)
-    updated_at: datetime = field(default_factory=datetime.now)
+    command_name: str = ""
+    is_valid: bool = False
+    is_compatible: bool = False
+    compilation_result: Optional[CompilationResult] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     is_published: bool = False
-
 
 @dataclass
 class ScriptParameter(BaseModel):
@@ -33,22 +45,24 @@ class ScriptParameter(BaseModel):
     step: Optional[float] = None
     description: Optional[str] = None
 
-
 @dataclass
 class ScriptItem(BaseModel):
-    """Script item with dependencies"""
+    """Script item with dependencies and compilation status"""
     script_id: str = ""
     name: str = ""
     description: str = ""
     source_code: str = ""
     version: str = ""
     author: str = ""
+    command_name: str = ""
+    is_valid: bool = False
+    is_compatible: bool = False
+    compilation_result: Optional[CompilationResult] = None
     dependencies: List[str] = field(default_factory=list)
     parameters: List[ScriptParameter] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.now)
-    updated_at: datetime = field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     is_published: bool = False
-
 
 @dataclass
 class ScriptTest(BaseModel):
@@ -58,9 +72,8 @@ class ScriptTest(BaseModel):
     test_name: str = ""
     parameters: Dict[str, Any] = field(default_factory=dict)
     expected_result: Any = None
-    created_at: datetime = field(default_factory=datetime.now)
-    updated_at: datetime = field(default_factory=datetime.now)
-
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 @dataclass
 class ScriptCommand(BaseModel):

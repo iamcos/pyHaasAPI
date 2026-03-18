@@ -56,6 +56,8 @@ class BaseModel:
                 "".join([part[0].upper() for part in field_name.split("_")]), # e.g. script_id -> SI
                 field_name.split("_")[-1].upper(), # e.g. lab_id -> ID
                 "".join([part[0].upper() for part in field_name.split("_")]) + "D", # e.g. lab_id -> LID
+                # CamelCase variation
+                field_name.split("_")[0] + "".join(x.title() for x in field_name.split("_")[1:]) if "_" in field_name else field_name
             ]
             
             # Additional manual mappings can be added here or in specific models
@@ -71,15 +73,20 @@ class BaseModel:
             if value is None:
                 return None
                 
-            # Handle recursive BaseModel/dataclass
+            # Handle Optional/Union by unwrapping
+            origin = getattr(field_type, "__origin__", None)
+            if origin is Union:
+                args = getattr(field_type, "__args__", [])
+                for arg in args:
+                    if arg is not type(None) and hasattr(arg, "from_dict") and isinstance(value, dict):
+                        return arg.from_dict(value)
+
+            # Handle direct recursive BaseModel/dataclass
             if hasattr(field_type, "from_dict") and isinstance(value, dict):
                 return field_type.from_dict(value)
                 
             # Handle List[BaseModel]
-            # This is a basic check, might need more robust typing inspection for complex generics
-            origin = getattr(field_type, "__origin__", None)
             args = getattr(field_type, "__args__", [])
-            
             if origin is list and args:
                 item_type = args[0]
                 if hasattr(item_type, "from_dict") and isinstance(value, list):
@@ -157,6 +164,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     total_pages: int = 0
     has_next: bool = False
     has_previous: bool = False
+    next_page_id: Optional[str] = None
 
 
 @dataclass

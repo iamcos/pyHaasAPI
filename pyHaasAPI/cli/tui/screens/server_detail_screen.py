@@ -52,6 +52,8 @@ class ServerDetailScreen(Vertical):
         self.server_manager = tui_app.server_manager
         self.cpu_history = [0.0] * 50
         self.ram_history = [0.0] * 50
+        self.auto_sync = False
+        self._labs: List[Any] = []
         
     def compose(self) -> ComposeResult:
         yield Label(f"Server Dashboard: [bold cyan]{self.server_name}[/]", id="screen-title")
@@ -60,6 +62,7 @@ class ServerDetailScreen(Vertical):
             yield Button("← Back to List", id="back-to-list-btn", variant="default")
             yield Button("Connect", id="detail-connect-btn", variant="success")
             yield Button("Refresh", id="detail-refresh-btn", variant="primary")
+            yield Button("View Logs", id="view-logs-btn", variant="default")
             yield Label("", id="detail-status-msg")
 
         with Container(id="dashboard-grid-detail"):
@@ -91,7 +94,10 @@ class ServerDetailScreen(Vertical):
                 yield self.bot_table
 
             with Vertical(classes="dashboard-card", id="labs-card"):
-                yield Label("🧪 [bold]Active Labs[/]", classes="card-header")
+                with Horizontal(classes="card-header-container"):
+                    yield Label("🧪 [bold]Active Labs[/]", classes="card-header")
+                    yield Button("Sync All", id="sync-all-labs-btn", variant="primary", classes="header-btn")
+                    yield Button("Auto-Sync: OFF", id="toggle-auto-sync-btn", variant="default", classes="header-btn")
                 self.lab_table = DataTable(id="detail-lab-table")
                 yield self.lab_table
 
@@ -101,7 +107,7 @@ class ServerDetailScreen(Vertical):
         bt.add_columns("Name", "Status", "Market", "ROI%", "Trades")
         
         lt = self.query_one("#detail-lab-table", DataTable)
-        lt.add_columns("Lab Name", "Status", "Completed", "Scheduled")
+        lt.add_columns("Lab Name", "Status", "Completed", "Sync")
         
         self.refresh_stats()
         # High-frequency refresh for dedicated dashboard
@@ -129,6 +135,21 @@ class ServerDetailScreen(Vertical):
         elif button_id == "restart-haas-btn":
             self.app.notify("Restarting Haas Service...", severity="warning")
             self.run_worker(self._restart_service(), exclusive=True, group="server_actions")
+            
+        elif button_id == "toggle-auto-sync-btn":
+            self.auto_sync = not self.auto_sync
+            btn = self.query_one("#toggle-auto-sync-btn", Button)
+            btn.label = f"Auto-Sync: {'ON' if self.auto_sync else 'OFF'}"
+            btn.variant = "success" if self.auto_sync else "default"
+            self.app.notify(f"Auto-Sync {'enabled' if self.auto_sync else 'disabled'}")
+
+        elif button_id == "sync-all-labs-btn":
+            self.app.notify("Starting full synchronization for all labs...")
+            self.run_worker(self._sync_all_labs(), name="sync_all_worker")
+            
+        elif button_id == "view-logs-btn":
+            from .log_screen import LogScreen
+            self.app.push_screen(LogScreen(self.tui_app, self.server_name))
 
     async def _restart_service(self) -> None:
         """Execute restart and handle UI feedback"""
@@ -353,8 +374,15 @@ class ServerDetailScreen(Vertical):
                     bot_table.add_row(*row_data, key=row_key)
             
             # Update Labs
+            self.tui_app.cached_analysis.refresh_lab_counts()
             lab_api = LabAPI(client, auth)
             labs = await lab_api.get_labs()
+            self._labs = labs # Store for sync commands
+            
+            # Auto-Sync trigger if enabled
+            if self.auto_sync:
+                self.run_worker(self._sync_all_labs(), name="auto_sync_worker")
+
             lab_col_keys = list(lab_table.columns.keys())
             for i, l in enumerate(labs[:20]): # Up to 20 labs
                 row_key = f"lab_{i}"
@@ -371,14 +399,20 @@ class ServerDetailScreen(Vertical):
                 }
                 status_display = status_map.get(l.status, f"[dim]{l.status}[/]")
                 
-                # If not running, typically zero active planned tests
-                scheduled = str(l.scheduled_backtests) if l.status == 2 else "[dim]0[/]"
-                
+                # Sync status from local cache
+                local_count = self.tui_app.cached_analysis.get_local_count(l.lab_id)
+                if local_count >= l.completed_backtests and l.completed_backtests > 0:
+                    sync_display = f"[green]Synced ({l.completed_backtests})[/]"
+                elif l.completed_backtests > 0:
+                    sync_display = f"[yellow]{local_count}/{l.completed_backtests}[/]"
+                else:
+                    sync_display = "[dim]0/0[/]"
+
                 row_data = [
                     l.name[:25] or "Unnamed Lab", 
                     status_display, 
                     str(l.completed_backtests), 
-                    scheduled
+                    sync_display
                 ]
                 
                 if row_key in lab_table.rows:
@@ -417,3 +451,42 @@ class ServerDetailScreen(Vertical):
                     bot_table.add_row(f"[red]Error: {err_msg[:60]}[/]", "", "")
                     if len(err_msg) > 60:
                          bot_table.add_row(f"[red]{err_msg[60:120]}[/]", "", "")
+
+    async def _sync_all_labs(self) -> None:
+        """Fetch all backtest IDs and trigger sync for each lab"""
+        if not self._labs:
+            return
+
+        srv = self.server_manager.servers.get(self.server_name)
+        if not srv or srv.status != ServerStatus.CONNECTED:
+            return
+
+        client = await self._get_or_create_client(srv)
+        if not client:
+            return
+
+        auth = self.tui_app.get_auth_manager(self.server_name, client)
+        from pyHaasAPI.api.backtest.backtest_api import BacktestAPI
+        bt_api = BacktestAPI(client, auth)
+
+        for l in self._labs:
+            # Only sync if there are completed backtests
+            if l.completed_backtests == 0:
+                continue
+
+            # Only sync if not already fully synced (optional optimization)
+            local_count = self.tui_app.cached_analysis.get_local_count(l.lab_id)
+            if local_count >= l.completed_backtests:
+                continue
+
+            try:
+                # Get all backtest IDs for this lab
+                bt_results = await bt_api.get_all_backtests_for_lab(l.lab_id)
+                bt_ids = [b.backtest_id for b in bt_results]
+                
+                # Trigger background sync in analysis_manager
+                await self.tui_app.analysis_manager.sync_lab(l.lab_id, bt_ids, client, auth)
+                self.app.notify(f"Syncing {len(bt_ids)} backtests for lab: {l.name[:15]}")
+            except Exception as e:
+                logger.error(f"Failed to start sync for lab {l.lab_id}: {e}")
+                continue

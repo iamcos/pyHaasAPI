@@ -55,13 +55,15 @@ class LabExecutionError(LabError):
 class LabConfigurationError(LabError):
     """Raised when lab configuration is invalid"""
     
-    def __init__(self, config_field: str, value: any, **kwargs):
+    def __init__(self, config_field: str, value: any, message: str = None, **kwargs):
         kwargs.setdefault("error_code", "LAB_CONFIG_ERROR")
+        if not message:
+            message = f"Invalid lab configuration '{config_field}': {value}"
         context = kwargs.get("context", {})
         context.update({"config_field": config_field, "value": str(value)})
         kwargs["context"] = context
         super().__init__(
-            message=f"Invalid lab configuration '{config_field}': {value}",
+            message=message,
             **kwargs
         )
         self.config_field = config_field

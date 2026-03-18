@@ -8,11 +8,11 @@ from .base import NonRetryableError
 class ScriptError(NonRetryableError):
     """Base class for script-related errors"""
     
-    def __init__(self, message: str = "Script operation failed", **kwargs):
+    def __init__(self, message: str = "Script operation failed", error_code: str = "SCRIPT_ERROR", recovery_suggestion: str = "Check script configuration and try again", **kwargs):
         super().__init__(
             message=message,
-            error_code="SCRIPT_ERROR",
-            recovery_suggestion="Check script configuration and try again",
+            error_code=error_code,
+            recovery_suggestion=recovery_suggestion,
             **kwargs
         )
 

@@ -28,6 +28,7 @@ from .order_cli import OrderCLI
 from .backtest_workflow_cli import BacktestWorkflowCLI
 from .consolidated_cli import ConsolidatedCLI
 from .download_cli import DownloadCLI
+from .log_cli import LogCLI
 # Google Sheets integration moved to gdocs/ folder
 # from .google_sheets_integration import GoogleSheetsIntegration
 from ..core.logging import get_logger
@@ -319,6 +320,18 @@ Examples:
     orchestrator_parser.add_argument('--output-dir', type=str, default='trading_projects', help='Output directory for project results')
     orchestrator_parser.add_argument('--config-file', type=str, help='Load configuration from JSON file')
     
+    # Log subcommand
+    log_parser = subparsers.add_parser('log', help='HTS log operations')
+    log_parser.add_argument(
+        'action',
+        choices=['list', 'export'],
+        help='Log action to perform'
+    )
+    log_parser.add_argument('--server', help='Server name')
+    log_parser.add_argument('--output', help='Output file path')
+    log_parser.add_argument('--user', default='miguel', help='Sudo user')
+    log_parser.add_argument('--levels', help='Comma-separated log levels')
+
     return parser
 
 
@@ -466,6 +479,8 @@ async def main_async(args: argparse.Namespace) -> int:
             cli_instance = BacktestWorkflowCLI(config)
         elif args.command == 'order':
             cli_instance = OrderCLI(config)
+        elif args.command == 'log':
+            cli_instance = LogCLI(config)
         elif args.command == 'menu':
             # Use the new Textual TUI
             from .tui.app import HaasTUI

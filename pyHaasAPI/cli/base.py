@@ -27,6 +27,7 @@ from ..api.script.script_api import ScriptAPI
 from ..api.market.market_api import MarketAPI
 from ..api.backtest.backtest_api import BacktestAPI
 from ..api.order.order_api import OrderAPI
+from ..api.log.log_api import LogAPI
 from ..services.lab.lab_service import LabService
 from ..services.bot.bot_service import BotService
 from ..services.analysis.analysis_service import AnalysisService
@@ -81,6 +82,7 @@ class BaseCLI(ABC):
         self.market_api: Optional[MarketAPI] = None
         self.backtest_api: Optional[BacktestAPI] = None
         self.order_api: Optional[OrderAPI] = None
+        self.log_api: Optional[LogAPI] = None
         
         # Services
         self.lab_service: Optional[LabService] = None
@@ -179,6 +181,7 @@ class BaseCLI(ABC):
         self.market_api = MarketAPI(self.client, self.auth_manager)
         self.backtest_api = BacktestAPI(self.client, self.auth_manager)
         self.order_api = OrderAPI(self.client, self.auth_manager)
+        self.log_api = LogAPI(self.client, self.auth_manager)
 
     async def _initialize_services(self) -> None:
         """Initialize services"""

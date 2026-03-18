@@ -228,14 +228,23 @@ class ServerManager:
             self.logger.info(f"Connecting to server {server_name}")
             server_status.status = ServerStatus.CONNECTING
             
-            # Guard: Check if ports 8090/8092 are already in use locally
-            import psutil
+            # Guard: Check and Cleanup ports 8090/8092 if already in use locally
             try:
-                busy = [f"{c.laddr.port}(PID:{c.pid})" for c in psutil.net_connections() 
-                        if c.laddr.port in [8090, 8092] and c.status == 'LISTEN']
-                if busy:
-                    self.logger.warning(f"Port collision detected: {', '.join(busy)}. Tunnel might not bind.")
-            except: pass
+                for conn in psutil.net_connections():
+                    if conn.laddr.port in [8090, 8092] and conn.status == 'LISTEN':
+                        try:
+                            p = psutil.Process(conn.pid)
+                            if "ssh" in p.name().lower():
+                                self.logger.warning(f"Cleaning up stale SSH tunnel (PID: {conn.pid}) on port {conn.laddr.port}")
+                                p.terminate()
+                                try:
+                                    p.wait(timeout=2)
+                                except psutil.TimeoutExpired:
+                                    p.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+            except Exception as e:
+                self.logger.warning(f"Error during port cleanup: {e}")
 
             # Build SSH command
             ssh_cmd = self._build_ssh_command(server_status.config)
@@ -401,7 +410,12 @@ class ServerManager:
                         if "ssh" in p.name().lower():
                             self.logger.info(f"Killing stale SSH tunnel (PID: {conn.pid}) on port {conn.laddr.port}")
                             p.terminate()
-                    except: pass
+                            try:
+                                p.wait(timeout=2)
+                            except psutil.TimeoutExpired:
+                                p.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
             
             return await self._switch_server_internal(server_name)
 
@@ -681,18 +695,40 @@ class ServerManager:
             cmd.extend(["-i", config.ssh_key_path])
             
         cmd.append(f"{config.username}@{config.hostname}")
+        
+        # Smart Sudo: If command contains sudo and we have a password, 
+        # replace 'sudo' with 'sudo -S' and prepare to pipe password.
+        use_password = False
+        if "sudo " in command and self.settings.sudo_password:
+            # Only inject -S if not already there and -n is not there
+            if "sudo -S" not in command and "sudo -n" not in command:
+                command = command.replace("sudo ", "sudo -S ")
+                use_password = True
+            elif "sudo -n" in command and self.settings.sudo_password:
+                # Replace -n with -S to allow password usage
+                command = command.replace("sudo -n", "sudo -S")
+                use_password = True
+
         cmd.append(command)
         
         try:
             process = await asyncio.create_subprocess_exec(
                 *cmd,
+                stdin=asyncio.subprocess.PIPE if use_password else None,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
             
             try:
-                # Add overall timeout to the SSH operation
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout + 2)
+                if use_password:
+                    # Send password followed by newline
+                    self.logger.debug(f"Sending sudo password to {server_name}")
+                    stdout, stderr = await asyncio.wait_for(
+                        process.communicate(input=f"{self.settings.sudo_password}\n".encode()), 
+                        timeout=config.timeout + 2
+                    )
+                else:
+                    stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=config.timeout + 2)
                 
                 return (
                     process.returncode == 0,

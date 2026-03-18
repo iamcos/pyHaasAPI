@@ -107,12 +107,15 @@ class LabDetailScreen(Vertical):
         
         # Add sortable columns
         table.add_columns(
-            "Backtest ID", 
-            "Net Profit", 
-            "Win Rate%", 
-            "DD%", 
-            "Trades", 
-            "ROE%"
+            "BT ID", 
+            "ROE%",
+            "Net $",
+            "WR%", 
+            "DD%",
+            "Recov",  # Recovery Factor
+            "Calmar",  # Calmar Ratio
+            "Streak",  # Current streak
+            "Trades"
         )
         
         # Track current sort
@@ -214,28 +217,58 @@ class LabDetailScreen(Vertical):
                 dd_text.stylize("red")
             
             # Highlight top 3 performers
-            bt_id = Text(m.backtest_id[:8])
+            bt_id = Text(m.backtest_id[:6])
             if idx < 3:
                 bt_id.stylize("bold cyan")
             
+            # Color code recovery factor
+            recov_text = Text(f"{m.recovery_factor:.1f}")
+            if m.recovery_factor > 3:
+                recov_text.stylize("bold green")
+            elif m.recovery_factor > 1.5:
+                recov_text.stylize("green")
+            elif m.recovery_factor < 1:
+                recov_text.stylize("red")
+            
+            # Color code Calmar ratio
+            calmar_text = Text(f"{m.calmar_ratio:.2f}")
+            if m.calmar_ratio > 1:
+                calmar_text.stylize("green")
+            elif m.calmar_ratio < 0:
+                calmar_text.stylize("red")
+            
+            # Streak indicator
+            if m.current_streak > 0:
+                streak_text = Text(f"+{m.current_streak}W", style="bold green")
+            elif m.current_streak < 0:
+                streak_text = Text(f"{m.current_streak}L", style="bold red")
+            else:
+                streak_text = Text("--", style="dim")
+            
             table.add_row(
                 bt_id,
-                f"{m.net_profit:.2f}",
+                roi_text,
+                f"{m.net_profit:.0f}",
                 wr_text,
                 dd_text,
-                str(m.total_trades),
-                roi_text
+                recov_text,
+                calmar_text,
+                streak_text,
+                str(m.total_trades)
             )
     
     def _sort_metrics(self) -> None:
         """Sort metrics based on current sort column."""
         sort_key_map = {
-            "Backtest ID": lambda x: x.backtest_id,
-            "Net Profit": lambda x: x.net_profit,
-            "Win Rate%": lambda x: x.win_rate_pct,
+            "BT ID": lambda x: x.backtest_id,
+            "ROE%": lambda x: x.roi_pct,
+            "Net $": lambda x: x.net_profit,
+            "WR%": lambda x: x.win_rate_pct,
             "DD%": lambda x: x.max_drawdown_pct,
-            "Trades": lambda x: x.total_trades,
-            "ROE%": lambda x: x.roi_pct
+            "Recov": lambda x: x.recovery_factor,
+            "Calmar": lambda x: x.calmar_ratio,
+            "Streak": lambda x: x.current_streak,
+            "Trades": lambda x: x.total_trades
         }
         
         if self.sort_column in sort_key_map:

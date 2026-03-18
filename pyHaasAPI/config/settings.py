@@ -29,6 +29,9 @@ class Settings:
         self.debug = os.getenv("PYHAASAPI_DEBUG", "false").lower() == "true"
         self.environment = os.getenv("PYHAASAPI_ENV", "production")
         self.default_server = os.getenv("API_DEFAULT_SERVER", "srv03")
+        self.sudo_password = os.getenv("HTS_SUDO_PASSWORD", "")
+        self.sudo_user = os.getenv("HTS_SUDO_USER", "miguel")
+        self.enable_remote_logging = os.getenv("ENABLE_REMOTE_LOGGING", "false").lower() == "true"
     
     @property
     def is_development(self) -> bool:

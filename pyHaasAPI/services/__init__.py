@@ -12,6 +12,7 @@ from .server_content_manager import ServerContentManager, SnapshotResult
 from .account_manager import AccountManager, AccountAssignmentState
 from .bot_naming_service import BotNamingService, BotNamingContext
 from .bot_deployment_service import BotDeploymentService
+from .script_lifecycle_manager import ScriptLifecycleManager
 
 __all__ = [
     # Lab Service
@@ -53,4 +54,7 @@ __all__ = [
     
     # Bot Deployment
     "BotDeploymentService",
+    
+    # Script Management
+    "ScriptLifecycleManager",
 ]
