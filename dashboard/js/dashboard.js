@@ -87,29 +87,21 @@ export function populateBotList() {
 }
 
 export function updateMetricsUI() {
-    document.getElementById('metric-bots').innerText = state.metrics.bot_count;
-    document.getElementById('metric-roi').innerText = state.metrics.global_pnl;
-    if (document.getElementById('metric-vault')) {
-        document.getElementById('metric-vault').innerText = state.metrics.vault_count;
-    }
-    
-    if (document.getElementById('metric-winrate')) {
-        document.getElementById('metric-winrate').innerText = state.metrics.win_rate;
-    }
-    
-    if (document.getElementById('metric-haas-winrate')) {
-        document.getElementById('metric-haas-winrate').innerText = `H: ${state.metrics.win_rate}`;
-    }
-    
-    if (document.getElementById('metric-drawdown')) {
-        document.getElementById('metric-drawdown').innerText = state.metrics.max_drawdown;
-    }
-    
-    if (document.getElementById('metric-pnl-trend')) {
-        const trend = parseFloat(state.metrics.total_roi) >= 0 ? 'positive' : 'negative';
-        const trendText = parseFloat(state.metrics.total_roi) >= 0 ? 'Growth Streak' : 'Recovery Phase';
-        document.getElementById('metric-pnl-trend').className = `stat-trend ${trend}`;
-        document.getElementById('metric-pnl-trend').innerText = trendText;
+    const m = state.metrics || {};
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+
+    setEl('metric-bots',        m.bot_count   ?? '--');
+    setEl('metric-roi',         m.global_pnl  ?? '--');
+    setEl('metric-vault',       m.vault_count ?? '--');
+    setEl('metric-winrate',     m.win_rate    ?? '--');
+    setEl('metric-haas-winrate', m.win_rate ? `H: ${m.win_rate}` : '--');
+    setEl('metric-drawdown',    m.max_drawdown ?? '--');
+
+    const trendEl = document.getElementById('metric-pnl-trend');
+    if (trendEl && m.total_roi !== undefined) {
+        const positive = parseFloat(m.total_roi) >= 0;
+        trendEl.className = `stat-trend ${positive ? 'positive' : 'negative'}`;
+        trendEl.innerText = positive ? 'Growth Streak' : 'Recovery Phase';
     }
 }
 
