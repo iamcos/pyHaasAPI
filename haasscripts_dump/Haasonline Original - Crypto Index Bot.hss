@@ -1,0 +1,26 @@
+baseCoin = Input('Base Coin', 'BTC')
+takeOverWallet = Input('Sell excessive amount', false, 'If set on true the script will sell the excessive amount on start.')
+table = InputTable(
+    InputTableOptions('Index'),
+    InputTableColumn('Coin', 'ETH', 'XRP'),
+    InputTableColumn('Allocated Amount (%)', 10, 10),
+    InputTableColumn('Buy Level (%)', 0.8, 0.8),
+    InputTableColumn('Sell Level (%)', 0.8, 0.8),
+    InputTableColumn('Stop Loss (%)', 40, 40),
+    InputTableColumn('Trailing Stop (%)', 60, 60)
+)
+
+totalProfit = 0
+for i = 1, #table do
+    positionId = CC_CryptoIndexSlot(table[i][1], baseCoin, table[i][2], table[i][3], table[i][4], table[i][5], table[i][6], takeOverWallet)
+    totalProfit = totalProfit + GetPositionProfit(positionId)
+end
+
+PlotDoubleColor(Plot(1, 'Profit', totalProfit, Green), 0, Red, Gray(10))
+
+estimatedProfit = Round(totalProfit,8)..' '..baseCoin
+Log('Estimated Profit: '..estimatedProfit)
+
+Finalize(function() 
+    CustomReport('Estimated Profit', estimatedProfit)
+end)

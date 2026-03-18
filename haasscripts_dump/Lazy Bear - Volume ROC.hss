@@ -1,0 +1,22 @@
+-- [LazyBear] Volume ROC, https://www.tradingview.com/script/dB56X9AU-Indicator-Volume-ROC/
+-- Converted by pshai
+
+-- Inputs
+local length = Input('Length', 12)
+
+-- Data
+local vroc = ROC(GetVolume(), length)
+
+-- Plots
+Plot(1, "VROC", vroc)
+PlotHorizontalLine(1, "Zero", Gray, 0)
+
+-- Additionals
+local sma = SMA(ClosePrices(), 50)
+
+-- Combined trade logic
+if IsRising(sma, 3) and Delta(GetVolume(), vroc) > 50 then
+    DoBuy()
+elseif IsFalling(sma, 3) then
+    DoSell()
+end

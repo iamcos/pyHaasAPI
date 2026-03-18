@@ -1,0 +1,17 @@
+HideOrderSettings()
+HideTradeAmountSettings()
+EnableHighSpeedUpdates()
+
+basePrice = Input('Base Price', 7750)
+priceSpread = Input('Price Spread (%)', 0.6)
+amount = Input('Order Size', 1)
+noBuyOrders = Input('No Buy Orders', 5, 'Once the bot is running the number of buy orders will different from this value.')
+noSellOrders = Input('No Sell Orders', 5, 'Once the bot is running the number of sell orders will different from this value.')
+
+for i=1,noBuyOrders do 
+   CC_FlashCrashSlot(basePrice, i - 1, amount, priceSpread, true)
+end
+
+for i=1,noSellOrders do 
+    CC_FlashCrashSlot(basePrice, i - 1, amount, priceSpread, false)
+end

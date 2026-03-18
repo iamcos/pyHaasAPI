@@ -195,19 +195,35 @@ class BacktestDataExtractor:
                     t = parse_pos(up)
                     if t: trades.append(t)
 
-            # If no trades list, we still want a summary with metrics
+            # Recompute summary precisely from trades if available
+            if trades:
+                total_trades = len(trades)
+                winning_trades = sum(1 for t in trades if t.profit_loss > 0)
+                losing_trades = sum(1 for t in trades if t.profit_loss < 0)
+                win_rate = (winning_trades / total_trades) if total_trades > 0 else 0.0
+                total_profit = sum(t.profit_loss for t in trades if t.profit_loss > 0)
+                total_loss = abs(sum(t.profit_loss for t in trades if t.profit_loss < 0))
+                net_profit = sum(t.profit_loss - t.fees for t in trades)
+                max_drawdown, max_drawdown_pct = self._calculate_drawdown(trades, starting_balance)
+            else:
+                win_rate = (winning_trades/total_trades) if total_trades > 0 else 0.0
+                total_profit = max(0, net_profit)
+                total_loss = max(0, -net_profit)
+                max_drawdown = 0.0
+                max_drawdown_pct = pr.get('MDD', 0.0)
+
             return BacktestSummary(
                 backtest_id=data.get('BotId', data.get('LogId', '')),
                 lab_id="", # Let caller set from context/filename
                 total_trades=total_trades,
                 winning_trades=winning_trades,
                 losing_trades=losing_trades,
-                win_rate=(winning_trades/total_trades) if total_trades > 0 else 0,
-                total_profit=max(0, net_profit), 
-                total_loss=max(0, -net_profit),
+                win_rate=win_rate,
+                total_profit=total_profit,
+                total_loss=total_loss,
                 net_profit=net_profit,
-                max_drawdown=0.0, 
-                max_drawdown_pct=pr.get('MDD', 0.0),
+                max_drawdown=max_drawdown, 
+                max_drawdown_pct=max_drawdown_pct,
                 starting_balance=starting_balance,
                 final_balance=starting_balance + net_profit,
                 peak_balance=starting_balance + max(0, net_profit),

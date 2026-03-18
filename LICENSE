@@ -1,21 +1,38 @@
-MIT License
+pyHaasAPI Research License
+Copyright (c) 2024–2026 Cosmos (iamcos)
 
-Copyright (c) 2024 Cosmos
+TERMS AND CONDITIONS
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. PERMITTED USE — RESEARCH & PERSONAL ONLY
+   Permission is hereby granted, free of charge, to any individual obtaining a copy
+   of this software and associated documentation files (the "Software"), to use,
+   study, copy, modify, and distribute the Software solely for:
+   - Academic research and educational purposes
+   - Personal, non-commercial experimentation
+   - Open-source contributions back to this repository
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. COMMERCIAL USE — WRITTEN PERMISSION REQUIRED
+   Any use of the Software, in whole or in part, for commercial purposes is
+   STRICTLY PROHIBITED without prior written permission from the copyright holder.
+   This includes, but is not limited to:
+   - Deploying the Software with real money or live trading capital
+   - Incorporating the Software into a paid product or service
+   - Using the Software to manage funds on behalf of third parties
+   - Any proprietary or for-profit application
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   If you wish to use this Software commercially or in a live-trading context,
+   you MUST contact the copyright holder to discuss licensing terms before doing so:
+
+       Contact: https://github.com/iamcos
+
+3. DISCLAIMER
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+   COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+   FROM THE USE OF, OR INABILITY TO USE, THIS SOFTWARE — INCLUDING BUT NOT LIMITED
+   TO ANY FINANCIAL LOSSES INCURRED THROUGH LIVE OR PAPER TRADING.
+
+4. ATTRIBUTION
+   All copies or substantial portions of the Software must retain this license
+   notice and the copyright statement above.

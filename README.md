@@ -2,14 +2,14 @@
 
 A Python client for the HaasOnline API, including tools for backtest data management, analysis, and visualization.
 
-## 📊 Backtest Visualization Dashboard
-A custom Streamlit dashboard ("Haas Data Viz") is available to analyze thousands of backtest results.
+## 📊 Nexus Quant Command Center
+A premium dashboard for unified HaasOnline & Freqtrade operations. [Read the Guide](docs/DASHBOARD_GUIDE.md)
 
 ### Features
-*   **The Universe of Bots**: Interactive scatter plot (ROI vs Drawdown) to spot outliers.
-*   **Noise Reduction**: Filters out "junk" bots (low trades, negative ROI) by default.
-*   **True Metrics**: Recalulates ROI, Win Rate, and Drawdown from raw trade data.
-*   **Lab Inspector**: Drill down into specific labs to find their top performers.
+*   **The Universe of Bots**: Interactive scatter plot (ROI vs Drawdown).
+*   **Script Forge**: Autonomous HaasScript dependency resolution & auto-repair.
+*   **Unified Arena**: Run Haas Cloud and Freqtrade Vectorized tests in one UI.
+*   **Lab Inspector**: Drill down into specific labs to find top performers.
 
 ### Quick Start
 1. **Hydrate Data**: Aggregate the raw JSON backtests into a high-performance dataset.

@@ -1,0 +1,121 @@
+-- Define the command & input parameters. 
+-- All the info defined will be visible in the command information models.
+DefineCommand("FlashCrashSlot", "A slot in the style of a Flash Crash Bot")
+
+local basePrice = DefineParameter(NumberType, 'basePrice', "Base price of the bot", true, 5510, 'InputNumber')
+local index = DefineParameter(NumberType, "index", "Slot index (Unique)", true, 0)
+local amount = DefineParameter(NumberType, "amount", "Trade amount", true, 1, 'TradeAmount')
+local spread = DefineParameter(NumberType, "spread", "Spread between orders.", true, 0.5, 'InputNumber')
+local startWithBuy = DefineParameter(BooleanType, "startWithBuy", "Start with a buy order", true, true)
+
+local priceSpread = (basePrice / 100 * spread)
+
+-- Lets calculate the buy and sell price of this slot.
+-- Example. When the base price is 100.
+-- A buy slot will place the buy order on 99 and the sell order on 100.
+-- A sell slot will place the buy order on 100 and sell order on 101.
+local buyPrice = basePrice + priceSpread * index
+local sellPrice = basePrice + (priceSpread * (index + 1))
+
+-- If the slot starts with a buy orders we subtract instead of add.
+if startWithBuy then
+    buyPrice = basePrice - (priceSpread * (index + 1))
+    sellPrice = basePrice - priceSpread * index
+end
+
+-- Load saved properties.
+local buyOrderActive = Load('buyOrderActive', startWithBuy)
+local orderId = Load('orderId', '')
+local positionId = Load('positionId', '')
+
+-- If we have an order id and there are no finished order. We dont need to check anything.
+if orderId != '' and IsAnyOrderFinished() == false then
+    -- No filled orders
+    return
+end
+
+-- If there is a position open, we need to adjust the amount for fee.
+if positionId != '' and GetPositionAmount(positionId) > 0 then
+    amount = GetPositionAmount(positionId)
+end
+
+-- Are we on the buy side of the slot?
+if buyOrderActive then
+
+    -- Do we have a order ID?
+    if orderId == '' then
+        Log('No buy order')
+        -- We dont have a buy order. Lets place one
+
+        -- If the slots start with a buy order, create a new position key.
+        if startWithBuy then
+            positionId = NewGuid()
+        end
+
+        -- Place the buy order
+        orderId = PlaceBuyOrder(buyPrice, amount, PriceMarket(), NoTimeOutOrderType, '', positionId)
+        Log('Placing buy order for slot: '..index)
+    
+    elseif IsOrderFilled(orderId) then
+        Log('No buy filled')
+        -- The buy order has been filled.
+        -- Reset the orderId and switch side.
+        orderId = ''
+        buyOrderActive = false
+
+        Log('Buy order completed for slot: '..index)
+
+    elseif IsOrderOpen(orderId) == false then
+        Log('buy order not open')
+        -- Order is not open. It should be.
+        orderId = PlaceCancelledOrder(orderId, buyPrice)
+        Log('Replacing buy order for slot: '..index)
+    else 
+        -- Order is still open. 
+        -- Dont do anything
+    end
+end
+
+-- Are we on the sell side of the slot?
+if buyOrderActive == false then
+
+    if orderId == '' then
+        Log('No sell order')
+        -- We dont have a sell order. Lets place one
+
+        -- If the slots start with a sell order, create a new position key.
+        if startWithBuy == false then
+            positionId = NewGuid()
+        end
+        
+        -- Place the sell order
+        orderId = PlaceSellOrder(sellPrice, amount, PriceMarket(), NoTimeOutOrderType, '', positionId)
+        Log('Placing sell order for slot: '..index)
+    
+    elseif IsOrderFilled(orderId) then
+        Log('No sell filled')
+        -- The sell order has been filled.
+        -- Reset the orderId and switch side.
+        orderId = ''
+        buyOrderActive = true
+
+        Log('Sell order completed for slot: '..index)
+
+    elseif IsOrderOpen(orderId) == false then
+        Log('sell order not open')
+        -- Order is not open. It should be.
+        orderId = PlaceCancelledOrder(orderId, sellPrice)
+        Log('Replacing sell order for slot: '..index)
+    else 
+        -- Order is still open. 
+        -- Dont do anything
+    end
+end
+
+-- Save the properties for future use.
+Save('buyOrderActive', buyOrderActive)
+Save('orderId', orderId)
+Save('positionId', positionId)
+
+-- Return nothing.
+DefineOutput(VoidType)

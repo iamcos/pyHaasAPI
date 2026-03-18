@@ -1,0 +1,228 @@
+-- HideTradeAmountSettings()
+
+local byMargin = Input('Trade amount by margin', true, '', 'TRADE SETTINGS')    
+local TOTAL_margin = Input('Order Size Margin', 930 --[[100]], 'margin used of quote currency (e.g. USDT) per order. 2 orders are placed total, so total margin used is double this. \n Disabled when Dynamic Max Open is Enabled', 'TRADE SETTINGS')
+    
+local orderTypes = {
+    limit = 'LIMIT',
+    postLimit = 'LIMIT (Post-Only)',
+    market = 'MARKET'
+}
+
+local entry_order = InputOptions('Entry Order Type', orderTypes.market, orderTypes, 'Entry order type.', 'TRADE SETTINGS')
+
+local intervLst = {
+    '1 Minute', '2 Minutes', '3 Minutes', '4 Minutes', '5 Minutes', '6 Minutes',
+    '10 Minutes', '12 Minutes', '15 Minutes', '20 Minutes', '30 Minutes', '45 Minutes',
+    '1 Hour', '1,5 Hours', '2 Hours', '3 Hours', '4 Hours', '6 Hours', '12 Hours',
+    '1 Day', '2 Days', '3 Days', '1 Week', '2 Weeks', '1 Month'
+}
+local interval1 = InputOptions('Low TF', '5 Minutes', intervLst, 'Select interval of Low Source prices')
+local interval2 = InputOptions('High TF', '4 Hours', intervLst, 'Select interval of High Source prices')
+
+local lo_tf = IfElse(interval1 == '1 Minute', 1,
+                IfElse(interval1 == '2 Minutes', 2,
+                IfElse(interval1 == '3 Minutes', 3,
+                IfElse(interval1 == '4 Minutes', 4,
+                IfElse(interval1 == '5 Minutes', 5,
+                IfElse(interval1 == '6 Minutes', 6,
+                IfElse(interval1 == '10 Minutes', 10,
+                IfElse(interval1 == '12 Minutes', 12,
+                IfElse(interval1 == '15 Minutes', 15,
+                IfElse(interval1 == '20 Minutes', 20,
+                IfElse(interval1 == '30 Minutes', 30,
+                IfElse(interval1 == '45 Minutes', 45,
+                IfElse(interval1 == '1 Hour', 60,
+                IfElse(interval1 == '1,5 Hours', 90,
+                IfElse(interval1 == '2 Hours', 120,
+                IfElse(interval1 == '3 Hours', 180,
+                IfElse(interval1 == '4 Hours', 240,
+                IfElse(interval1 == '6 Hours', 360,
+                IfElse(interval1 == '12 Hours', 720,
+                IfElse(interval1 == '1 Day', 1440,
+                IfElse(interval1 == '2 Days', 2880,
+                IfElse(interval1 == '3 Days', 4320,
+                IfElse(interval1 == '1 Week', 10080,
+                IfElse(interval1 == '2 Weeks', 20160,
+                IfElse(interval1 == '1 Month', 41760,
+                CurrentInterval())))))))))))))))))))))))))
+
+
+local hi_tf = IfElse(interval2 == '1 Minute', 1,
+                IfElse(interval2 == '2 Minutes', 2,
+                IfElse(interval2 == '3 Minutes', 3,
+                IfElse(interval2 == '4 Minutes', 4,
+                IfElse(interval2 == '5 Minutes', 5,
+                IfElse(interval2 == '6 Minutes', 6,
+                IfElse(interval2 == '10 Minutes', 10,
+                IfElse(interval2 == '12 Minutes', 12,
+                IfElse(interval2 == '15 Minutes', 15,
+                IfElse(interval2 == '20 Minutes', 20,
+                IfElse(interval2 == '30 Minutes', 30,
+                IfElse(interval2 == '45 Minutes', 45,
+                IfElse(interval2 == '1 Hour', 60,
+                IfElse(interval2 == '1,5 Hours', 90,
+                IfElse(interval2 == '2 Hours', 120,
+                IfElse(interval2 == '3 Hours', 180,
+                IfElse(interval2 == '4 Hours', 240,
+                IfElse(interval2 == '6 Hours', 360,
+                IfElse(interval2 == '12 Hours', 720,
+                IfElse(interval2 == '1 Day', 1440,
+                IfElse(interval2 == '2 Days', 2880,
+                IfElse(interval2 == '3 Days', 4320,
+                IfElse(interval2 == '1 Week', 10080,
+                IfElse(interval2 == '2 Weeks', 20160,
+                IfElse(interval2 == '1 Month', 41760,
+                CurrentInterval())))))))))))))))))))))))))
+
+local sl_cd = Load('sl_cd', 0)
+local sl_cdr = Input('SL colldown reset', 60)
+
+local sll = Input('Stoch low line', 20)
+local shl = Input('Stoch high line', 80)
+local adxTrigger = Input('ADX trigger', 25, 'Value 0-100')
+local fast_dp = Input('Fast DEMA period', 10)
+local slow_dp = Input('Slow DEMA period', 30)
+
+
+local tp1 = Input('TP 1st pt, %', 100)
+local tp2 = Input('TP 2nd pct, %', 50)
+local sl1 = Input('SL 1st pct, %', 100)
+local sl2 = Input('SL 2nd pct, %', 35)
+
+
+local dat1 = {
+    o = OpenPrices(lo_tf),
+    h = HighPrices(lo_tf),
+    l = LowPrices(lo_tf),
+    c = ClosePrices(lo_tf),
+    v = GetVolume(lo_tf)
+}
+
+local dat2 = {
+    o = OpenPrices(hi_tf),
+    h = HighPrices(hi_tf),
+    l = LowPrices(hi_tf),
+    c = ClosePrices(hi_tf),
+    v = GetVolume(hi_tf)
+}
+
+local bb = BBANDS(dat1.c, 50, 2, 2, SmaType)
+local stoch = STOCH(dat1.h, dat1.l, dat1.c, 14, 2, 9)
+
+local adx = ADX(dat2.h, dat2.l, dat2.c, 14)
+local ma = {
+    fast = DEMA(dat2.c, fast_dp),
+    slow = DEMA(dat2.c, slow_dp)
+}
+
+PlotBBandsChart(0, 'bb', bb.upper, bb.middle, bb.lower)
+Plot(1, 'k', stoch.slowK, Yellow)
+Plot(1, 'd', stoch.slowD, Red)
+PlotHorizontalLine(1, '', DarkGray, sll, Dashed)
+PlotHorizontalLine(1, '', DarkGray, shl, Dashed)
+PlotHorizontalZone(1, '', Purple(10), sll, shl)
+
+OptimizedForInterval(hi_tf, function()
+    Plot(2, 'adx', adx, White)
+    PlotHorizontalLine(2, '', DarkGray, adxTrigger, Dashed)
+
+    Plot(0, 'ma.fast', ma.fast, Maroon)
+    Plot(0, 'ma.slow', ma.slow, Purple)
+end)
+
+local cv = ContractValue()
+local trdamnt = byMargin and TOTAL_margin/cv * Leverage() or TradeAmount()
+-- local total_amount = i_autoMax and f_TrdPct_nostring(eTrdPct, selectCalcAmntAL) or TOTAL_margin/cv * Leverage()   
+
+-- entry order type
+    function getOrderType(strType)
+        if strType == orderTypes.limit then
+            return LimitOrderType
+        elseif strType == orderTypes.postLimit then
+            return MakerOrCancelOrderType
+        elseif strType == orderTypes.market then
+            return MarketOrderType
+        end
+ 
+    end
+
+
+function goLong()
+    local cp = CurrentPrice()
+    local id = Load('long_id', '')
+
+    if id == '' then
+        id = PlaceGoLongOrder(cp.bid, trdamnt, {type=getOrderType(entry_order), note='LE', timeout=300})
+    else
+        if not IsOrderOpen(id) then
+            id = ''
+        end
+    end
+
+    Save('long_id', id)
+end
+
+
+function goShort()
+    local cp = CurrentPrice()
+    local id = Load('short_id', '')
+
+    if id == '' then
+        id = PlaceGoShortOrder(cp.ask, trdamnt, {type=getOrderType(entry_order), note='SE', timeout=300})
+    else
+        if not IsOrderOpen(id) then
+            id = ''
+        end
+    end
+
+    Save('short_id', id)
+end
+
+local trend_up = ma.fast > ma.slow
+local trend_dn = ma.fast < ma.slow
+
+local stoch_os = stoch.slowK < sll and stoch.slowD < sll
+local stoch_ob = stoch.slowK > shl and stoch.slowD > shl
+
+local adx_up = adx[1] > adx[3]
+local adx_dn = adx[1] < adx[3]
+local adx_approves = adx > adxTrigger
+
+local bb_bl = dat1.c < bb.lower
+local bb_au = dat1.c > bb.upper
+
+local posDir = GetPositionDirection()
+
+if adx_approves and posDir == NoPosition and Time() > sl_cd then
+    if trend_up
+        and stoch_os
+        and bb_bl
+    then
+        goLong()
+
+
+    elseif trend_dn
+        and stoch_ob
+        and bb_au
+    then
+        goShort()
+
+    end
+end
+
+
+
+if GetPositionDirection() != NoPosition then
+    local tp_prc = IfElse(adx_approves, tp1, tp2)
+    local sl_prc = IfElse(adx_approves, sl1, sl2)
+
+    if TakeProfitROI(tp_prc) then
+        PlaceExitPositionOrder({note = 'TP', type = MarketOrderType})
+    elseif StopLossROI(sl_prc) then
+        PlaceExitPositionOrder({note = 'SL', type = MarketOrderType})
+        sl_cd = Time() + sl_cdr * 60
+    end
+end
+
+Save('sl_cd', sl_cd)

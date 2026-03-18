@@ -1,0 +1,38 @@
+-- Define command
+DefineCommand("MadHatterRSI", "Custom RSI signal implementation for MadHatter")
+
+-- Define command parameters.
+local chartIndex = DefineParameter(NumberType, 'chartIndex', 'The index on which to chart', true, 1, 'Number')
+local name = DefineParameter(StringType, 'name', 'Unique name of the indicator.', false, '', 'Text')
+local interval = DefineParameter(NumberType, 'interval', 'Used interval for price data. Default is 0 and the main interval will be used.', false, 0, 'Number,InputInterval')
+
+DefineIntervalOptimization(interval)
+
+-- Input fields for the indicator. Add the name in front.
+InputGroupHeader('MadHatter RSI '..name)
+local length = Input(name..' RSI Length', 12)
+local buyLevel = Input(name..' RSI Buy Level', 30)
+local sellLevel = Input(name..' RSI Sell Level', 70) 
+
+
+-- Calculate the indicator
+local prices = ClosePrices(interval)
+local rsi = RSI(prices, length)
+
+local signal = SignalNone
+if rsi < buyLevel and IsRising(rsi, 1) then
+    signal = SignalLong
+elseif rsi[2] < buyLevel and IsRising(rsi, 1) then
+    signal = SignalLong
+elseif rsi > sellLevel and IsFalling(rsi, 1) then
+    signal = SignalShort
+elseif rsi[2] > sellLevel and IsFalling(rsi, 1) then
+    signal = SignalShort
+end
+
+-- Plot the indicator Use the chartIndex parameter.
+PlotLineBuySellZone(chartIndex, 'MHB RSI', rsi, buyLevel, sellLevel)
+ChartSetAxisOptions(chartIndex, RightAxis, 0, 100)
+
+--Return the custom signal.
+DefineOutput(EnumType, signal, 'Signal result', 'TradeBotContainer, IndicatorContainer, Signal Helpers')

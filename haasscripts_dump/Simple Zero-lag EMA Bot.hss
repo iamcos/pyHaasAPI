@@ -1,0 +1,24 @@
+-- Input fields
+shortLength = Input('Short Length', 9)
+longLength = Input('Long Length', 36)
+swing = Input('Swing', 0)
+
+-- Get the required data
+prices = ClosePrices()
+            
+-- Calculate the SMAs
+short = ZLEMA(prices, shortLength)
+long = ZLEMA(prices, longLength)
+difference = short - long
+                
+-- Lets draw the lines on the chart
+Plot(0, 'Short', short, Orange)
+Plot(0, 'Long', long, SkyBlue)
+
+if swing > 0 then
+  PlotLineBuySellZone(1, 'Swing', difference, -swing, swing)
+end
+
+-- Check how the SMA looks like and base the trade signal on it.     
+signal = GetBuySellLevelSignal(difference, -swing, swing)
+DoSignal(signal)

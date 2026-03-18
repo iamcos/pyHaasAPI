@@ -1,0 +1,134 @@
+EnableHighSpeedUpdates()
+
+-- ====================================================================================================
+-- INPUT FIELDS
+scaleUpLong = 'Scale up long'
+scaleDownLong = 'Scale down long'
+scaleUpShort = 'Scale up short'
+scaleDownShort = 'Scale down short'
+
+direction = InputOptions('Direction', '', {
+    scaleUpLong,
+    scaleDownLong,
+    scaleUpShort,
+    scaleDownShort,
+})
+
+InputGroupHeader('Price Range')
+lowestPrice = Input('Lowest Price', 0, 'Minimum price on which to execute orders. Use 0 to ignore.')
+highestPrice = Input('Highest Price', 0, 'Maximum price on which to execute orders. Use 0 to ignore.')
+
+InputGroupHeader('Order Sizes')
+minOrderSize = Input('Minimum Order size', 0.2, 'Fixed order size.')
+maxOrderSize = Input('Maximum Order size', 1, 'Fixed order size.')
+
+InputGroupHeader('Timeout')
+minTimeout = Input('Minimum Timeout (min)', 5, 'Minimum time between orders in minutes.')
+maxTimeout = Input('Maximum Timeout (min)', 60, 'Maximum time between orders in minutes.')
+
+-- ====================================================================================================
+-- LOADING VALUES
+
+orderId = Load('orderId', '')
+accumulated = Load('accumulated', 0)
+executionTime = Load('executionTime', 0)
+
+-- ====================================================================================================
+-- CHECK OPEN ORDER
+
+if orderId != '' then
+
+    if IsOrderOpen(orderId) == false then
+        -- Order is cancelled/rejected/filled. 
+        -- Sum filled amount and reset id.
+        accumulated = accumulated + GetOrderFilledAmount(orderId)
+
+        if GetOrderFilledAmount(orderId) == 0 then
+            -- Order is cancelled/rejected. Reset executionTime.
+            executionTime = 0
+        end
+
+        orderId = ''
+
+    end 
+
+    CustomReport('Accumulates so far', accumulated)
+    Log('Accumulates so far: '..accumulated)
+end
+
+-- ====================================================================================================
+-- RANDOMIZE
+
+timeout = Ceil(Random(minTimeout, maxTimeout))
+orderSize = Random(minOrderSize, maxOrderSize)
+orderSize = Min(orderSize, TradeAmount() - accumulated)
+
+-- ====================================================================================================
+-- SET PLACEORDER EXECUTION CALL
+
+placeOrder = nil
+isSpot = MarketType() == SpotTrading
+price = 0
+
+if direction == scaleUpLong then
+    placeOrder = IfElse(isSpot, PlaceBuyOrder, PlaceGoLongOrder)
+    price = BuyPrices()
+
+elseif direction == scaleDownLong then
+    placeOrder = IfElse(isSpot, PlaceSellOrder, PlaceExitLongOrder)
+    price = SellPrices()
+
+elseif direction == scaleUpShort then
+    placeOrder = IfElse(isSpot, PlaceSellOrder, PlaceGoShortOrder)
+    price = SellPrices()
+
+else
+    placeOrder = IfElse(isSpot, PlaceBuyOrder, PlaceExitShortOrder)
+    price = BuyPrices()
+end
+
+-- ====================================================================================================
+-- PARSE AND CHECK AMOUNT
+orderSize = ParseTradeAmount('', price, orderSize)
+
+-- Are we done?
+if IsTradeAmountEnough('', price, TradeAmount() - accumulated) == false then
+    -- We are done.
+    DeactivateBot('Finished accumulating.')
+    orderSize = 0
+end
+
+-- Is minimum order size enough?
+if IsTradeAmountEnough('', price, minOrderSize) == false then
+    -- We are done.
+    LogError('Raise minimum order size')
+end
+
+
+-- ====================================================================================================
+-- EXECUTE ORDER
+
+if executionTime < Time() and orderId == '' and orderSize > 0 then
+
+    if highestPrice > 0 and price > highestPrice then
+        return
+    end
+    
+    if lowestPrice > 0 and price < lowestPrice then
+        return
+    end
+
+    Log('Executing trade for: '..orderSize..' '..AmountLabel())
+    Log('Trade timeout is: '..timeout..' minute(s).')
+
+    orderId = placeOrder(ClosePrices(), orderSize)
+    executionTime = Time() + timeout * 60
+
+end
+
+-- ====================================================================================================
+-- SAVE VALUES
+
+Save('orderId', orderId)
+Save('accumulated', accumulated)
+Save('executionTime', executionTime)
